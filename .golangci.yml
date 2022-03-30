@@ -1,0 +1,206 @@
+# See https://raw.githubusercontent.com/golangci/golangci-lint/master/.golangci.example.yml
+run:
+  timeout: 5m
+  allow-parallel-runners: true
+output:
+  sort-results: true
+linters-settings:
+  errcheck:
+    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+    # default is false: such cases aren't reported by default.
+    check-blank: true
+  exhaustive:
+    # check switch statements in generated files also
+    check-generated: false
+    # indicates that switch statements are to be considered exhaustive if a
+    # 'default' case is present, even if all enum members aren't listed in the
+    # switch
+    default-signifies-exhaustive: true
+  funlen:
+    lines: 30
+    statements: 30
+  gci:
+    # put imports beginning with prefix after 3rd-party packages;
+    # only support one prefix
+    # if not set, use goimports.local-prefixes
+    sections:
+      - Standard
+      - Default
+      - prefix(github.com/ICE-Blockchain)
+  gocognit:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 10
+  gocritic:
+    # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
+    # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+      - opinionated
+
+    # Settings passed to gocritic.
+    # The settings key is the name of a supported gocritic checker.
+    # The list of supported checkers can be find in https://go-critic.github.io/overview.
+    settings:
+      unnamedResult:
+        # whether to check exported functions
+        checkExported: true
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 10
+  godot:
+    # comments to be checked: `declarations`, `toplevel`, or `all`
+    scope: all
+    exclude:
+      # Exclude licensing comments.
+      - "SPDX-License-Identifier:"
+    # check that each sentence starts with a capital letter
+    capital: true
+  goimports:
+    # put imports beginning with prefix after 3rd-party packages;
+    # it's a comma-separated list of prefixes
+    local-prefixes: github.com/ICE-Blockchain
+  gomnd:
+    settings:
+      mnd:
+        # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
+        checks: argument,case,condition,operation,return,assign
+  govet:
+    # report about shadowed variables
+    check-shadowing: true
+
+    # settings per analyzer
+    settings:
+      printf: # analyzer name, run `go tool vet help` to see all analyzers
+        funcs: # run `go tool vet help printf` to see available settings for `printf` analyzer
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+
+    enable-all: true
+    disable-all: false
+  lll:
+    # max line length, lines longer will be reported. Default is 120.
+    # '\t' is counted as 1 character by default, and can be changed with the tab-width option
+    line-length: 160
+    # tab width in spaces. Default to 1.
+    tab-width: 1
+  nolintlint:
+    # Enable to ensure that nolint directives are all used. Default is true.
+    allow-unused: false
+    # Disable to ensure that nolint directives don't have a leading space. Default is true.
+    allow-leading-space: true
+    # Exclude following linters from requiring an explanation.  Default is [].
+    allow-no-explanation: []
+    # Enable to require an explanation of nonzero length after each nolint directive. Default is false.
+    require-explanation: true
+    # Enable to require nolint directives to mention the specific linter being suppressed. Default is false.
+    require-specific: true
+  wsl:
+    # If true append is only allowed to be cuddled if appending value is
+    # matching variables, fields or types on line above. Default is true.
+    strict-append: true
+    # Allow calls and assignments to be cuddled as long as the lines have any
+    # matching variables, fields or types. Default is true.
+    allow-assign-and-call: true
+    # Allow multiline assignments to be cuddled. Default is true.
+    allow-multiline-assign: true
+    # Allow declarations (var) to be cuddled.
+    allow-cuddle-declarations: false
+    # Allow trailing comments in ending of blocks
+    allow-trailing-comment: false
+    # Force newlines in end of case at this limit (0 = never).
+    force-case-trailing-whitespace: 0
+    # Force cuddling of err checks with err var assignment
+    force-err-cuddling: false
+    # Allow leading comments to be separated with empty liens
+    allow-separated-leading-comment: false
+  gofumpt:
+    # Choose whether or not to use the extra rules that are disabled
+    # by default
+    extra-rules: true
+  errorlint:
+    # Report non-wrapping error creation using fmt.Errorf
+    errorf: true
+
+linters:
+  enable:
+    - asciicheck
+    - bodyclose
+    - dogsled
+    - dupl
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goimports
+    - revive
+    - gomnd
+    - gosec
+    - lll
+    - makezero
+    - nakedret
+    - nestif
+    - nlreturn
+    - noctx
+    - nolintlint
+    - paralleltest
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - exportloopref
+    - sqlclosecheck
+    - stylecheck
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+  disable-all: false
+  fast: false
+
+issues:
+  # Show only new issues: if there are unstaged changes or untracked files,
+  # only those changes are analyzed, else only changes in HEAD~ are analyzed.
+  # It's a super-useful option for integration of golangci-lint into existing
+  # large codebase. It's not practical to fix all existing issues at the moment
+  # of integration: much better don't allow issues in new code.
+  # Default is false.
+  new: false
+
+severity:
+  # Default value is empty string.
+  # Set the default severity for issues. If severity rules are defined and the issues
+  # do not match or no severity is provided to the rule this will be the default
+  # severity applied. Severities should match the supported severity names of the
+  # selected out format.
+  # - Code climate: https://docs.codeclimate.com/docs/issues#issue-severity
+  # -   Checkstyle: https://checkstyle.sourceforge.io/property_types.html#severity
+  # -       Github: https://help.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+  default-severity: error

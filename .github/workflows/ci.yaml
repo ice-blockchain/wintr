@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: BUSL-1.1
+
+name: CI
+on:
+  push:
+    branches:
+      - master
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Find latest Go Version
+        id: findLatestGoVersion
+        run: |
+          LATEST_GO_VERSION=$(make latestGoVersion)
+          echo "::set-output name=latestGoVersion::$LATEST_GO_VERSION"
+      - name: Setup GO
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ steps.findLatestGoVersion.outputs.latestGoVersion }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+      - name: Make
+        run: make
+      - name: Compute new Tag version
+        id: compute_tag
+        uses: craig-day/compute-tag@v13
+        with:
+          github_token: ${{ github.token }}
+          version_type: minor
+      - id: check_tag
+        name: Check new computed Tag version
+        run: |
+          NEW_TAG_VERSION=$(echo "$NEW_TAG_VERSION" | sed 's/.\{2\}$//')
+          if [ $NEW_TAG_VERSION == 'v1.0.0' ]
+          then
+              echo "::set-output name=next_tag::$NEW_TAG_VERSION"
+          else
+              echo "::set-output name=next_tag::${NEW_TAG_VERSION}.0"
+          fi
+        env:
+          NEW_TAG_VERSION: ${{ steps.compute_tag.outputs.next_tag }}
+      - name: Create Release
+        id: create_release
+        #TODO This needs to be replaced ASAP! https://github.com/actions/create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.check_tag.outputs.next_tag }}
+          release_name: ${{ steps.check_tag.outputs.next_tag }}
+          draft: false
+          prerelease: false
+      - name: Slack Notification For Success
+        if: ${{ success() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.BACKEND_SLACK_WEBHOOK }}
+          SLACK_TITLE: CI Succeeded
+          SLACK_USERNAME: wintr-ci-bot
+          SLACK_ICON: https://avatars.githubusercontent.com/u/102382658?s=400&u=62e73f4cb845c48a07a19e03c6f84b721e40c0a6&v=4
+          SLACK_ICON_EMOJI: ':rocket:'
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_FOOTER: Wintr
+      - name: Slack Notification For Failure
+        if: ${{ failure() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.BACKEND_SLACK_WEBHOOK }}
+          SLACK_TITLE: CI Failed
+          SLACK_USERNAME: wintr-ci-bot
+          SLACK_ICON: https://avatars.githubusercontent.com/u/102382658?s=400&u=62e73f4cb845c48a07a19e03c6f84b721e40c0a6&v=4
+          SLACK_ICON_EMOJI: ':sob:'
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_FOOTER: Wintr
+      - name: Slack Notification For Cancellation
+        if: ${{ cancelled() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.BACKEND_SLACK_WEBHOOK }}
+          SLACK_TITLE: CI Cancelled
+          SLACK_USERNAME: wintr-ci-bot
+          SLACK_ICON: https://avatars.githubusercontent.com/u/102382658?s=400&u=62e73f4cb845c48a07a19e03c6f84b721e40c0a6&v=4
+          SLACK_ICON_EMOJI: ':X:'
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_FOOTER: Wintr

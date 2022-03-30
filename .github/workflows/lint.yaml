@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: BUSL-1.1
+
+name: GolangCI-lint
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  lint:
+    name: GolangCI-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - name: Find latest Go Version
+        id: findLatestGoVersion
+        run: |
+          LATEST_GO_VERSION=$(make latestGoVersion)
+          echo "::set-output name=latestGoVersion::$LATEST_GO_VERSION"
+      - name: Setup GO
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ steps.findLatestGoVersion.outputs.latestGoVersion }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
