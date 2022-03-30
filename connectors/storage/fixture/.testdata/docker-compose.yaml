@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  db:
+    image: tarantool/tarantool:latest
+    pull_policy: always
+    command: tarantool /opt/tarantool/init.lua
+    ports:
+      - %[1]v:%[1]v
+    volumes:
+      - ./init.lua:/opt/tarantool/init.lua
