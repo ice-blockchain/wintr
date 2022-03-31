@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: BUSL-1.1
 #!/usr/bin/env tarantool
 -- Details: https:www.tarantool.io/en/doc/latest/reference/configuration/
 require "lfs"

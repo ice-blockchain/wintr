@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BUSL-1.1
+
 package serverfixture
 
 const testDIDToken = "WyIweGFhNTBiZTcwNzI5Y2E3MDViYTdjOGQwMDE4NWM2ZjJkYTQ3OWQwZm" +

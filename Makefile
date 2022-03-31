@@ -108,10 +108,10 @@ getAddLicense:
 	GO111MODULE=off go get -v -u github.com/google/addlicense
 
 addLicense: getAddLicense
-	`go env GOPATH`/bin/addlicense -f LICENSE *
+	`go env GOPATH`/bin/addlicense -f LICENSE.header * .github/*
 
 checkLicense: getAddLicense
-	`go env GOPATH`/bin/addlicense -f LICENSE -check *
+	`go env GOPATH`/bin/addlicense -f LICENSE.header -check * .github/*
 
 all: checkLicense checkModVersion checkIfAllDependenciesAreUpToDate checkGenerated build buildAllSupportedPlatforms test coverage benchmark clean
 local: addLicense checkLicense updateGoModVersion updateAllDependencies generate build test coverage benchmark lint clean

@@ -15,7 +15,7 @@ require (
 	github.com/swaggo/gin-swagger v1.4.1
 	github.com/testcontainers/testcontainers-go v0.12.0
 	github.com/twmb/franz-go v1.4.2
-	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220329024016-f497ccca8b25
+	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220331035613-01d0c45d69d2
 	github.com/twmb/franz-go/pkg/kmsg v1.0.0
 )
 
