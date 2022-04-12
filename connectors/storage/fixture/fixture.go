@@ -62,7 +62,7 @@ func startDockerCompose(tmpFolder, applicationYamlKey, containerID string) *test
 		log.Panic(errors.Wrap(err, "could not find db port"))
 	}
 	dockerCompose := testcontainers.NewLocalDockerCompose(dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey), containerID)
-	dockerCompose.WithExposedService("db", dbPort, wait.ForLog("ready to accept requests"))
+	dockerCompose.WithExposedService(fmt.Sprintf("db%v", dbPort), dbPort, wait.ForLog("ready to accept requests"))
 	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
 	dockerCompose.WithCommand([]string{"up", "-d"})
 

@@ -111,7 +111,11 @@ func CheckSQLDMLErr(resp *tarantool.Response, err error) error {
 
 	count, ok := resp.Data[0].(int64)
 	if !ok {
-		return errors.Errorf("unexpected SQL DML response: %[1]v %[1]T", resp.Data[0])
+		unsignedCount, okUnsigned := resp.Data[0].(uint64)
+		if !okUnsigned {
+			return errors.Errorf("unexpected SQL DML response: %[1]v %[1]T", resp.Data[0])
+		}
+		count = int64(unsignedCount)
 	}
 	if count == 0 {
 		return ErrNotFound
@@ -135,7 +139,7 @@ func parseTarantoolSQLDMLErr(err error) error {
 			}
 			// Hack/hotfix to go around a tarantool issue.
 			if strings.Contains(e.Msg, "NOT NULL constraint failed") {
-				return errors.Wrap(ErrRetryOnInvalidParentID, "DML operation failed")
+				return errors.Wrap(ErrRetryOnInvalidForeignKey, "DML operation failed")
 			}
 		}
 	}

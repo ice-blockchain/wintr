@@ -3,7 +3,7 @@
 version: '3.7'
 
 services:
-  db:
+  db%[1]v:
     image: tarantool/tarantool:latest
     pull_policy: always
     command: tarantool /opt/tarantool/init.lua

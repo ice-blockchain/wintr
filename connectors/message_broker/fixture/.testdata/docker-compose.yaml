@@ -3,7 +3,7 @@
 version: '3.7'
 
 services:
-  mb:
+  mb%[1]v:
     command:
       - redpanda
       - start
