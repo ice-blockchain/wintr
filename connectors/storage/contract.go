@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	ErrNotFound               = errors.New("not found")
-	ErrRelationNotFound       = errors.New("relation not found")
-	ErrDuplicate              = errors.New("duplicate")
-	ErrRetryOnInvalidParentID = errors.New("unexpected error when inserting a child with an invalid parentId")
-	ErrDDLInvalid             = errors.New("DDL is invalid")
-	ErrNoSpacesConfigured     = errors.New("no spaces configured")
+	ErrNotFound                 = errors.New("not found")
+	ErrRelationNotFound         = errors.New("relation not found")
+	ErrDuplicate                = errors.New("duplicate")
+	ErrRetryOnInvalidForeignKey = errors.New("unexpected error when inserting or updating a entry with an invalid foreign key reference")
+	ErrDDLInvalid               = errors.New("DDL is invalid")
+	ErrNoSpacesConfigured       = errors.New("no spaces configured")
 )
 
 // Private API.

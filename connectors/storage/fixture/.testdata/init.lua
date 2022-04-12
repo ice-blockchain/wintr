@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: BUSL-1.1
 #!/usr/bin/env tarantool
+-- SPDX-License-Identifier: BUSL-1.1
 -- Details: https:www.tarantool.io/en/doc/latest/reference/configuration/
 require "lfs"
 lfs.mkdir("./memtx")

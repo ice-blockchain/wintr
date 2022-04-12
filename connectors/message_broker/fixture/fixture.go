@@ -66,7 +66,7 @@ func startDockerCompose(tmpFolder, applicationYamlKey, containerID string) *test
 		log.Panic(errors.Wrap(err, "could not find message broker port"))
 	}
 	dockerCompose := testcontainers.NewLocalDockerCompose(dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey), containerID)
-	dockerCompose.WithExposedService("mb", mbPort, wait.ForLog("Successfully started Redpanda!"))
+	dockerCompose.WithExposedService(fmt.Sprintf("mb%v", mbPort), mbPort, wait.ForLog("Successfully started Redpanda!"))
 	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
 	dockerCompose.WithCommand([]string{"up", "-d"})
 
