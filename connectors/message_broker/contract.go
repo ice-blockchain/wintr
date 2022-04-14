@@ -89,6 +89,7 @@ type (
 				Retention         time.Duration `yaml:"retention" json:"retention"`
 			} `yaml:"topics"`
 			CreateTopics             bool `yaml:"createTopics"`
+			DisableIdempotence       bool `yaml:"disableIdempotence"`
 			OneGoroutinePerPartition bool `yaml:"oneGoroutinePerPartition"`
 			MaxPollRecords           int  `yaml:"maxPollRecords"`
 		} `yaml:"messageBroker"`

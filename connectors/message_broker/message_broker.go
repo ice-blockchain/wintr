@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kerr"
@@ -94,6 +93,9 @@ func (mb *messageBroker) connect(additionalOpts ...kgo.Opt) error {
 	}
 	if len(additionalOpts) != 0 {
 		opts = append(opts, additionalOpts...)
+	}
+	if cfg.MessageBroker.DisableIdempotence {
+		opts = append(opts, kgo.DisableIdempotentWrite())
 	}
 	if cfg.MessageBroker.CertPath != "" {
 		log.Info("enabling TLS for message broker")
