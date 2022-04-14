@@ -38,9 +38,11 @@ func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc
 		log.Panic(errors.New("alteast one processor required if you want to start consuming"))
 	}
 	mb := &messageBroker{concurrentConsumer: &concurrentConsumer{
-		mx:         new(sync.Mutex),
-		consumers:  new(sync.Map),
-		processors: processors,
+		mx:                     new(sync.Mutex),
+		consumers:              new(sync.Map),
+		processors:             processors,
+		consumingWg:            new(sync.WaitGroup),
+		partitionCountPerTopic: new(sync.Map),
 	}}
 	mb.connectCreateAndValidateTopics(ctx, mb.consumerOpts(processors)...)
 	go mb.startConsuming(ctx, cancel)
@@ -61,6 +63,7 @@ func (mb *messageBroker) consumerOpts(processors map[Topic]Processor) []kgo.Opt 
 		kgo.OnPartitionsRevoked(mb.OnPartitionsLost),
 		kgo.OnPartitionsLost(mb.OnPartitionsLost),
 		kgo.OnPartitionsAssigned(mb.OnPartitionsAssigned),
+		kgo.BlockRebalanceOnPoll(),
 		kgo.AutoCommitCallback(func(_ *kgo.Client, rq *kmsg.OffsetCommitRequest, rp *kmsg.OffsetCommitResponse, err error) {
 			if err != nil {
 				log.Error(errors.Wrap(err, "failed to autocommit offsets"), "request", rq, "response", rp)
@@ -188,6 +191,11 @@ func (mb *messageBroker) validateTopicListing(ctx context.Context, topics []stri
 		log.Panic(errors.Wrap(sortedTopicDetails[0].Err, "could not list topic"), "topics", sortedTopicDetails)
 	}
 	log.Info(fmt.Sprintf("topics %v found! ", topics), "topics", sortedTopicDetails)
+	if mb.concurrentConsumer != nil && mb.partitionCountPerTopic != nil {
+		for _, detail := range sortedTopicDetails {
+			mb.partitionCountPerTopic.Store(detail.Topic, int32(len(detail.Partitions)))
+		}
+	}
 }
 
 func (mb *messageBroker) validateTopicConfigDescribing(ctx context.Context, topics []string) {

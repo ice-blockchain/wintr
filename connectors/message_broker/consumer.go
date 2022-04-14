@@ -18,10 +18,15 @@ func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.Canc
 	defer mb.close()
 	log.Info("message broker client started consuming...")
 	for ctx.Err() == nil {
-		fetches := mb.client.PollFetches(ctx)
+		fetches := mb.client.PollRecords(ctx, cfg.MessageBroker.MaxPollRecords)
 		if fetches.IsClientClosed() {
 			return
 		}
+		var recordsFetched int
+		fetches.EachPartition(func(p kgo.FetchTopicPartition) {
+			recordsFetched += len(p.Records)
+		})
+		mb.consumingWg.Add(recordsFetched)
 		fetches.EachError(func(t string, p int32, err error) {
 			log.Error(errors.Wrap(err, "[messageBroker] fetching records failed"), "topic", t, "partition", p)
 		})
@@ -34,6 +39,8 @@ func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.Canc
 				})
 			}
 		})
+		mb.consumingWg.Wait()
+		mb.client.AllowRebalance()
 	}
 }
 
@@ -109,7 +116,7 @@ func (mb *messageBroker) records(t kgo.FetchTopic, ps []kgo.FetchPartition) (map
 		partitionRecords[p.Partition] = p.Records
 		partitions = append(partitions, p.Partition)
 	}
-	if len(ps) == 0 {
+	if len(ps) != 0 {
 		for _, p := range ps {
 			partitionIterator(p)
 		}
@@ -193,11 +200,16 @@ func (c *concurrentConsumer) replaceConsumer(ctx context.Context, topic string, 
 		waitForClosingConsumerToFinish(ctx, pc)
 	}
 	pc = &partitionConsumer{
-		Processor:   c.processors[topic],
-		recordsChan: make(chan []*kgo.Record, consumerRecordBufferSize),
-		topic:       topic,
-		partition:   partition,
+		concurrentConsumer: c,
+		Processor:          c.processors[topic],
+		recordsChan:        make(chan []*kgo.Record, consumerRecordBufferSize),
+		topic:              topic,
+		partition:          partition,
 	}
+	if partitionCount, ok := c.partitionCountPerTopic.Load(topic); ok {
+		pc.(*partitionConsumer).partitionCount = partitionCount.(int32)
+	}
+
 	partitionConsumers.Store(partition, pc)
 	go pc.(*partitionConsumer).consume()
 }
@@ -249,6 +261,13 @@ func (pc *partitionConsumer) consume() {
 	defer func() { pc.done = true }()
 
 	for records := range pc.recordsChan {
+		if cfg.MessageBroker.OneGoroutinePerPartition {
+			for _, record := range records {
+				pc.processRecord(record)
+			}
+
+			continue
+		}
 		groupedByKey := make(map[string][]*kgo.Record, len(records))
 		for _, record := range records {
 			groupedByKey[string(record.Key)] = append(groupedByKey[string(record.Key)], record)
@@ -265,18 +284,24 @@ func (pc *partitionConsumer) consume() {
 func (pc *partitionConsumer) processSameKeyRecords(wg *sync.WaitGroup, recordsForSameKey []*kgo.Record) {
 	defer wg.Done()
 	for _, record := range recordsForSameKey {
-		pCtx, cancel := context.WithTimeout(context.Background(), messageBrokerConsumeDeadline)
-		m := &Message{
-			Key:       string(record.Key),
-			Value:     record.Value,
-			Headers:   extractHeaders(record),
-			Partition: pc.partition,
-			Topic:     pc.topic,
-		}
-		log.Error(errors.Wrap(pc.Process(pCtx, m), "could not process new message"),
-			"key", m.Key, "value", string(m.Value), "headers", m.Headers, "partition", m.Partition, "topic", m.Topic)
-		cancel()
+		pc.processRecord(record)
 	}
+}
+
+func (pc *partitionConsumer) processRecord(record *kgo.Record) {
+	pCtx, cancel := context.WithTimeout(context.Background(), messageBrokerConsumeDeadline)
+	defer cancel()
+	defer pc.consumingWg.Done()
+	m := &Message{
+		Key:            string(record.Key),
+		Value:          record.Value,
+		Headers:        extractHeaders(record),
+		Partition:      pc.partition,
+		PartitionCount: pc.partitionCount,
+		Topic:          pc.topic,
+	}
+	log.Error(errors.Wrap(pc.Process(pCtx, m), "could not process new message"),
+		"key", m.Key, "value", string(m.Value), "headers", m.Headers, "partition", m.Partition, "partitionCount", m.PartitionCount, "topic", m.Topic)
 }
 
 func extractHeaders(record *kgo.Record) map[string]string {
