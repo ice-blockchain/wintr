@@ -15,14 +15,16 @@ import (
 // Public API.
 
 type (
-	Partition = int32
-	Topic     = string
-	Message   struct {
-		Headers   map[string]string
-		Key       string
-		Topic     string
-		Value     []byte
-		Partition int32
+	Partition      = int32
+	PartitionCount = int32
+	Topic          = string
+	Message        struct {
+		Headers        map[string]string
+		Key            string
+		Topic          string
+		Value          []byte
+		Partition      Partition
+		PartitionCount PartitionCount
 	}
 	Client interface {
 		io.Closer
@@ -55,19 +57,23 @@ type (
 	}
 	// | concurrentConsumer is responsible for managing the state and lifecycle of all partitionConsumers.
 	concurrentConsumer struct {
-		mx         *sync.Mutex
-		consumers  *sync.Map // Is a map[Topic]map[Partition]*partitionConsumer.
-		processors map[Topic]Processor
-		cancel     context.CancelFunc
+		consumingWg            *sync.WaitGroup
+		mx                     *sync.Mutex
+		consumers              *sync.Map // Is a map[Topic]map[Partition]*partitionConsumer.
+		processors             map[Topic]Processor
+		partitionCountPerTopic *sync.Map // Is a map[Topic]PartitionCount.
+		cancel                 context.CancelFunc
 	}
 	// | partitionConsumer is responsible for processing partition records.
 	partitionConsumer struct {
 		Processor
-		recordsChan chan []*kgo.Record
-		topic       Topic
-		partition   Partition
-		done        bool
-		closing     bool
+		*concurrentConsumer
+		recordsChan    chan []*kgo.Record
+		topic          Topic
+		partition      Partition
+		partitionCount PartitionCount
+		done           bool
+		closing        bool
 	}
 	// | config holds the configuration of this package mounted from `application.yaml`.
 	config struct {
@@ -82,7 +88,10 @@ type (
 				ReplicationFactor uint64        `yaml:"replicationFactor" json:"replicationFactor"`
 				Retention         time.Duration `yaml:"retention" json:"retention"`
 			} `yaml:"topics"`
-			CreateTopics bool `yaml:"createTopics"`
+			CreateTopics             bool `yaml:"createTopics"`
+			DisableIdempotence       bool `yaml:"disableIdempotence"`
+			OneGoroutinePerPartition bool `yaml:"oneGoroutinePerPartition"`
+			MaxPollRecords           int  `yaml:"maxPollRecords"`
 		} `yaml:"messageBroker"`
 	}
 )
