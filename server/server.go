@@ -18,8 +18,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
 
-	appCfg "github.com/ICE-Blockchain/wintr/config"
-	"github.com/ICE-Blockchain/wintr/log"
+	appCfg "github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 func New(state State, cfgKey, swaggerRoot string) Server {

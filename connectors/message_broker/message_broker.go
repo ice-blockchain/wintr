@@ -19,8 +19,8 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 
-	appCfg "github.com/ICE-Blockchain/wintr/config"
-	"github.com/ICE-Blockchain/wintr/log"
+	appCfg "github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 func MustConnect(ctx context.Context, applicationYamlKey string) Client {

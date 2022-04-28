@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/kgo"
 
-	"github.com/ICE-Blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 //nolint:gocognit // Because of the nested x.EachXX, but there's no better way.

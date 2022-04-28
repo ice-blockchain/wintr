@@ -15,7 +15,7 @@ import (
 	"github.com/magiclabs/magic-admin-go/token"
 	"github.com/pkg/errors"
 
-	"github.com/ICE-Blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 //nolint:gochecknoinits // Because we want to set it up globally.

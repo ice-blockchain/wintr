@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/kgo"
 
-	"github.com/ICE-Blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 func (mb *messageBroker) SendMessage(ctx context.Context, m *Message, responder chan<- error) {

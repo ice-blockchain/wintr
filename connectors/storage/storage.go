@@ -11,8 +11,8 @@ import (
 	tntMulti "github.com/framey-io/go-tarantool/multi"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ICE-Blockchain/wintr/config"
-	"github.com/ICE-Blockchain/wintr/log"
+	appCfg "github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicationYamlKey string) (db tarantool.Connector) {
