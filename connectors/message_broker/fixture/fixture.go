@@ -14,8 +14,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/ICE-Blockchain/wintr/config"
-	"github.com/ICE-Blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/log"
 )
 
 //go:embed .testdata/docker-compose.yaml

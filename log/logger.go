@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 
-	"github.com/ICE-Blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/config"
 )
 
 // nolint:gochecknoinits // log is global, so it's initialization can be done in init

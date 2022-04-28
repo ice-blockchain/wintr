@@ -1,4 +1,4 @@
-module github.com/ICE-Blockchain/wintr
+module github.com/ice-blockchain/wintr
 
 go 1.18
 
