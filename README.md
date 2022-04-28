@@ -1,6 +1,6 @@
 # Wintr 
 
-``Wintr is the ICE-Blockchain's collection of packages/modules/libraries, used across all components in the ecosystem.``
+``wintr is the ice-blockchain's collection of packages/modules/libraries, used across all components in the ecosystem.``
 
 ### Development
 

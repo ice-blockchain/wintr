@@ -9,7 +9,7 @@ Parameters
 
 Licensor:             ICE Labs
 
-Licensed Work:        ICE-Blockchain Wintr
+Licensed Work:        ice-blockchain wintr
                       The Licensed Work is (c) 2022 ICE Labs
 
 Additional Use Grant: Any uses listed and defined at
