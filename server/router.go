@@ -42,6 +42,39 @@ func ScanRequest(req ParsedRequest, bindings ...func(obj interface{}) error) *Re
 	return req.Validate()
 }
 
+func BadRequest(err error, code string) *Response {
+	return &Response{
+		Data: ErrorResponse{
+			error: err,
+			Error: err.Error(),
+			Code:  code,
+		},
+		Code: http.StatusBadRequest,
+	}
+}
+
+func Conflict(err error, code string) *Response {
+	return &Response{
+		Data: ErrorResponse{
+			error: err,
+			Error: err.Error(),
+			Code:  code,
+		},
+		Code: http.StatusConflict,
+	}
+}
+
+func NotFound(err error, code string) *Response {
+	return &Response{
+		Data: ErrorResponse{
+			error: err,
+			Error: err.Error(),
+			Code:  code,
+		},
+		Code: http.StatusNotFound,
+	}
+}
+
 func Unexpected(err error) Response {
 	return Response{Data: err}
 }
@@ -113,14 +146,7 @@ func RequiredStrings(fields map[string]string) *Response {
 
 	err := errors.Errorf("properties %v are required", strings.Join(failedFields, ","))
 
-	return &Response{
-		Data: ErrorResponse{
-			error: err,
-			Error: err.Error(),
-			Code:  "MISSING_PROPERTIES",
-		},
-		Code: http.StatusBadRequest,
-	}
+	return BadRequest(err, "MISSING_PROPERTIES")
 }
 
 func RootHandler(r func() ParsedRequest, handleRequest func(context.Context, ParsedRequest) Response) func(*gin.Context) {
