@@ -48,7 +48,7 @@ func (mb *messageBroker) partitionConsumers(t kgo.FetchTopic) *sync.Map {
 	topicConsumers, foundTopicConsumers := mb.consumers.Load(t.Topic)
 	if !foundTopicConsumers {
 		mb.mx.Lock()
-		//nolint:gocritic // Because we just want to make sure we wait for any in progress state changes
+		//nolint:gocritic,staticcheck // Because we just want to make sure we wait for any in progress state changes
 		mb.mx.Unlock()
 		topicConsumers, foundTopicConsumers = mb.consumers.Load(t.Topic)
 		if !foundTopicConsumers {
@@ -70,7 +70,7 @@ func (mb *messageBroker) partitionConsumer(p kgo.FetchPartition, t kgo.FetchTopi
 	pc, foundPartitionConsumer := partitionConsumers.Load(p.Partition)
 	if !foundPartitionConsumer {
 		mb.mx.Lock()
-		//nolint:gocritic // Because we just want to make sure we wait for any in progress state changes
+		//nolint:gocritic,staticcheck // Because we just want to make sure we wait for any in progress state changes
 		mb.mx.Unlock()
 		pc, foundPartitionConsumer = partitionConsumers.Load(p.Partition)
 		if !foundPartitionConsumer {
