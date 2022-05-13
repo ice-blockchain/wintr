@@ -90,6 +90,17 @@ func Unauthorized(err error) *Response {
 	}
 }
 
+func Forbidden(err error) *Response {
+	return &Response{
+		Code: http.StatusForbidden,
+		Data: ErrorResponse{
+			error: err,
+			Error: err.Error(),
+			Code:  "OPERATION_NOT_ALLOWED",
+		},
+	}
+}
+
 func NoContent() Response {
 	return Response{Code: http.StatusNoContent}
 }
