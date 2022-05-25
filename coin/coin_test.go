@@ -5,6 +5,7 @@ package coin
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,16 +26,16 @@ func TestICEConversion(t *testing.T) {
 	a9 := UnsafeNewAmount("0")
 	a10 := UnsafeNewAmount("100000005")
 
-	assert.EqualValues(t, "115792089237316195423570985008687907853269984665640564039457584007913.129639935", a1.UnsafeICE())
-	assert.EqualValues(t, "12.0", a2.UnsafeICE())
-	assert.EqualValues(t, "12.000000001", a3.UnsafeICE())
-	assert.EqualValues(t, "1.0", a4.UnsafeICE())
-	assert.EqualValues(t, "1.000000001", a5.UnsafeICE())
-	assert.EqualValues(t, "0.999999999", a6.UnsafeICE())
-	assert.EqualValues(t, "0.000000055", a7.UnsafeICE())
-	assert.EqualValues(t, "0.000000005", a8.UnsafeICE())
-	assert.EqualValues(t, "0.0", a9.UnsafeICE())
-	assert.EqualValues(t, "0.100000005", a10.UnsafeICE())
+	assert.EqualValues(t, "115792089237316195423570985008687907853269984665640564039457584007913.129639935", *a1.UnsafeICE())
+	assert.EqualValues(t, "12.0", *a2.UnsafeICE())
+	assert.EqualValues(t, "12.000000001", *a3.UnsafeICE())
+	assert.EqualValues(t, "1.0", *a4.UnsafeICE())
+	assert.EqualValues(t, "1.000000001", *a5.UnsafeICE())
+	assert.EqualValues(t, "0.999999999", *a6.UnsafeICE())
+	assert.EqualValues(t, "0.000000055", *a7.UnsafeICE())
+	assert.EqualValues(t, "0.000000005", *a8.UnsafeICE())
+	assert.EqualValues(t, "0.0", *a9.UnsafeICE())
+	assert.EqualValues(t, "0.100000005", *a10.UnsafeICE())
 }
 
 func TestICEFlakeConversion(t *testing.T) {
@@ -65,6 +66,56 @@ func TestICEFlakeConversion(t *testing.T) {
 	assert.True(t, a10.UnsafeICEFlake().Equal(UnsafeNewAmount("0").Uint))
 	assert.True(t, a11.UnsafeICEFlake().Equal(UnsafeNewAmount("123000000000").Uint))
 	assert.True(t, a12.UnsafeICEFlake().Equal(UnsafeNewAmount("100000005").Uint))
+}
+
+func TestICEJSONSerialization(t *testing.T) {
+	t.Parallel()
+	type whatever struct {
+		ICE ICE `json:"ice"`
+	}
+	w := whatever{
+		ICE: "1,123,123,123.01",
+	}
+	b, err := json.Marshal(w)
+	require.NoError(t, err)
+	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(b))
+	var w2 whatever
+	require.NoError(t, json.Unmarshal(b, &w2))
+	require.Equal(t, whatever{ICE: "1123123123.01"}, w2)
+	require.True(t, w2.ICE.UnsafeICEFlake().Equal(math.NewUint(1123123123010000000)))
+}
+
+func TestICEFormat(t *testing.T) {
+	t.Parallel()
+
+	a1 := ICE("115792089237316195423570985008687907853269984665640564039457584007913.129639935")
+	a2 := ICE("12.0")
+	a3 := ICE("12.000000001")
+	a4 := ICE("1.0")
+	a5 := ICE("1.000000001")
+	a6 := ICE("0.999999999")
+	a7 := ICE("0.0")
+	a8 := ICE(".1")
+	a9 := ICE("7913.129639935")
+	a10 := ICE("913.129639935")
+	a11 := ICE("13.129639935")
+	a12 := ICE("7913")
+	a13 := ICE("913")
+	a14 := ICE("13")
+	assert.Equal(t, "115,792,089,237,316,195,423,570,985,008,687,907,853,269,984,665,640,564,039,457,584,007,913.129639935", a1.Format())
+	assert.Equal(t, "12.0", a2.Format())
+	assert.Equal(t, "12.000000001", a3.Format())
+	assert.Equal(t, "1.0", a4.Format())
+	assert.Equal(t, "1.000000001", a5.Format())
+	assert.Equal(t, "0.999999999", a6.Format())
+	assert.Equal(t, "0.0", a7.Format())
+	assert.Equal(t, "0.1", a8.Format())
+	assert.Equal(t, "7,913.129639935", a9.Format())
+	assert.Equal(t, "913.129639935", a10.Format())
+	assert.Equal(t, "13.129639935", a11.Format())
+	assert.Equal(t, "7,913", a12.Format())
+	assert.Equal(t, "913", a13.Format())
+	assert.Equal(t, "13", a14.Format())
 }
 
 func TestICEFlakeJSONSerialization(t *testing.T) {

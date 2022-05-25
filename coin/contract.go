@@ -35,6 +35,8 @@ var (
 	_ msgpack.CustomDecoder = (*ICEFlake)(nil)
 	_ json.Unmarshaler      = (*ICEFlake)(nil)
 	_ json.Marshaler        = (*ICEFlake)(nil)
+	_ json.Unmarshaler      = (*ICE)(nil)
+	_ json.Marshaler        = (*ICE)(nil)
 	//nolint:gochecknoglobals // Its goroutine safe.
 	denomination = math.NewUint(Denomination)
 )
