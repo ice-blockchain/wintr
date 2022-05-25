@@ -38,7 +38,7 @@ require (
 	github.com/docker/docker v20.10.16+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/ethereum/go-ethereum v1.10.17 // indirect
+	github.com/ethereum/go-ethereum v1.10.18 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -85,11 +85,11 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
-	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
+	golang.org/x/net v0.0.0-20220524220425-1d687d428aca // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.10 // indirect
-	google.golang.org/genproto v0.0.0-20220524164028-0aa58a9287dd // indirect
+	google.golang.org/genproto v0.0.0-20220525015930-6ca3db687a9d // indirect
 	google.golang.org/grpc v1.46.2 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
