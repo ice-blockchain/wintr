@@ -27,8 +27,12 @@ type (
 
 // Private API.
 
-// See Denomination.
-const e9 = 9
+const (
+	// See Denomination.
+	e9      = 9
+	e9Zeros = "000000000"
+	zero    = "0.0"
+)
 
 var (
 	_ msgpack.CustomEncoder = (*ICEFlake)(nil)

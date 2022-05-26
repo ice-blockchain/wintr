@@ -27,6 +27,9 @@ func UnsafeNewAmount(amount string) *ICEFlake {
 }
 
 func NewAmount(amount string) (*ICEFlake, error) {
+	if amount == "" {
+		return &ICEFlake{Uint: math.ZeroUint()}, nil
+	}
 	u, err := math.ParseUint(amount)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse 256Bit uint %v", amount)
@@ -52,6 +55,15 @@ func New(amount string) (*Coin, error) {
 	return &Coin{Amount: a}, nil
 }
 
+//nolint:wrapcheck // Because we want to proxy the call.
+func (i *ICEFlake) UnmarshalJSON(bytes []byte) error {
+	if len(bytes) == 1+1 {
+		return i.Uint.UnmarshalJSON([]byte(`"0"`))
+	}
+
+	return i.Uint.UnmarshalJSON(bytes)
+}
+
 func (i *ICEFlake) EncodeMsgpack(enc *msgpack.Encoder) error {
 	bytes, err := i.Marshal()
 	if err != nil {
@@ -67,13 +79,16 @@ func (i *ICEFlake) DecodeMsgpack(dec *msgpack.Decoder) error {
 	if err != nil {
 		return errors.Wrap(err, "could not DecodeMsgpack->DecodeString *ICEFlake")
 	}
+	if v == "" {
+		v = "0"
+	}
 
 	return errors.Wrapf(i.Unmarshal([]byte(v)), "coud not DecodeMsgpack->Unmarshal *ICEFlake %v", v)
 }
 
 func (i *ICEFlake) ICE() (*ICE, error) {
 	if i.IsZero() {
-		ice := ICE("0.0")
+		ice := ICE(zero)
 
 		return &ice, nil
 	}
@@ -115,12 +130,7 @@ func (i *ICE) ICEFlake() (*ICEFlake, error) {
 	v := strings.Trim(string(*i), " ")
 	ix := strings.Index(v, ".")
 	if ix < 0 {
-		zeros := ""
-		for i := 0; i < e9; i++ {
-			zeros += "0"
-		}
-
-		return NewAmount(v + zeros)
+		return NewAmount(v + e9Zeros)
 	}
 	missingZeros := e9 - len(v[ix+1:])
 	for i := 0; i < missingZeros; i++ {
@@ -128,9 +138,6 @@ func (i *ICE) ICEFlake() (*ICEFlake, error) {
 	}
 	r := v[:ix] + v[ix+1:]
 	r = strings.TrimLeftFunc(r, func(r rune) bool { return r == '0' })
-	if r == "" {
-		r = "0"
-	}
 
 	return NewAmount(r)
 }
@@ -143,7 +150,10 @@ func (i *ICE) UnsafeICEFlake() *ICEFlake {
 }
 
 func (i *ICE) Format() string {
-	r := string(*i)
+	r := strings.Trim(string(*i), " ")
+	if r == "" {
+		return zero
+	}
 	dotIx := strings.Index(r, ".")
 	if dotIx == 0 {
 		r = "0" + r
@@ -152,6 +162,19 @@ func (i *ICE) Format() string {
 	if dotIx < 0 {
 		dotIx = len(r)
 	}
+	s := formatGroups(dotIx, r)
+	if s[0] == ',' {
+		s = s[1:]
+	}
+	r = s + r[dotIx:]
+	if !strings.Contains(r, ".") {
+		r += ".0"
+	}
+
+	return r
+}
+
+func formatGroups(dotIx int, r string) string {
 	var s, g string
 	for j := dotIx - 1; j >= 0; j-- {
 		g = string(r[j]) + g
@@ -164,26 +187,56 @@ func (i *ICE) Format() string {
 	if g != "" {
 		s = g + s
 	}
-	if s[0] == ',' {
-		s = s[1:]
-	}
-	r = s + r[dotIx:]
 
-	return r
+	return s
 }
 
 func (i *ICE) MarshalJSON() ([]byte, error) {
-	return []byte(i.Format()), nil
+	if strings.Contains(string(*i), ",") {
+		return []byte(`"` + *i + `"`), nil
+	}
+
+	return []byte(`"` + i.Format() + `"`), nil
 }
 
 func (i *ICE) UnmarshalJSON(bytes []byte) error {
 	r := strings.ReplaceAll(string(bytes), ",", "")
 	r = strings.ReplaceAll(r, `"`, "")
-	_, err := NewAmount(strings.Replace(r, ".", "", 1))
+	r = strings.Trim(r, " ")
+	_, err := NewAmount(toICEFlake(r))
 	if err != nil {
 		return errors.Wrapf(err, "invalid number: ice amount %v", string(bytes))
+	}
+	if r == "" {
+		r = zero
+	}
+	if !strings.Contains(r, ".") {
+		r += ".0"
+	}
+	if strings.Index(r, ".") == 0 {
+		r = "0" + r
 	}
 	*i = ICE(r)
 
 	return nil
+}
+
+func toICEFlake(ice string) string {
+	dotIdx := strings.Index(ice, ".")
+	if dotIdx >= 0 {
+		if dotIdx == 0 {
+			ice = "0" + ice
+			dotIdx++
+		}
+		zeros := ""
+		for i := 0; i <= e9-(len(ice)-dotIdx); i++ {
+			zeros += "0"
+		}
+
+		ice = ice[dotIdx+1:] + zeros
+	} else {
+		ice += e9Zeros
+	}
+
+	return strings.TrimLeftFunc(ice, func(r rune) bool { return r == '0' })
 }

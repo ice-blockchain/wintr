@@ -17,7 +17,7 @@ require (
 	github.com/swaggo/gin-swagger v1.4.3
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/twmb/franz-go v1.5.3
-	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220524170603-3f86ed5cd816
+	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220525220550-fe9d5da387a2
 	github.com/twmb/franz-go/pkg/kmsg v1.1.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 )
@@ -84,7 +84,7 @@ require (
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/net v0.0.0-20220524220425-1d687d428aca // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
