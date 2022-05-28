@@ -3,6 +3,7 @@
 package coin
 
 import (
+	"math/big"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -11,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vmihailenco/msgpack/v5"
 )
+
+const maxUint64Word = big.Word(1<<64 - 1)
 
 func TestICEConversion(t *testing.T) {
 	t.Parallel()
@@ -165,33 +168,39 @@ func TestICEFlakeJSONSerialization(t *testing.T) {
 	assert.Equal(t, NewAmountUint64(0), c3.Amount)
 }
 
+type tmpStruct struct {
+	//nolint:unused // It is used by db to marshall/unmarshall.
+	_msgpack struct{} `msgpack:",asArray"`
+	*Coin
+}
+
 func TestICEFlakeMsgPackSerialization(t *testing.T) {
 	t.Parallel()
-
-	type tmpStruct struct {
-		//nolint:unused // It is used by db to marshall/unmarshall.
-		_msgpack struct{} `msgpack:",asArray"`
-		*Coin
-	}
-	c1 := tmpStruct{
-		Coin: UnsafeNew("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
-	}
+	c1 := tmpStruct{Coin: UnsafeNew("115792089237316195423570985008687907853269984665640564039457584007913129639935")}
 	b, err := msgpack.Marshal(c1)
 	require.NoError(t, err)
-	//nolint:lll // .
-	assert.Equal(t, []byte{0x91, 0xd9, 0x4e, 0x31, 0x31, 0x35, 0x37, 0x39, 0x32, 0x30, 0x38, 0x39, 0x32, 0x33, 0x37, 0x33, 0x31, 0x36, 0x31, 0x39, 0x35, 0x34, 0x32, 0x33, 0x35, 0x37, 0x30, 0x39, 0x38, 0x35, 0x30, 0x30, 0x38, 0x36, 0x38, 0x37, 0x39, 0x30, 0x37, 0x38, 0x35, 0x33, 0x32, 0x36, 0x39, 0x39, 0x38, 0x34, 0x36, 0x36, 0x35, 0x36, 0x34, 0x30, 0x35, 0x36, 0x34, 0x30, 0x33, 0x39, 0x34, 0x35, 0x37, 0x35, 0x38, 0x34, 0x30, 0x30, 0x37, 0x39, 0x31, 0x33, 0x31, 0x32, 0x39, 0x36, 0x33, 0x39, 0x39, 0x33, 0x35}, b)
+	assert.Equal(t, []byte{
+		0x95, 0xd9, 0x4e, 0x31, 0x31, 0x35, 0x37, 0x39, 0x32, 0x30, 0x38, 0x39, 0x32, 0x33, 0x37, 0x33, 0x31, 0x36, 0x31, 0x39, 0x35, 0x34,
+		0x32, 0x33, 0x35, 0x37, 0x30, 0x39, 0x38, 0x35, 0x30, 0x30, 0x38, 0x36, 0x38, 0x37, 0x39, 0x30, 0x37, 0x38, 0x35, 0x33, 0x32, 0x36, 0x39, 0x39, 0x38,
+		0x34, 0x36, 0x36, 0x35, 0x36, 0x34, 0x30, 0x35, 0x36, 0x34, 0x30, 0x33, 0x39, 0x34, 0x35, 0x37, 0x35, 0x38, 0x34, 0x30, 0x30, 0x37, 0x39, 0x31, 0x33,
+		0x31, 0x32, 0x39, 0x36, 0x33, 0x39, 0x39, 0x33, 0x35, 0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	}, b)
 	var c2 tmpStruct
 	require.NoError(t, msgpack.Unmarshal(b, &c2))
 	assert.Equal(t, UnsafeNewAmount("115792089237316195423570985008687907853269984665640564039457584007913129639935"), c2.Amount)
-	c3 := tmpStruct{
-		Coin: &Coin{Amount: &ICEFlake{}},
-	}
+	assert.Equal(t, AmountWords{uint64(maxUint64Word), uint64(maxUint64Word), uint64(maxUint64Word), uint64(maxUint64Word)}, c2.AmountWords)
+	c3 := tmpStruct{Coin: &Coin{Amount: &ICEFlake{}}}
 	b, err = msgpack.Marshal(c3)
 	require.NoError(t, err)
-	assert.Equal(t, []byte{0x91, 0xa1, 0x30}, b)
+	assert.Equal(t, []byte{
+		0x95, 0xa1, 0x30, 0xcf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xcf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xcf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0xcf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	}, b)
 	var c4 tmpStruct
 	require.NoError(t, msgpack.Unmarshal(b, &c4))
 	assert.True(t, c4.Amount.IsZero())
+	assert.Equal(t, AmountWords{}, c4.AmountWords)
 }
 
 func TestToICEFlake(t *testing.T) {
@@ -205,4 +214,35 @@ func TestToICEFlake(t *testing.T) {
 	assert.Equal(t, "123000000000", toICEFlake("123"))
 	assert.Equal(t, "231230000", toICEFlake("0.23123"))
 	assert.Equal(t, "999999999", toICEFlake("0.999999999"))
+}
+
+func TestCoinSetAmount(t *testing.T) {
+	t.Parallel()
+	c := new(Coin)
+	c.verifySetAmount(t,
+		"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+		maxUint64Word, maxUint64Word, maxUint64Word, maxUint64Word)
+	c.verifySetAmount(t,
+		"115792089237316195423570985008687907853269984665640564039457584007913129639934",
+		maxUint64Word-1, maxUint64Word, maxUint64Word, maxUint64Word)
+	c.verifySetAmount(t, "1", 1, 0, 0, 0)
+	c.verifySetAmount(t, "6277101735386680763835789423207666416102355444464034512896", 0, 0, 0, 1)
+	c.verifySetAmount(t, "18446744073709551616", 0, 1, 0, 0)
+	c.verifySetAmount(t, "0", 0, 0, 0, 0)
+	c.verifySetAmount(t, "340282366920938463463374607431768211456", 0, 0, 1, 0)
+	c.verifySetAmount(t, "340282366920938463463374607431768211455", maxUint64Word, maxUint64Word, 0, 0)
+	c.verifySetAmount(t, "340282366920938463463374607431768211454", maxUint64Word-1, maxUint64Word, 0, 0)
+	c.verifySetAmount(t, "6277101735386680763835789423207666410000000000000000000000", 3516843933827072000, 18446744073709551285, maxUint64Word, 0)
+}
+
+func (c *Coin) verifySetAmount(t *testing.T, amount string, expectedWords ...big.Word) {
+	t.Helper()
+
+	c.SetAmount(UnsafeNewAmount(amount))
+	assert.Equal(t, UnsafeNewAmount(amount), c.Amount)
+	dummy := new(Coin)
+	for i, w := range expectedWords {
+		dummy.setWord(i, uint64(w))
+	}
+	assert.Equal(t, dummy.AmountWords, c.AmountWords)
 }

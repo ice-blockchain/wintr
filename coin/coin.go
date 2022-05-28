@@ -39,7 +39,7 @@ func NewAmount(amount string) (*ICEFlake, error) {
 }
 
 func NewUint64(amount uint64) *Coin {
-	return &Coin{Amount: NewAmountUint64(amount)}
+	return new(Coin).SetAmount(NewAmountUint64(amount))
 }
 
 func NewAmountUint64(amount uint64) *ICEFlake {
@@ -52,7 +52,34 @@ func New(amount string) (*Coin, error) {
 		return nil, errors.Wrapf(err, "failed to build NewAmount for %v", amount)
 	}
 
-	return &Coin{Amount: a}, nil
+	return new(Coin).SetAmount(a), nil
+}
+
+func (c *Coin) SetAmount(amount *ICEFlake) *Coin {
+	c.Amount = amount
+	bits := c.Amount.BigInt().Bits()
+	for i, w := range bits {
+		c.setWord(i, uint64(w))
+	}
+	for i := len(bits); i < 1+1+1+1; i++ {
+		c.setWord(i, 0)
+	}
+
+	return c
+}
+
+//nolint:gomnd // Those are fixed numbers, nothing magical about em.
+func (c *Coin) setWord(wordPosition int, wordValue uint64) {
+	switch wordPosition {
+	case 0:
+		c.AmountWord0 = wordValue
+	case 1:
+		c.AmountWord1 = wordValue
+	case 2:
+		c.AmountWord2 = wordValue
+	case 3:
+		c.AmountWord3 = wordValue
+	}
 }
 
 //nolint:wrapcheck // Because we want to proxy the call.
