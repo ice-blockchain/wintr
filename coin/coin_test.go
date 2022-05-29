@@ -228,6 +228,7 @@ func TestCoinSetAmount(t *testing.T) {
 	c.verifySetAmount(t, "1", 1, 0, 0, 0)
 	c.verifySetAmount(t, "6277101735386680763835789423207666416102355444464034512896", 0, 0, 0, 1)
 	c.verifySetAmount(t, "18446744073709551616", 0, 1, 0, 0)
+	c.verifySetAmount(t, "36893488147419103232", 0, 2, 0, 0)
 	c.verifySetAmount(t, "0", 0, 0, 0, 0)
 	c.verifySetAmount(t, "340282366920938463463374607431768211456", 0, 0, 1, 0)
 	c.verifySetAmount(t, "340282366920938463463374607431768211455", maxUint64Word, maxUint64Word, 0, 0)

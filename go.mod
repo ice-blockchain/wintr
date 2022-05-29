@@ -17,7 +17,7 @@ require (
 	github.com/swaggo/gin-swagger v1.4.3
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/twmb/franz-go v1.5.3
-	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220526170723-297bcc02381d
+	github.com/twmb/franz-go/pkg/kadm v0.0.0-20220529183036-7689d6ffb990
 	github.com/twmb/franz-go/pkg/kmsg v1.1.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 )
@@ -92,7 +92,7 @@ require (
 	google.golang.org/genproto v0.0.0-20220527130721-00d5c0f3be58 // indirect
 	google.golang.org/grpc v1.46.2 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
-	gopkg.in/ini.v1 v1.66.4 // indirect
+	gopkg.in/ini.v1 v1.66.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
