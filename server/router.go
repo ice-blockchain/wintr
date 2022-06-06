@@ -42,12 +42,18 @@ func ScanRequest(req ParsedRequest, bindings ...func(obj interface{}) error) *Re
 	return req.Validate()
 }
 
-func BadRequest(err error, code string) *Response {
+func BadRequest(err error, code string, data ...map[string]interface{}) *Response {
+	var d map[string]interface{}
+	if len(data) == 1 {
+		d = data[0]
+	}
+
 	return &Response{
 		Data: ErrorResponse{
 			error: err,
 			Error: err.Error(),
 			Code:  code,
+			Data:  d,
 		},
 		Code: http.StatusBadRequest,
 	}

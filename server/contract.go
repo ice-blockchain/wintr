@@ -65,8 +65,9 @@ type (
 	// ErrorResponse is the struct that is eventually serialized as a negative response back to the user.
 	ErrorResponse struct {
 		error `json:"-" swaggerignore:"true"`
-		Error string `json:"error" example:"something is missing"`
-		Code  string `json:"code,omitempty" example:"SOMETHING_NOT_FOUND"`
+		Data  map[string]interface{} `json:"data,omitempty"`
+		Error string                 `json:"error" example:"something is missing"`
+		Code  string                 `json:"code,omitempty" example:"SOMETHING_NOT_FOUND"`
 	}
 )
 
