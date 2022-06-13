@@ -15,8 +15,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/swaggo/gin-swagger/swaggerFiles"
 
 	appCfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"

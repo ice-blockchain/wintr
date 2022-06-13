@@ -56,6 +56,11 @@ type (
 		SetAuthenticatedUser(AuthenticatedUser)
 		GetAuthenticatedUser() AuthenticatedUser
 	}
+	// AuthenticatedUserCondition is a marker interface that should be implemented by request structs that need access to AuthenticatedUser
+	// in a *conditional* manner.
+	AuthenticatedUserCondition interface {
+		ShouldAuthenticateUser(*gin.Context) bool
+	}
 	// Response is the structure returned and handled by the router.
 	//	Data can be any JSON serializable struct, error or ErrorResponse.
 	Response struct {

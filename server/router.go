@@ -203,6 +203,9 @@ func authorize(req ParsedRequest, c *gin.Context) *Response {
 	if _, ok := req.(AuthenticatedUserSetGetter); !ok {
 		return nil
 	}
+	if condition, ok := req.(AuthenticatedUserCondition); ok && !condition.ShouldAuthenticateUser(c) {
+		return nil
+	}
 	tk, err := token.NewToken(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer "))
 	if err != nil {
 		return Unauthorized(err)
