@@ -139,7 +139,7 @@ func ShouldBindAuthenticatedUser(c *gin.Context) func(obj interface{}) error {
 		if authenticatedUserSetGetter, isOk := obj.(AuthenticatedUserSetGetter); isOk {
 			if authenticatedUser, exists := c.Get(authenticatedUserGinCtxKey); exists {
 				authenticatedUserSetGetter.SetAuthenticatedUser(authenticatedUser.(AuthenticatedUser))
-			} else {
+			} else if condition, ok := obj.(AuthenticatedUserCondition); !ok || condition.ShouldAuthenticateUser(c) {
 				return ErrNotAuthenticated
 			}
 		}
