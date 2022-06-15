@@ -72,10 +72,15 @@ func (t *Time) unmarshallUint64(data []byte) {
 			return
 		}
 	}
-	nanos, err := strconv.Atoi(string(data))
+	millisOrNanos, err := strconv.Atoi(string(data))
 	log.Panic(err)
 	t.Time = new(stdlibtime.Time)
-	*t.Time = stdlibtime.Unix(0, int64(nanos)).UTC()
+	//nolint:gomnd // There's no magic here, there are 13 digits in a millisecond based timestamp.
+	if len(data) == 13 {
+		*t.Time = stdlibtime.UnixMilli(int64(millisOrNanos)).UTC()
+	} else {
+		*t.Time = stdlibtime.Unix(0, int64(millisOrNanos)).UTC()
+	}
 }
 
 func (t *Time) unmarshallString(bytes []byte) error {

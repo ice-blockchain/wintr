@@ -12,6 +12,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
+//nolint:funlen // It's better to keep it together.
 func TestTime(t *testing.T) {
 	t.Parallel()
 	type tmpStruct struct {
@@ -32,6 +33,12 @@ func TestTime(t *testing.T) {
 	var t2 tmpStruct
 	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":1}`), &t2))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1).UTC())}, t2)
+	var t21 tmpStruct
+	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":1655303440552373000}`), &t21))
+	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1655303440552373000).UTC())}, t21)
+	var t22 tmpStruct
+	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":1655303440552}`), &t22))
+	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1655303440552000000).UTC())}, t22)
 	var t3 tmpStruct
 	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":"2006-01-02T15:04:05.999999999Z"}`), &t3))
 	assert.Equal(t, t1, t3)
