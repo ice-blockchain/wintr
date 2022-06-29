@@ -25,9 +25,12 @@ func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicatio
 	}
 	if err = initDBSchema(db, ddl); err != nil {
 		if cErr := db.Close(); cErr != nil {
-			log.Error(errors.Wrap(err, "failed to closed db connector due to initDBSchema failure"))
+			log.Error(errors.Wrap(cErr, "failed to closed db connector due to initDBSchema failure"))
 		}
 		log.Panic(err)
+	}
+	if cfg.DB.ReadOnly {
+		return db
 	}
 	// The reason we close it and then reconnect it is because, sadly, schema loading happens after connection is established.
 	// If you change the schema at runtime, the connector will not refresh the changes, so we are forced to reconnect to fetch the updated schema.
@@ -47,8 +50,8 @@ func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Con
 		Pass: cfg.DB.Password,
 	}
 
-	log.Info("connecting to DB...", "URLs", cfg.DB.URLs)
-	if db, err = tntMulti.ConnectWithDefaults(ctx, cancel, auth, cfg.DB.URLs...); err != nil {
+	log.Info("connecting to DB...", "URLs", cfg.DB.URLs, "readOnly", cfg.DB.ReadOnly)
+	if db, err = tntMulti.ConnectWithWritableAwareDefaults(ctx, cancel, !cfg.DB.ReadOnly, auth, cfg.DB.URLs...); err != nil {
 		return nil, errors.Wrapf(err, "could not connect to tarantool instances: %v", cfg.DB.URLs)
 	}
 
@@ -56,9 +59,11 @@ func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Con
 }
 
 func initDBSchema(db tarantool.Connector, ddl string) error {
-	log.Info("initializing DB schema...")
-	if resp, err := db.Eval(ddl, []interface{}{}); err != nil || resp.Code != tarantool.OkCode {
-		return errors.Wrap(err, "DDL eval failed")
+	if !cfg.DB.ReadOnly {
+		log.Info("initializing DB schema...")
+		if resp, err := db.Eval(ddl, []interface{}{}); err != nil || resp.Code != tarantool.OkCode {
+			return errors.Wrap(err, "DDL eval failed")
+		}
 	}
 
 	log.Info("checking DB schema...")

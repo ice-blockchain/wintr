@@ -34,6 +34,7 @@ type (
 			Password string   `yaml:"password"`
 			URLs     []string `yaml:"urls"`
 			Spaces   []string `yaml:"spaces"`
+			ReadOnly bool     `yaml:"readOnly"`
 		} `yaml:"db"`
 	}
 )
