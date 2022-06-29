@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cosmossdk.io/math v1.0.0-beta.2
-	github.com/framey-io/go-tarantool v0.0.0-20220629145139-5ef2578460f6
+	github.com/framey-io/go-tarantool v0.0.0-20220629171134-7bc21bab4dd0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/goccy/go-json v0.9.7
 	github.com/google/uuid v1.3.0
