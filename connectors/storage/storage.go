@@ -75,12 +75,10 @@ func initDBSchema(db tarantool.Connector, ddl string) error {
 }
 
 func checkDBSchema(db tarantool.Connector) error {
-	var spacesR []map[string]interface{}
-	if err := db.Call17Typed(getAllUserSpacesFunctionName, []interface{}{}, &spacesR); err != nil || len(spacesR) != 1 {
-		return errors.Wrapf(err, "calling %s failed", getAllUserSpacesFunctionName)
+	spaces, err := getAllUserSpaces(db)
+	if err != nil {
+		return errors.Wrap(err, "failed to getAllUserSpaces")
 	}
-
-	spaces := spacesR[0]
 	for spaceName, value := range spaces {
 		log.Info(fmt.Sprintf("found space `%v`, metadata `%v`", spaceName, value))
 	}
@@ -99,6 +97,19 @@ func checkDBSchema(db tarantool.Connector) error {
 	}
 
 	return nil
+}
+
+func getAllUserSpaces(db tarantool.Connector) (map[string]interface{}, error) {
+	var spacesR []map[string]interface{}
+	getAllSpacesFuncName := getAllUserSpacesFunctionName
+	if cfg.DB.ReadOnly {
+		getAllSpacesFuncName = fmt.Sprintf("{{non-writable}}%s", getAllUserSpacesFunctionName)
+	}
+	if err := db.Call17Typed(getAllSpacesFuncName, []interface{}{}, &spacesR); err != nil || len(spacesR) != 1 {
+		return nil, errors.Wrapf(err, "calling %s failed", getAllSpacesFuncName)
+	}
+
+	return spacesR[0], nil
 }
 
 func CheckSQLDMLErr(resp *tarantool.Response, err error) error {
