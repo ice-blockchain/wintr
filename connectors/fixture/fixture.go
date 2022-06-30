@@ -17,10 +17,13 @@ func TestSetup(pkg string) func() {
 	return func() {
 		dbError, mbError := cleanUp(cleanUpStorage, cleanUpMessageBroker)
 		if dbError != nil || mbError != nil {
-			err := fmt.Errorf("%v fixture cleanup failed", pkg)
-			log.Panic(err, "dbError", dbError, "mbError", mbError)
+			log.Panic(fixtureCleanUpError(pkg), "dbError", dbError, "mbError", mbError)
 		}
 	}
+}
+
+func fixtureCleanUpError(pkg string) error {
+	return fmt.Errorf("%s %w", pkg, errFixtureCleanUp)
 }
 
 func setupDBAndMessageBroker(pkg string) (func(), func()) {
