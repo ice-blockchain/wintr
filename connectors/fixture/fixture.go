@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
-
 	messagebrokerfixture "github.com/ice-blockchain/wintr/connectors/message_broker/fixture"
 	storagefixture "github.com/ice-blockchain/wintr/connectors/storage/fixture"
 	"github.com/ice-blockchain/wintr/log"
@@ -19,7 +17,7 @@ func TestSetup(pkg string) func() {
 	return func() {
 		dbError, mbError := cleanUp(cleanUpStorage, cleanUpMessageBroker)
 		if dbError != nil || mbError != nil {
-			err := errors.New(fmt.Sprintf("%v fixture cleanup failed", pkg))
+			err := fmt.Errorf("%v fixture cleanup failed", pkg)
 			log.Panic(err, "dbError", dbError, "mbError", mbError)
 		}
 	}

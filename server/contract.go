@@ -75,7 +75,7 @@ type (
 		Code  string                 `json:"code,omitempty" example:"SOMETHING_NOT_FOUND"`
 	}
 
-	// Public for testing purposes (to setup containers in fixture)
+	// Public for testing purposes (to setup containers in fixture).
 	Config struct {
 		HTTPServer struct {
 			CertPath string `yaml:"certPath"`

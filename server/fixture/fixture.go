@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-package serverfixture
+package fixture
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"path"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
@@ -39,7 +38,7 @@ func GenerateMagicToken() string {
 	return testDIDToken
 }
 
-func StartContainer(ctx context.Context, serviceName string, testCfg server.Config) (func(), string, error) {
+func StartContainer(ctx context.Context, serviceName string, testCfg server.Config) (terminate func(), addr string, err error) {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: selfContainerRequest(serviceName, testCfg),
 		Started:          true,
@@ -68,7 +67,7 @@ func terminateContainer(ctx context.Context, container testcontainers.Container)
 	return func() {
 		c := ctx
 		if c.Err() != nil {
-			cc, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			cc, cancel := context.WithTimeout(context.Background(), contextDeadline)
 			c = cc
 			defer cancel()
 		}
@@ -114,12 +113,12 @@ func selfContainerRequest(serviceName string, testCfg server.Config) testcontain
 		ExposedPorts: []string{fmt.Sprintf("%v/tcp", port)},
 		WaitingFor: wait.ForAll(
 			wait.
-				ForLog(fmt.Sprintf("server started listening on %v...", port)).WithStartupTimeout(10*time.Minute),
+				ForLog(fmt.Sprintf("server started listening on %v...", port)).WithStartupTimeout(startUpTimeout),
 			wait.
-				ForHTTP("/health-check").WithStartupTimeout(10*time.Minute).
+				ForHTTP("/health-check").WithStartupTimeout(startUpTimeout).
 				WithPort(nat.Port(fmt.Sprintf("%v/tcp", port))).
 				WithTLS(true, LocalhostTLS(testCfg)),
-		).WithStartupTimeout(10 * time.Minute),
+		).WithStartupTimeout(startUpTimeout),
 	}
 }
 
