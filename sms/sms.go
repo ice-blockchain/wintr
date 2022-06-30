@@ -8,44 +8,61 @@ import (
 	"github.com/pkg/errors"
 	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
+	"golang.org/x/sync/errgroup"
 
 	appCfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func InitClient(applicationYamlKey string) Client {
+func New(applicationYamlKey string) Client {
 	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
 
-	return twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username: cfg.TwilioCredentials.SID,
-		Password: cfg.TwilioCredentials.Token,
+	c := &sms{}
+	c.client = twilio.NewRestClientWithParams(twilio.ClientParams{
+		Username: cfg.Credentials.Login,
+		Password: cfg.Credentials.Password,
 	})
+
+	return c
 }
 
-func Send(ctx context.Context, client Client, toNumber, message string) error {
+func (s *sms) Send(ctx context.Context, parcel Parcel) error {
 	return errors.Wrapf(retry(ctx, func() error {
 		if ctx.Err() != nil {
 			//nolint:wrapcheck // It's a proxy.
 			return backoff.Permanent(ctx.Err())
 		}
 
-		_, err := client.Api.CreateMessage(new(openapi.CreateMessageParams).
-			SetTo(toNumber).
+		_, err := s.client.Api.CreateMessage(new(openapi.CreateMessageParams).
+			SetTo(parcel.ToNumber).
 			SetFrom(cfg.FromPhoneNumber).
-			SetBody(message))
+			SetBody(parcel.Message))
 
 		//nolint:wrapcheck // It's wrapped outside.
 		return err
 	}), "failed to send sms message via twilio")
 }
 
-func SendAsync(ctx context.Context, client Client, toNumber, message string) chan error {
-	r := make(chan error)
-	go func() {
-		r <- Send(ctx, client, toNumber, message)
-	}()
+func (s *sms) SendMulti(ctx context.Context, parcels []Parcel) error {
+	g, ctx := errgroup.WithContext(ctx)
 
-	return r
+	for _, a := range parcels {
+		copyA := a
+		g.Go(func() error {
+			err := s.Send(ctx, copyA)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return errors.Wrapf(err, "error during sending multiple messages")
+	}
+
+	return nil
 }
 
 func retry(ctx context.Context, op func() error) error {

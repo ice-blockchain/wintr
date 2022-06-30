@@ -1,13 +1,23 @@
 package sms
 
 import (
+	"context"
+
 	"github.com/twilio/twilio-go"
 )
 
 // Public API.
 
 type (
-	Client = *twilio.RestClient
+	Parcel struct {
+		ToNumber string
+		Message  string
+	}
+
+	Client interface {
+		Send(ctx context.Context, parcel Parcel) error
+		SendMulti(ctx context.Context, parcels []Parcel) error
+	}
 )
 
 // Private API.
@@ -16,11 +26,15 @@ type (
 var cfg config
 
 type (
+	sms struct {
+		client *twilio.RestClient
+	}
+
 	config struct {
-		TwilioCredentials struct {
-			SID   string `yaml:"SID"`
-			Token string `yaml:"token"`
-		} `yaml:"twilioCredentials"`
+		Credentials struct {
+			Login    string `yaml:"login"`
+			Password string `yaml:"password"`
+		} `yaml:"credentials"`
 		FromPhoneNumber string `yaml:"fromPhoneNumber"`
 	}
 )
