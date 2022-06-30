@@ -73,7 +73,7 @@ func terminateContainer(ctx context.Context, container testcontainers.Container)
 			defer cancel()
 		}
 		if err := container.Terminate(c); err != nil {
-			log.Fatal(errors.Wrap(err, "ricky container failed to terminate"))
+			log.Fatal(errors.Wrapf(err, "%v container failed to terminate", container.GetContainerID()))
 		}
 	}
 }
@@ -84,7 +84,7 @@ func selfContainerRequest(serviceName string, testCfg server.Config) testcontain
 		_os    = "linux"
 		goarch = runtime.GOARCH
 	)
-	dockerFileContext, testdataPath, port := containerInfo(testCfg)
+	dockerFileContext, testdataPath, port := containerInfo(serviceName, testCfg)
 
 	return testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
@@ -123,18 +123,18 @@ func selfContainerRequest(serviceName string, testCfg server.Config) testcontain
 	}
 }
 
-func containerInfo(testCfg server.Config) (dockerFileContext, testdataPath, port string) {
+func containerInfo(serviceName string, testCfg server.Config) (dockerFileContext, testdataPath, port string) {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get working dir"))
 	}
 
-	if strings.HasSuffix(wd, fmt.Sprintf("cmd%cricky", os.PathSeparator)) {
+	if strings.HasSuffix(wd, fmt.Sprintf("cmd%c%v", os.PathSeparator, serviceName)) {
 		dockerFileContext = path.Join(wd, "..", "..")
 		testdataPath = fmt.Sprintf("%v%c", wd, os.PathSeparator)
 	} else {
 		dockerFileContext = "."
-		testdataPath = fmt.Sprintf("%v%ccmd%cricky%c", wd, os.PathSeparator, os.PathSeparator, os.PathSeparator)
+		testdataPath = fmt.Sprintf("%v%ccmd%c%v%c", wd, os.PathSeparator, os.PathSeparator, serviceName, os.PathSeparator)
 	}
 
 	port = fmt.Sprintf("%v", testCfg.HTTPServer.Port)
