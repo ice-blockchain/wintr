@@ -3,9 +3,12 @@
 package fixture
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"testing"
 
+	messagebroker "github.com/ice-blockchain/wintr/connectors/message_broker"
 	messagebrokerfixture "github.com/ice-blockchain/wintr/connectors/message_broker/fixture"
 	storagefixture "github.com/ice-blockchain/wintr/connectors/storage/fixture"
 	"github.com/ice-blockchain/wintr/log"
@@ -68,4 +71,59 @@ func cleanUp(cleanUpStorage, cleanUpMessageBroker func()) (error, error) {
 	wg.Wait()
 
 	return dbError, mbError
+}
+
+func NewTestsRunner(state State, appKey string) *TestsRunner {
+	return &TestsRunner{State: state, appKey: appKey}
+}
+
+func (t *TestsRunner) RunTests(m *testing.M) (code int) {
+	if testing.Short() {
+		return m.Run()
+	}
+	cleanUP := TestSetup(t.appKey)
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(errRecover, e)
+			if code == 0 {
+				code = 1
+			}
+		}
+	}()
+	defer cleanUP()
+
+	ctx, cancel := context.WithTimeout(context.Background(), testsContextTimeout)
+	t.InitializeServices(ctx, cancel)
+	t.testMb = connectAndStartConsumingFromTestMessageBroker(ctx, t.Processors(), t.appKey)
+	defer func() {
+		if cCode := t.cleanUp(ctx); code == 0 {
+			code = cCode
+		}
+	}()
+	defer cancel()
+
+	return m.Run()
+}
+
+func (t *TestsRunner) cleanUp(ctx context.Context) int {
+	if cErr := t.CloseServices(); cErr != nil {
+		log.Error(cErr)
+
+		return 1
+	}
+	if cErr := t.testMb.Close(); cErr != nil {
+		log.Error(cErr)
+
+		return 1
+	}
+	errCode := t.TestAllWhenDBAndMBAreDown(ctx)
+	if errCode != 0 {
+		log.Warn("main_test.testAllWhenDatabaseIsDown failed.")
+	}
+
+	return errCode
+}
+
+func connectAndStartConsumingFromTestMessageBroker(ctx context.Context, p map[string]messagebroker.Processor, applicationYamlKey string) messagebroker.Client {
+	return messagebroker.MustConnectAndStartConsuming(ctx, func() {}, applicationYamlKey, p)
 }
