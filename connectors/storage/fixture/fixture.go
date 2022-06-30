@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -30,7 +31,32 @@ const (
 	fileMode          = 0o777
 )
 
-func TestSetup(applicationYamlKey string) func() {
+func SetupDB(pkg string, wg *sync.WaitGroup) func() {
+	var cleanUpStorage func()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cleanUpStorage = testSetup(pkg)
+	}()
+
+	return cleanUpStorage
+}
+
+func CleanUpDB(cleanUpStorage func(), wg *sync.WaitGroup) error {
+	var dbError error
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := recover(); err != nil {
+			dbError = err.(error)
+		}
+		cleanUpStorage()
+	}()
+
+	return dbError
+}
+
+func testSetup(applicationYamlKey string) func() {
 	containerID := strings.ToLower(uuid.New().String())
 	tmpFolder := fmt.Sprintf(".tmp-%s", containerID)
 
