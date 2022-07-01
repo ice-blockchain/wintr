@@ -17,8 +17,8 @@ type (
 	}
 
 	Client interface {
-		Send(ctx context.Context, parcel Parcel) error
-		SendMulti(ctx context.Context, parcels []Parcel) error
+		Send(context.Context, Parcel) error
+		SendMulti(context.Context, []Parcel) error
 	}
 )
 

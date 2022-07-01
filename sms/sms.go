@@ -51,20 +51,11 @@ func (s *sms) SendMulti(ctx context.Context, parcels []Parcel) error {
 	for _, a := range parcels {
 		copyA := a
 		g.Go(func() error {
-			err := s.Send(ctx, copyA)
-			if err != nil {
-				return err
-			}
-
-			return nil
+			return s.Send(ctx, copyA)
 		})
 	}
 
-	if err := g.Wait(); err != nil {
-		return errors.Wrapf(err, "error during sending multiple messages")
-	}
-
-	return nil
+	return errors.Wrapf(g.Wait(), "error during sending multiple messages")
 }
 
 func retry(ctx context.Context, op func() error) error {
