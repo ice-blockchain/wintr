@@ -7,8 +7,9 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/ice-blockchain/wintr/log"
 	"github.com/pkg/errors"
+
+	"github.com/ice-blockchain/wintr/log"
 )
 
 func TestSetup(funcs []func(string) func(), pkg string) func() {
