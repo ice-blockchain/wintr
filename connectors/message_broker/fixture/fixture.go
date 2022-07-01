@@ -3,9 +3,11 @@
 package fixture
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/ice-blockchain/wintr/config"
+	messagebroker "github.com/ice-blockchain/wintr/connectors/message_broker"
 	"github.com/ice-blockchain/wintr/log"
 )
 
@@ -147,4 +150,65 @@ func findMessageBrokerPort(applicationYamlKey string) (int, bool, error) {
 	}
 
 	return port, cfg.MessageBroker.CertPath != "", nil
+}
+
+func (mb *TestMessageBroker) Process(ctx context.Context, m *messagebroker.Message) error {
+	if ctx.Err() != nil {
+		log.Panic(errors.Wrap(ctx.Err(), "unexpected deadline while processing message"))
+	}
+	mx.Lock()
+	defer mx.Unlock()
+	log.Debug("new record processed", "message.value", string(m.Value), "message", m)
+	globalMessageSource = append(globalMessageSource, RawMessage{
+		key:   m.Key,
+		value: string(m.Value),
+		topic: m.Topic,
+	})
+
+	return nil
+}
+
+func VerifyMessages(ctx context.Context, expected ...RawMessage) error {
+	for ctx.Err() == nil && !recordsFound(expected) {
+	}
+
+	if !recordsFound(expected) {
+		//nolint:revive // Wrong, because `github.com/pkg/errors` is alot better than `errors`
+		return errors.New(fmt.Sprintf("verifyMessages failed! expected %v, actual %v", expected, globalMessageSource))
+	}
+
+	return nil
+}
+
+func recordsFound(expected []RawMessage) bool {
+	mx.RLock()
+	defer mx.RUnlock()
+
+	if len(globalMessageSource) == 0 {
+		return false
+	}
+
+	for i, a := range findExpectedInGlobalMessageSource(expected) {
+		e := expected[i]
+		if e.key != a.key || !regexp.MustCompile(e.value).MatchString(a.value) || e.topic != a.topic {
+			return false
+		}
+	}
+
+	return true
+}
+
+func findExpectedInGlobalMessageSource(expected []RawMessage) []RawMessage {
+	var actualFound []RawMessage
+	for _, e := range expected {
+		for _, a := range globalMessageSource {
+			if e.key == a.key && regexp.MustCompile(e.value).MatchString(a.value) && e.topic == a.topic {
+				actualFound = append(actualFound, a)
+
+				break
+			}
+		}
+	}
+
+	return actualFound
 }

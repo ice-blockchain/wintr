@@ -74,6 +74,16 @@ type (
 		Error string                 `json:"error" example:"something is missing"`
 		Code  string                 `json:"code,omitempty" example:"SOMETHING_NOT_FOUND"`
 	}
+
+	// Public for testing purposes (to setup containers in fixture).
+	Config struct {
+		HTTPServer struct {
+			CertPath string `yaml:"certPath"`
+			KeyPath  string `yaml:"keyPath"`
+			Port     uint16 `yaml:"port"`
+		} `yaml:"httpServer"`
+		DefaultEndpointTimeout time.Duration `yaml:"defaultEndpointTimeout"`
+	}
 )
 
 // Private API.
@@ -84,7 +94,7 @@ var (
 	//nolint:gochecknoglobals // Because its loaded once, at runtime.
 	development bool
 	//nolint:gochecknoglobals // Because its loaded once, at runtime.
-	cfg config
+	cfg Config
 )
 
 type (
@@ -94,13 +104,5 @@ type (
 		server      *http.Server
 		router      *gin.Engine
 		swaggerRoot string
-	}
-	config struct {
-		HTTPServer struct {
-			CertPath string `yaml:"certPath"`
-			KeyPath  string `yaml:"keyPath"`
-			Port     uint16 `yaml:"port"`
-		} `yaml:"httpServer"`
-		DefaultEndpointTimeout time.Duration `yaml:"defaultEndpointTimeout"`
 	}
 )
