@@ -12,7 +12,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func TestSetup(funcs []func(string) func(), pkg string) func() {
+func TestSetup(pkg string, funcs ...func(string) func()) func() {
 	wg := new(sync.WaitGroup)
 	var cleanUpFuncs []func()
 	for _, f := range funcs {
