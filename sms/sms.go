@@ -4,13 +4,14 @@ package sms
 
 import (
 	"context"
+	"sync"
 	stdlibtime "time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
-	"golang.org/x/sync/errgroup"
 
 	appCfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
@@ -46,16 +47,28 @@ func (s *sms) Send(ctx context.Context, parcel Parcel) error {
 }
 
 func (s *sms) SendMulti(ctx context.Context, parcels []Parcel) error {
-	g, ctx := errgroup.WithContext(ctx)
+	var wg sync.WaitGroup
+	ch := make(chan error, len(parcels))
 
 	for _, a := range parcels {
+		wg.Add(1)
 		copyA := a
-		g.Go(func() error {
-			return s.Send(ctx, copyA)
-		})
+
+		go func() {
+			defer wg.Done()
+			ch <- s.Send(ctx, copyA)
+		}()
 	}
 
-	return errors.Wrapf(g.Wait(), "error during sending multiple messages")
+	wg.Wait()
+	close(ch)
+
+	var m error
+	for e := range ch {
+		m = multierror.Append(m, e)
+	}
+
+	return errors.Wrapf(m, "error during sending multiple messages")
 }
 
 func retry(ctx context.Context, op func() error) error {
