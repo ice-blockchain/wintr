@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	cosmossdk.io/math v1.0.0-beta.2
+	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/docker/go-connections v0.4.0
 	github.com/framey-io/go-tarantool v0.0.0-20220629222501-4ab5602cce51
 	github.com/gin-gonic/gin v1.8.1
@@ -18,6 +19,7 @@ require (
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe
 	github.com/swaggo/gin-swagger v1.5.0
 	github.com/testcontainers/testcontainers-go v0.13.0
+	github.com/twilio/twilio-go v0.26.0
 	github.com/twmb/franz-go v1.6.0
 	github.com/twmb/franz-go/pkg/kadm v1.1.1
 	github.com/twmb/franz-go/pkg/kmsg v1.1.0
@@ -31,7 +33,6 @@ require (
 	github.com/Microsoft/hcsshim v0.9.3 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -51,6 +52,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
