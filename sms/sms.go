@@ -63,12 +63,12 @@ func (s *sms) SendMulti(ctx context.Context, parcels []Parcel) error {
 	wg.Wait()
 	close(ch)
 
-	var m error
+	var m *multierror.Error
 	for e := range ch {
 		m = multierror.Append(m, e)
 	}
 
-	return errors.Wrapf(m, "error during sending multiple messages")
+	return errors.Wrapf(m.ErrorOrNil(), "error during sending multiple messages")
 }
 
 func retry(ctx context.Context, op func() error) error {
