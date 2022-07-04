@@ -38,9 +38,9 @@ func GenerateMagicToken() string {
 	return testDIDToken
 }
 
-func StartContainer(ctx context.Context, serviceName string, testCfg server.Config) (terminate func(), addr string, err error) {
+func StartContainer(ctx context.Context, serviceName string, testCfg server.Config, mounts ...Mounts) (terminate func(), addr string, err error) {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: selfContainerRequest(serviceName, testCfg),
+		ContainerRequest: selfContainerRequest(serviceName, testCfg, mounts...),
 		Started:          true,
 	})
 	if err != nil {
@@ -78,12 +78,25 @@ func terminateContainer(ctx context.Context, container testcontainers.Container)
 }
 
 //nolint:funlen // Because the alternative is worse
-func selfContainerRequest(serviceName string, testCfg server.Config) testcontainers.ContainerRequest {
+func selfContainerRequest(serviceName string, testCfg server.Config, mounts ...Mounts) testcontainers.ContainerRequest {
 	var (
 		_os    = "linux"
 		goarch = runtime.GOARCH
 	)
-	dockerFileContext, testdataPath, port := containerInfo(serviceName, testCfg)
+	dockerFileContext, testdataPath, port := ContainerInfo(serviceName, testCfg)
+	m := []testcontainers.ContainerMount{
+		testcontainers.BindMount(
+			fmt.Sprintf("%v.testdata/localhost.crt", testdataPath),
+			testcontainers.ContainerMountTarget(fmt.Sprintf("/%v", testCfg.HTTPServer.CertPath)),
+		), testcontainers.BindMount(
+			fmt.Sprintf("%v.testdata/localhost.key", testdataPath),
+			testcontainers.ContainerMountTarget(fmt.Sprintf("/%v", testCfg.HTTPServer.KeyPath)),
+		), testcontainers.BindMount(
+			fmt.Sprintf("%v.testdata/application.yaml", testdataPath),
+			"/application.yaml",
+		),
+	}
+	m = append(m, mounts...)
 
 	return testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
@@ -92,21 +105,8 @@ func selfContainerRequest(serviceName string, testCfg server.Config) testcontain
 			PrintBuildLog: true,
 			BuildArgs:     map[string]*string{"SERVICE_NAME": &serviceName, "TARGETOS": &_os, "TARGETARCH": &goarch, "PORT": &port},
 		},
-		Labels: map[string]string{"os": _os, "arch": goarch},
-		Mounts: testcontainers.Mounts(
-			testcontainers.BindMount(
-				fmt.Sprintf("%v.testdata/localhost.crt", testdataPath),
-				testcontainers.ContainerMountTarget(fmt.Sprintf("/%v", testCfg.HTTPServer.CertPath)),
-			),
-			testcontainers.BindMount(
-				fmt.Sprintf("%v.testdata/localhost.key", testdataPath),
-				testcontainers.ContainerMountTarget(fmt.Sprintf("/%v", testCfg.HTTPServer.KeyPath)),
-			),
-			testcontainers.BindMount(
-				fmt.Sprintf("%v.testdata/application.yaml", testdataPath),
-				"/application.yaml",
-			),
-		),
+		Labels:       map[string]string{"os": _os, "arch": goarch},
+		Mounts:       m,
 		AutoRemove:   true,
 		NetworkMode:  "host",
 		Name:         uuid.New().String(),
@@ -122,7 +122,7 @@ func selfContainerRequest(serviceName string, testCfg server.Config) testcontain
 	}
 }
 
-func containerInfo(serviceName string, testCfg server.Config) (dockerFileContext, testdataPath, port string) {
+func ContainerInfo(serviceName string, testCfg server.Config) (dockerFileContext, testdataPath, port string) {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get working dir"))
