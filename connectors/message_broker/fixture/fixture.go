@@ -160,9 +160,9 @@ func (mb *TestMessageBroker) Process(ctx context.Context, m *messagebroker.Messa
 	defer mx.Unlock()
 	log.Debug("new record processed", "message.value", string(m.Value), "message", m)
 	globalMessageSource = append(globalMessageSource, RawMessage{
-		key:   m.Key,
-		value: string(m.Value),
-		topic: m.Topic,
+		Key:   m.Key,
+		Value: string(m.Value),
+		Topic: m.Topic,
 	})
 
 	return nil
@@ -190,7 +190,7 @@ func recordsFound(expected []RawMessage) bool {
 
 	for i, a := range findExpectedInGlobalMessageSource(expected) {
 		e := expected[i]
-		if e.key != a.key || !regexp.MustCompile(e.value).MatchString(a.value) || e.topic != a.topic {
+		if e.Key != a.Key || !regexp.MustCompile(e.Value).MatchString(a.Value) || e.Topic != a.Topic {
 			return false
 		}
 	}
@@ -202,7 +202,7 @@ func findExpectedInGlobalMessageSource(expected []RawMessage) []RawMessage {
 	var actualFound []RawMessage
 	for _, e := range expected {
 		for _, a := range globalMessageSource {
-			if e.key == a.key && regexp.MustCompile(e.value).MatchString(a.value) && e.topic == a.topic {
+			if e.Key == a.Key && regexp.MustCompile(e.Value).MatchString(a.Value) && e.Topic == a.Topic {
 				actualFound = append(actualFound, a)
 
 				break
