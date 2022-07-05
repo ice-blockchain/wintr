@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BUSL-1.1
+
 package multimedia
 
 import (
@@ -41,11 +43,11 @@ func (r *multimedia) UploadPicture(ctx context.Context, data *multipart.FileHead
 		return errors.Wrapf(err, "error reading file %v", data.Filename)
 	}
 
-	return errors.Wrapf(doUploadProfilePicture(ctx, data, fileData), "error uploading file %v", data.Filename)
+	return errors.Wrapf(doUploadPicture(ctx, data, fileData), "error uploading file %v", data.Filename)
 }
 
 //nolint:gomnd // Static config.
-func doUploadProfilePicture(ctx context.Context, data *multipart.FileHeader, fileData []byte) error {
+func doUploadPicture(ctx context.Context, data *multipart.FileHeader, fileData []byte) error {
 	_, err := req.
 		SetContext(ctx).
 		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second).
