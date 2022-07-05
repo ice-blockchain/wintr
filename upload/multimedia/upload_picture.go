@@ -20,12 +20,12 @@ import (
 func New(applicationYamlKey string) Client {
 	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
 
-	c := &multimedia{}
+	m := &multimedia{}
 
-	return c
+	return m
 }
 
-func (r *multimedia) UploadPicture(ctx context.Context, data *multipart.FileHeader) error {
+func (m *multimedia) UploadPicture(ctx context.Context, data *multipart.FileHeader) error {
 	if data == nil || data.Size == 0 {
 		return nil
 	}
@@ -53,9 +53,9 @@ func doUploadPicture(ctx context.Context, data *multipart.FileHeader, fileData [
 		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second).
 		SetRetryHook(func(resp *req.Response, err error) {
 			if err != nil {
-				log.Error(errors.Wrapf(err, "failed to uploadProfilePicture, retrying... "))
+				log.Error(errors.Wrapf(err, "failed to doUploadPicture, retrying... "))
 			} else if resp.StatusCode == http.StatusTooManyRequests {
-				log.Error(errors.New("rate limit for uploadProfilePicture reached, retrying... "))
+				log.Error(errors.New("rate limit for doUploadPicture reached, retrying... "))
 			}
 		}).
 		SetRetryCount(25).
