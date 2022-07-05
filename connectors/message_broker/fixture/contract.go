@@ -8,7 +8,7 @@ import "sync"
 
 type (
 	RawMessage struct {
-		key, value, topic string
+		Key, Value, Topic string
 	}
 
 	TestMessageBroker struct{}
