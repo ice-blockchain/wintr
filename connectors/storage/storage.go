@@ -60,7 +60,7 @@ func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Con
 }
 
 func initDBSchema(db tarantool.Connector, ddl string) error {
-	if !cfg.DB.ReadOnly {
+	if !cfg.DB.ReadOnly && !cfg.DB.SkipSchemaCreation {
 		log.Info("initializing DB schema...")
 		if resp, err := db.Eval(ddl, []interface{}{}); err != nil || resp.Code != tarantool.OkCode {
 			return errors.Wrap(err, "DDL eval failed")

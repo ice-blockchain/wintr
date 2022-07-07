@@ -4,133 +4,60 @@ package fixture
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
-	"os"
-	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/connectors/fixture"
 	messagebroker "github.com/ice-blockchain/wintr/connectors/message_broker"
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//go:embed .testdata/docker-compose.yaml
-var dockerComposeYAMLTemplate string
+func NewTestConnector(applicationYAMLKey string, order int) TestConnector {
+	var cfg messagebroker.Config
+	applicationYamlTestKey := fmt.Sprintf("%v_test", applicationYAMLKey)
+	config.MustLoadFromKey(applicationYamlTestKey, &cfg)
 
-//go:embed .testdata/localhost.crt
-var localhostCrt string
-
-//go:embed .testdata/localhost.key
-var localhostKey string
-
-const (
-	dockerComposeName = "docker-compose.yaml"
-	crtName           = "localhost.crt"
-	keyName           = "localhost.key"
-	fileMode          = 0o777
-)
-
-func TestSetup(applicationYamlKey string) func() {
-	containerID := strings.ToLower(uuid.New().String())
-	tmpFolder := fmt.Sprintf(".tmp-%s", containerID)
-
-	log.Info("starting test environment docker compose...", "containerID", containerID)
-	dockerCompose := startDockerCompose(tmpFolder, applicationYamlKey, containerID)
-
-	return func() {
-		var es []error
-		log.Info("stopping test environment docker compose...", "containerID", containerID)
-		if dErr := dockerCompose.Down(); dErr.Error != nil {
-			err := errors.Wrapf(dErr.Error, "failed to stop & clean docker compose for the `%v` test environment", applicationYamlKey)
-			es = append(es, err)
-		}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-
-		if len(es) != 0 {
-			for _, e := range es {
-				log.Error(e)
-			}
-
-			log.Panic(es[0])
-		}
+	return &testConnector{
+		cfg:                &cfg,
+		applicationYAMLKey: applicationYamlTestKey,
+		order:              order,
+		delegate:           fixture.NewConnector("mb", dockerComposeYAMLTemplate, "Successfully started Redpanda!", order, findMessageBrokerPort, nil),
 	}
 }
 
-func startDockerCompose(tmpFolder, applicationYamlKey, containerID string) *testcontainers.LocalDockerCompose {
-	mbPort, _, err := findMessageBrokerPort(applicationYamlKey)
-	if err != nil {
-		log.Panic(errors.Wrap(err, "could not find message broker port"))
-	}
-	dockerCompose := testcontainers.NewLocalDockerCompose(dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey), containerID)
-	dockerCompose.WithExposedService(fmt.Sprintf("mb%v", mbPort), mbPort, wait.ForLog("Successfully started Redpanda!"))
-	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
-	dockerCompose.WithCommand([]string{"up", "-d"})
+func (tc *testConnector) Order() int {
+	return tc.order
+}
 
-	if execErr := dockerCompose.Invoke(); execErr.Error != nil {
-		es := []error{errors.Wrapf(execErr.Error, "failed to start docker compose for `%v` test environment", applicationYamlKey)}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-
-		for _, e := range es {
-			log.Error(e)
+func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
+	cleanUp := tc.delegate.Setup(ctx)
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(errors.Wrapf(cleanUp(ctx), "failed to cleanup message_broker connector due to premature panic"))
+			log.Panic(e)
 		}
-
-		log.Panic(es[0])
+	}()
+	tc.testMessageStore = new(testMessageStore)
+	tc.testMessageStore.mx = new(sync.RWMutex)
+	tc.testMessageStore.chronologicalMessageList = []RawMessage{}
+	processors := make(map[messagebroker.Topic]messagebroker.Processor, len(tc.cfg.MessageBroker.Topics))
+	for _, topic := range tc.cfg.MessageBroker.Topics {
+		processors[topic.Name] = tc.testMessageStore
 	}
+	tc.Client = messagebroker.MustConnectAndStartConsuming(ctx, func() {}, tc.applicationYAMLKey, processors)
 
-	return dockerCompose
-}
-
-func dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey string) []string {
-	paths, err := createRequiredTestEnvFiles(tmpFolder, applicationYamlKey)
-	if err != nil {
-		es := []error{errors.Wrapf(err, "failed to createRequiredTestEnvFiles for `%v` test environment", applicationYamlKey)}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-		for _, e := range es {
-			log.Error(e)
-		}
-
-		log.Panic(es[0])
+	return func(cctx context.Context) error {
+		return errors.Wrapf(multierror.Append(nil,
+			errors.Wrapf(tc.Client.Close(), "failed closing the test message_broker client for %v", tc.applicationYAMLKey),
+			errors.Wrapf(cleanUp(cctx), "failed to cleanup message broker connector for %v", tc.applicationYAMLKey)).ErrorOrNil(),
+			"failed to cleanup messagebroker test connector")
 	}
-
-	return paths
-}
-
-func removeTMPFolder(tmpFolder, applicationYamlKey string, es []error) []error {
-	if dErr := os.RemoveAll(tmpFolder); dErr != nil {
-		es = append(es, errors.Wrapf(dErr, "failed to clean .tmp files for `%v` test environment", applicationYamlKey))
-	}
-
-	return es
-}
-
-func createRequiredTestEnvFiles(tmpFolder, applicationYamlKey string) ([]string, error) {
-	mbPort, ssl, err := findMessageBrokerPort(applicationYamlKey)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not find `%v` port for MessageBroker", applicationYamlKey)
-	}
-	if err = os.Mkdir(tmpFolder, fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create .tmp folder for `%v` test environment", applicationYamlKey)
-	}
-	dbDockerComposeYAMLName := fmt.Sprintf("%s/%s", tmpFolder, dockerComposeName)
-	dbDockerComposeYAML := fmt.Sprintf(dockerComposeYAMLTemplate, mbPort, ssl)
-	if err = os.WriteFile(dbDockerComposeYAMLName, []byte(dbDockerComposeYAML), fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create tmp .yaml docker compose for `%v` test environment", applicationYamlKey)
-	}
-	if err = os.WriteFile(fmt.Sprintf("%s/%s", tmpFolder, crtName), []byte(localhostCrt), fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create tmp `%v` docker compose for `%v` test environment", crtName, applicationYamlKey)
-	}
-	if err = os.WriteFile(fmt.Sprintf("%s/%s", tmpFolder, keyName), []byte(localhostKey), fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create tmp `%v` docker compose for `%v` test environment", keyName, applicationYamlKey)
-	}
-
-	return []string{dbDockerComposeYAMLName}, nil
 }
 
 func findMessageBrokerPort(applicationYamlKey string) (int, bool, error) {
@@ -150,65 +77,4 @@ func findMessageBrokerPort(applicationYamlKey string) (int, bool, error) {
 	}
 
 	return port, cfg.MessageBroker.CertPath != "", nil
-}
-
-func (mb *TestMessageBroker) Process(ctx context.Context, m *messagebroker.Message) error {
-	if ctx.Err() != nil {
-		log.Panic(errors.Wrap(ctx.Err(), "unexpected deadline while processing message"))
-	}
-	mx.Lock()
-	defer mx.Unlock()
-	log.Debug("new record processed", "message.value", string(m.Value), "message", m)
-	globalMessageSource = append(globalMessageSource, RawMessage{
-		Key:   m.Key,
-		Value: string(m.Value),
-		Topic: m.Topic,
-	})
-
-	return nil
-}
-
-func VerifyMessages(ctx context.Context, expected ...RawMessage) error {
-	for ctx.Err() == nil && !recordsFound(expected) {
-	}
-
-	if !recordsFound(expected) {
-		//nolint:revive // Wrong, because `github.com/pkg/errors` is alot better than `errors`
-		return errors.New(fmt.Sprintf("verifyMessages failed! expected %v, actual %v", expected, globalMessageSource))
-	}
-
-	return nil
-}
-
-func recordsFound(expected []RawMessage) bool {
-	mx.RLock()
-	defer mx.RUnlock()
-
-	if len(globalMessageSource) == 0 {
-		return false
-	}
-
-	for i, a := range findExpectedInGlobalMessageSource(expected) {
-		e := expected[i]
-		if e.Key != a.Key || !regexp.MustCompile(e.Value).MatchString(a.Value) || e.Topic != a.Topic {
-			return false
-		}
-	}
-
-	return true
-}
-
-func findExpectedInGlobalMessageSource(expected []RawMessage) []RawMessage {
-	var actualFound []RawMessage
-	for _, e := range expected {
-		for _, a := range globalMessageSource {
-			if e.Key == a.Key && regexp.MustCompile(e.Value).MatchString(a.Value) && e.Topic == a.Topic {
-				actualFound = append(actualFound, a)
-
-				break
-			}
-		}
-	}
-
-	return actualFound
 }

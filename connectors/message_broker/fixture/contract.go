@@ -2,7 +2,14 @@
 
 package fixture
 
-import "sync"
+import (
+	"context"
+	_ "embed"
+	"sync"
+
+	connectorsfixture "github.com/ice-blockchain/wintr/connectors/fixture"
+	messagebroker "github.com/ice-blockchain/wintr/connectors/message_broker"
+)
 
 // Public API.
 
@@ -10,15 +17,31 @@ type (
 	RawMessage struct {
 		Key, Value, Topic string
 	}
+	TestConnector interface {
+		connectorsfixture.TestConnector
 
-	TestMessageBroker struct{}
+		messagebroker.Client
+
+		VerifyMessages(context.Context, ...RawMessage) error
+	}
 )
 
 // Private API.
 
-var (
-	// nolint:gochecknoglobals // It`s a stateless singleton
-	globalMessageSource []RawMessage
-	// nolint:gochecknoglobals // It`s a stateless singleton
-	mx = new(sync.RWMutex)
+//go:embed .testdata/docker-compose.yaml
+var dockerComposeYAMLTemplate string
+
+type (
+	testConnector struct {
+		delegate connectorsfixture.TestConnector
+		messagebroker.Client
+		*testMessageStore
+		cfg                *messagebroker.Config
+		applicationYAMLKey string
+		order              int
+	}
+	testMessageStore struct {
+		mx                       *sync.RWMutex
+		chronologicalMessageList []RawMessage
+	}
 )

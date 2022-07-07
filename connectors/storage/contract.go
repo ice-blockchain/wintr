@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Public API.
+
 const IndexName = "indexName"
 
 var (
@@ -19,6 +21,20 @@ var (
 	ErrNoSpacesConfigured       = errors.New("no spaces configured")
 )
 
+type (
+	DBConfig struct {
+		User               string   `yaml:"user"`
+		Password           string   `yaml:"password"`
+		URLs               []string `yaml:"urls"`
+		Spaces             []string `yaml:"spaces"`
+		ReadOnly           bool     `yaml:"readOnly"`
+		SkipSchemaCreation bool     `yaml:"skipSchemaCreation"`
+	}
+	Config struct {
+		DB DBConfig `yaml:"db"`
+	}
+)
+
 // Private API.
 
 const (
@@ -27,16 +43,4 @@ const (
 )
 
 //nolint:gochecknoglobals // Because its loaded once, at runtime.
-var cfg config
-
-type (
-	config struct {
-		DB struct {
-			User     string   `yaml:"user"`
-			Password string   `yaml:"password"`
-			URLs     []string `yaml:"urls"`
-			Spaces   []string `yaml:"spaces"`
-			ReadOnly bool     `yaml:"readOnly"`
-		} `yaml:"db"`
-	}
-)
+var cfg Config
