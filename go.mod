@@ -15,10 +15,11 @@ require (
 	github.com/magiclabs/magic-admin-go v0.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.27.0
+	github.com/sendgrid/sendgrid-go v3.11.1+incompatible
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.8.0
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe
-	github.com/swaggo/gin-swagger v1.5.0
+	github.com/swaggo/gin-swagger v1.5.1
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/twilio/twilio-go v0.26.0
 	github.com/twmb/franz-go v1.6.0
@@ -79,6 +80,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -90,11 +92,11 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
-	golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e // indirect
+	golang.org/x/net v0.0.0-20220706163947-c90051bbdb60 // indirect
+	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.11 // indirect
-	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
+	google.golang.org/genproto v0.0.0-20220707150051-590a5ac7bee1 // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
