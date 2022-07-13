@@ -2,10 +2,21 @@
 
 package terror
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 func New(err error, data map[string]interface{}) *Err {
 	return &Err{error: err, Data: data}
+}
+
+func As(err error) *Err {
+	tErr := new(Err)
+	if ok := errors.As(err, tErr); ok {
+		return tErr
+	}
+
+	return nil
 }
 
 func (e *Err) Is(er error) bool {
