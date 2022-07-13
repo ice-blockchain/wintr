@@ -13,6 +13,7 @@ import (
 
 	appCfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/terror"
 )
 
 func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicationYamlKey string) (db tarantool.Connector) {
@@ -145,7 +146,9 @@ func parseTarantoolSQLDMLErr(err error) error {
 	if ok := errors.As(err, e); ok {
 		switch e.Code {
 		case tarantool.ER_TUPLE_FOUND:
-			return ErrDuplicate
+			return terror.New(ErrDuplicate, map[string]interface{}{
+				IndexName: strings.Split(strings.Replace(e.Msg, `Duplicate key exists in unique index "`, "", 1), `"`)[0],
+			})
 		case tarantool.ER_TUPLE_NOT_FOUND:
 			return ErrNotFound
 		case tarantool.ER_SQL_EXECUTE:

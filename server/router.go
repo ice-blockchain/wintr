@@ -59,23 +59,35 @@ func BadRequest(err error, code string, data ...map[string]interface{}) *Respons
 	}
 }
 
-func Conflict(err error, code string) *Response {
+func Conflict(err error, code string, data ...map[string]interface{}) *Response {
+	var d map[string]interface{}
+	if len(data) == 1 {
+		d = data[0]
+	}
+
 	return &Response{
 		Data: ErrorResponse{
 			error: err,
 			Error: err.Error(),
 			Code:  code,
+			Data:  d,
 		},
 		Code: http.StatusConflict,
 	}
 }
 
-func NotFound(err error, code string) *Response {
+func NotFound(err error, code string, data ...map[string]interface{}) *Response {
+	var d map[string]interface{}
+	if len(data) == 1 {
+		d = data[0]
+	}
+
 	return &Response{
 		Data: ErrorResponse{
 			error: err,
 			Error: err.Error(),
 			Code:  code,
+			Data:  d,
 		},
 		Code: http.StatusNotFound,
 	}
@@ -85,24 +97,36 @@ func Unexpected(err error) Response {
 	return Response{Data: err}
 }
 
-func Unauthorized(err error) *Response {
+func Unauthorized(err error, data ...map[string]interface{}) *Response {
+	var d map[string]interface{}
+	if len(data) == 1 {
+		d = data[0]
+	}
+
 	return &Response{
 		Code: http.StatusUnauthorized,
 		Data: ErrorResponse{
 			error: errors.Wrapf(err, "authorization failed"),
 			Error: err.Error(),
 			Code:  "INVALID_TOKEN",
+			Data:  d,
 		},
 	}
 }
 
-func Forbidden(err error) *Response {
+func Forbidden(err error, data ...map[string]interface{}) *Response {
+	var d map[string]interface{}
+	if len(data) == 1 {
+		d = data[0]
+	}
+
 	return &Response{
 		Code: http.StatusForbidden,
 		Data: ErrorResponse{
 			error: err,
 			Error: err.Error(),
 			Code:  "OPERATION_NOT_ALLOWED",
+			Data:  d,
 		},
 	}
 }

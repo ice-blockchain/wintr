@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const IndexName = "indexName"
+
 var (
 	ErrNotFound                 = errors.New("not found")
 	ErrRelationNotFound         = errors.New("relation not found")
