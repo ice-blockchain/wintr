@@ -12,10 +12,9 @@ import (
 
 type (
 	ContextErrClose = func(context.Context) error
-	SystemExitCode  = int
 
 	TestRunner interface {
-		RunTests(*testing.M) SystemExitCode
+		RunTests(*testing.M)
 		StartConnectorsIndefinitely()
 	}
 	TestConnector interface {

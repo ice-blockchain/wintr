@@ -130,11 +130,19 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 }
 
 //nolint:funlen,gocognit,gocyclo // Alot of panic recovery. Mega ugly, but :shrug:, what can you do?
-func (tr *testRunner) RunTests(m *testing.M) (code int) {
+func (tr *testRunner) RunTests(m *testing.M) {
 	flag.Parse()
 	if testing.Short() {
-		return m.Run()
+		os.Exit(m.Run())
 	}
+	var exitCode int
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			exitCode = 1
+		}
+		os.Exit(exitCode)
+	}()
 	//nolint:revive,staticcheck // String is good enough for tests.
 	value := context.WithValue(context.Background(), applicationYAMLKeyContextValueKey, tr.applicationYAMLKey)
 	//nolint:gomnd // It's not a magic number, it's the context deadline.
@@ -142,7 +150,7 @@ func (tr *testRunner) RunTests(m *testing.M) (code int) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(errors.Wrapf(e.(error), "recovered panic"))
-			code = 1
+			exitCode = 1
 		}
 		cancel()
 	}()
@@ -150,23 +158,23 @@ func (tr *testRunner) RunTests(m *testing.M) (code int) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(errors.Wrapf(e.(error), "recovered panic"))
-			code = 1
+			exitCode = 1
 		}
 		if err := beforeConnectorsStartedCleanUp(ctx); err != nil {
 			log.Error(errors.Wrapf(err, "failed to cleanUp beforeConnectorsStarted"))
-			code = 1
+			exitCode = 1
 		}
 	}()
 	cleanUP := tr.startConnectors(ctx)
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(errors.Wrapf(e.(error), "recovered panic"))
-			code = 1
+			exitCode = 1
 		}
 		defer func() {
 			if e := recover(); e != nil {
 				log.Error(errors.Wrapf(e.(error), "recovered panic"))
-				code = 1
+				exitCode = 1
 				if err := cleanUP(ctx); err != nil {
 					log.Error(errors.Wrapf(err, "failed to cleanup connectors"))
 				}
@@ -176,26 +184,26 @@ func (tr *testRunner) RunTests(m *testing.M) (code int) {
 		defer func() {
 			if e := recover(); e != nil {
 				log.Error(errors.Wrapf(e.(error), "recovered panic"))
-				code = 1
+				exitCode = 1
 			}
 			if err := beforeConnectorsStoppedCleanUp(ctx); err != nil {
 				log.Error(errors.Wrapf(err, "failed to cleanUp beforeConnectorsStopped"))
-				code = 1
+				exitCode = 1
 			}
 		}()
 		if err := cleanUP(ctx); err != nil {
 			log.Error(errors.Wrapf(err, "failed to cleanup connectors"))
-			code = 1
+			exitCode = 1
 		}
 		afterConnectorsStoppedCleanUp := tr.AfterConnectorsStopped(ctx)
 		defer func() {
 			if e := recover(); e != nil {
 				log.Error(errors.Wrapf(e.(error), "recovered panic"))
-				code = 1
+				exitCode = 1
 			}
 			if err := afterConnectorsStoppedCleanUp(ctx); err != nil {
 				log.Error(errors.Wrapf(err, "failed to cleanUp afterConnectorsStopped"))
-				code = 1
+				exitCode = 1
 			}
 		}()
 	}()
@@ -203,15 +211,15 @@ func (tr *testRunner) RunTests(m *testing.M) (code int) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(errors.Wrapf(e.(error), "recovered panic"))
-			code = 1
+			exitCode = 1
 		}
 		if err := afterConnectorsStartedCleanUp(ctx); err != nil {
 			log.Error(errors.Wrapf(err, "failed to cleanUp afterConnectorsStarted"))
-			code = 1
+			exitCode = 1
 		}
 	}()
 
-	return m.Run()
+	exitCode = m.Run()
 }
 
 func (tr *testRunner) startConnectors(ctx context.Context) ContextErrClose {
