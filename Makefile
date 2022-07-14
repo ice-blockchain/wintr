@@ -113,5 +113,15 @@ addLicense: getAddLicense
 checkLicense: getAddLicense
 	`go env GOPATH`/bin/addlicense -f LICENSE.header -check * .github/*
 
+fix-field-alignment:
+	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+	fieldalignment -fix ./...
+
+format-imports:
+	go install golang.org/x/tools/cmd/goimports@latest
+	go install github.com/daixiang0/gci@latest
+	gci write -s standard -s default -s "prefix(github.com/ice-blockchain)" ./..
+	goimports -w -local github.com/ice-blockchain ./..
+
 all: checkLicense checkModVersion checkIfAllDependenciesAreUpToDate checkGenerated build buildAllSupportedPlatforms test coverage benchmark clean
 local: addLicense checkLicense updateGoModVersion updateAllDependencies generate build test coverage benchmark lint clean

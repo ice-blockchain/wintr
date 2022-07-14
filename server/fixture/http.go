@@ -1,0 +1,191 @@
+// SPDX-License-Identifier: BUSL-1.1
+
+package fixture
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func (tc *httpTestClient) Get(ctx context.Context, tb testing.TB, url string, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	return tc.doRequest(ctx, tb, http.MethodGet, url, nil, headers...)
+}
+
+func (tc *httpTestClient) Delete(ctx context.Context, tb testing.TB, url string, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	return tc.doRequest(ctx, tb, http.MethodDelete, url, nil, headers...)
+}
+
+//nolint:lll // Looks alot better.
+func (tc *httpTestClient) Post(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	return tc.doRequest(ctx, tb, http.MethodPost, url, body, headers...)
+}
+
+//nolint:lll // Looks alot better.
+func (tc *httpTestClient) Put(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	return tc.doRequest(ctx, tb, http.MethodPut, url, body, headers...)
+}
+
+//nolint:lll // Looks alot better.
+func (tc *httpTestClient) Patch(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	return tc.doRequest(ctx, tb, http.MethodPatch, url, body, headers...)
+}
+
+//nolint:lll // Looks alot better.
+func (tc *httpTestClient) doRequest(ctx context.Context, tb testing.TB, method, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+	tb.Helper()
+
+	r, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("https://%v%v", tc.serverAddr, url), body)
+	require.NoError(tb, err)
+	r.Header = make(http.Header)
+	addHeaders(headers, r)
+	require.NoError(tb, err)
+	resp, err := tc.client.Do(r)
+	require.NoError(tb, err)
+	assert.Equal(tb, "HTTP/2.0", resp.Proto)
+	//nolint:gomnd // It's not a magic number, it's the http major version.
+	assert.Equal(tb, 2, resp.ProtoMajor)
+	assert.Equal(tb, 0, resp.ProtoMinor)
+
+	b, err := io.ReadAll(resp.Body)
+	require.NoError(tb, err)
+	respBody = string(b)
+
+	return respBody, resp.StatusCode, resp.Header
+}
+
+func (tc *httpTestClient) TestSwagger(ctx context.Context, tb testing.TB) {
+	tb.Helper()
+
+	if tc.swaggerRoot == "" {
+		return
+	}
+	tc.testSwaggerRoot(ctx, tb)
+	tc.testSwaggerIndex(ctx, tb)
+	tc.testSwaggerJSON(ctx, tb)
+}
+
+func (tc *httpTestClient) testSwaggerRoot(ctx context.Context, tb testing.TB) {
+	tb.Helper()
+
+	body, status, headers := tc.Get(ctx, tb, tc.swaggerRoot)
+	assert.Greater(tb, len(body), 0)
+	assert.Equal(tb, http.StatusOK, status)
+	l, err := strconv.Atoi(headers.Get("Content-Length"))
+	require.NoError(tb, err)
+	require.Greater(tb, l, 0)
+	headers.Del("Date")
+	headers.Del("Content-Length")
+	require.Equal(tb, http.Header{"Content-Type": []string{"text/html; charset=utf-8"}}, headers)
+}
+
+func (tc *httpTestClient) testSwaggerIndex(ctx context.Context, tb testing.TB) {
+	tb.Helper()
+
+	body, status, headers := tc.Get(ctx, tb, fmt.Sprintf("%v/swagger/index.html", tc.swaggerRoot))
+	assert.Greater(tb, len(body), 0)
+	assert.Equal(tb, http.StatusOK, status)
+	l, err := strconv.Atoi(headers.Get("Content-Length"))
+	require.True(tb, err == nil && l > 0)
+	headers.Del("Date")
+	headers.Del("Content-Length")
+	require.Equal(tb, http.Header{"Content-Type": []string{"text/html; charset=utf-8"}}, headers)
+}
+
+func (tc *httpTestClient) testSwaggerJSON(ctx context.Context, tb testing.TB) {
+	tb.Helper()
+
+	body, status, headers := tc.Get(ctx, tb, fmt.Sprintf("%v/swagger/doc.json", tc.swaggerRoot))
+	expectedBuffer := new(bytes.Buffer)
+	actualBuffer := new(bytes.Buffer)
+	require.NoError(tb, json.Compact(expectedBuffer, []byte(tc.expectedSwaggerJSON)))
+	require.NoError(tb, json.Compact(actualBuffer, []byte(body)))
+	assert.Equal(tb, expectedBuffer.String(), actualBuffer.String())
+	assert.Equal(tb, http.StatusOK, status)
+	headers.Del("Date")
+	require.Equal(tb, http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, headers)
+}
+
+func (tc *httpTestClient) TestHealthCheck(ctx context.Context, tb testing.TB) {
+	tb.Helper()
+
+	body, status, headers := tc.Get(ctx, tb, "/health-check", http.Header{"CF-Connecting-IP": []string{"1.2.3.4"}})
+	assert.Equal(tb, `{"clientIP":"1.2.3.4"}`, body)
+	assert.Equal(tb, http.StatusOK, status)
+	headers.Del("Date")
+	require.Equal(tb, http.Header{"Content-Length": []string{"22"}, "Content-Type": []string{"application/json; charset=utf-8"}}, headers)
+}
+
+func addHeaders(headers []http.Header, r *http.Request) {
+	if len(headers) != 0 && headers[0] != nil {
+		for k, vs := range headers[0] {
+			for _, v := range vs {
+				r.Header.Add(k, v)
+			}
+		}
+	}
+}
+
+func (tc *httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body string, status int, headers http.Header) {
+	tb.Helper()
+
+	assert.Equal(tb, expectedBody, body)
+	assert.Equal(tb, http.StatusUnauthorized, status)
+	l, err := strconv.Atoi(headers.Get("Content-Length"))
+	assert.NoError(tb, err)
+	assert.Greater(tb, l, 0)
+	headers.Del("Date")
+	headers.Del("Content-Length")
+	assert.Equal(tb, http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, headers)
+}
+
+func (tc *httpTestClient) WrapJSONBody(jsonData string) (reqBody io.Reader, contentType string) {
+	if jsonData == "" {
+		return nil, "application/json"
+	}
+
+	return bytes.NewBuffer([]byte(jsonData)), "application/json"
+}
+
+func (tc *httpTestClient) WrapMultipartBody(tb testing.TB, values map[string]interface{}) (reqBody io.Reader, contentType string) {
+	tb.Helper()
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	defer func() {
+		require.NoError(tb, writer.Close())
+	}()
+	for fieldName, fieldValue := range values {
+		switch v := fieldValue.(type) {
+		case *os.File:
+			formFile, err := writer.CreateFormFile(fieldName, v.Name())
+			require.NoError(tb, err)
+			_, err = io.Copy(formFile, v)
+			require.NoError(tb, err)
+		default:
+			require.NoError(tb, writer.WriteField(fieldName, fmt.Sprintf("%v", v)))
+		}
+	}
+
+	return body, writer.FormDataContentType()
+}

@@ -3,144 +3,100 @@
 package storagefixture
 
 import (
-	_ "embed"
+	"context"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/connectors/fixture"
+	"github.com/ice-blockchain/wintr/connectors/storage"
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//go:embed .testdata/docker-compose.yaml
-var dockerComposeYAMLTemplate string
+func NewTestConnector(applicationYamlKey string, order int) TestConnector {
+	var c cfg
+	applicationYamlTestKey := fmt.Sprintf("%v_test", applicationYamlKey)
+	config.MustLoadFromKey(applicationYamlTestKey, &c)
 
-//go:embed .testdata/init.lua
-var dbStartupScriptTemplate string
-
-const (
-	dockerComposeName = "docker-compose.yaml"
-	scriptName        = "init.lua"
-	fileMode          = 0o777
-)
-
-func TestSetup(applicationYamlKey string) func() {
-	containerID := strings.ToLower(uuid.New().String())
-	tmpFolder := fmt.Sprintf(".tmp-%s", containerID)
-
-	log.Info("starting test environment docker compose...", "containerID", containerID)
-	dockerCompose := startDockerCompose(tmpFolder, applicationYamlKey, containerID)
-
-	return func() {
-		var es []error
-		log.Info("stopping test environment docker compose...", "containerID", containerID)
-		if dErr := dockerCompose.Down(); dErr.Error != nil {
-			err := errors.Wrapf(dErr.Error, "failed to stop & clean docker compose for the `%v` test environment", applicationYamlKey)
-			es = append(es, err)
-		}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-
-		if len(es) != 0 {
-			for _, e := range es {
-				log.Error(e)
-			}
-
-			log.Panic(es[0])
-		}
+	return &testConnector{
+		cfg:                &c,
+		applicationYamlKey: applicationYamlTestKey,
+		order:              order,
+		delegate:           fixture.NewConnector("db", dockerComposeYAMLTemplate, "ready to accept requests", order, findDBPort, createLuaScriptFile),
 	}
 }
 
-func startDockerCompose(tmpFolder, applicationYamlKey, containerID string) *testcontainers.LocalDockerCompose {
-	dbPort, err := findDBPort(applicationYamlKey)
+func (tc *testConnector) Order() int {
+	return tc.order
+}
+
+func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
+	cleanUp := tc.delegate.Setup(ctx)
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(errors.Wrapf(cleanUp(ctx), "failed to cleanup storage connector due to premature panic"))
+			log.Panic(e)
+		}
+	}()
+	if tc.cfg.DB.SchemaPath != "" {
+		tc.Connector = storage.MustConnect(ctx, func() {}, tc.schema(), tc.applicationYamlKey)
+	}
+
+	return func(cctx context.Context) error {
+		var errs []error
+		if tc.Connector != nil {
+			errs = append(errs, errors.Wrapf(tc.Connector.Close(), "failed closing the test storage client for %v", tc.applicationYamlKey))
+		}
+		errs = append(errs, errors.Wrapf(cleanUp(cctx), "failed to cleanup storage connector for %v", tc.applicationYamlKey))
+
+		return errors.Wrapf(multierror.Append(nil, errs...).ErrorOrNil(), "failed to cleanup storage test connector")
+	}
+}
+
+func (tc *testConnector) schema() string {
+	wd, err := os.Getwd()
 	if err != nil {
-		log.Panic(errors.Wrap(err, "could not find db port"))
+		log.Panic(errors.Wrap(err, "could not get working dir"))
 	}
-	dockerCompose := testcontainers.NewLocalDockerCompose(dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey), containerID)
-	dockerCompose.WithExposedService(fmt.Sprintf("db%v", dbPort), dbPort, wait.ForLog("ready to accept requests"))
-	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
-	dockerCompose.WithCommand([]string{"up", "-d"})
+	for {
+		if _, err = os.Stat(fmt.Sprintf("%v/go.mod", wd)); err != nil && errors.Is(err, os.ErrNotExist) {
+			wd = path.Join(wd, "..")
 
-	if execErr := dockerCompose.Invoke(); execErr.Error != nil {
-		es := []error{errors.Wrapf(execErr.Error, "failed to start docker compose for `%v` test environment", applicationYamlKey)}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-
-		for _, e := range es {
-			log.Error(e)
+			continue
 		}
 
-		log.Panic(es[0])
+		break
 	}
+	fullSchemaPath := fmt.Sprintf("%v%c%v", wd, os.PathSeparator, tc.cfg.DB.SchemaPath)
+	r, err := os.ReadFile(fullSchemaPath)
+	log.Panic(errors.Wrapf(err, "failed to read %v", fullSchemaPath))
 
-	return dockerCompose
+	return string(r)
 }
 
-func dbDockerComposeYAMLPaths(tmpFolder, applicationYamlKey string) []string {
-	paths, err := createRequiredTestEnvFiles(tmpFolder, applicationYamlKey)
+func findDBPort(applicationYamlKey string) (int, bool, error) {
+	var c cfg
+	config.MustLoadFromKey(applicationYamlKey, &c)
+	if len(c.DB.URLs) == 0 {
+		return 0, false, errors.Errorf("invalid/missing application.yaml for `%v`", applicationYamlKey)
+	}
+	port, err := strconv.Atoi(strings.Split(c.DB.URLs[0], ":")[1])
 	if err != nil {
-		es := []error{errors.Wrapf(err, "failed to createRequiredTestEnvFiles for `%v` test environment", applicationYamlKey)}
-		es = removeTMPFolder(tmpFolder, applicationYamlKey, es)
-		for _, e := range es {
-			log.Error(e)
-		}
-
-		log.Panic(es[0])
+		return 0, false, errors.Wrapf(err, "could not find a valid db port for `%v`", applicationYamlKey)
 	}
 
-	return paths
+	return port, false, nil
 }
 
-func removeTMPFolder(tmpFolder, applicationYamlKey string, es []error) []error {
-	if dErr := os.RemoveAll(tmpFolder); dErr != nil {
-		es = append(es, errors.Wrapf(dErr, "failed to clean .tmp files for `%v` test environment", applicationYamlKey))
-	}
-
-	return es
-}
-
-func createRequiredTestEnvFiles(tmpFolder, applicationYamlKey string) ([]string, error) {
-	dbPort, err := findDBPort(applicationYamlKey)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not find `%v` port for DB", applicationYamlKey)
-	}
-	if err = os.Mkdir(tmpFolder, fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create .tmp folder for `%v` test environment", applicationYamlKey)
-	}
+func createLuaScriptFile(dbPort int, tmpFolder string) error {
 	startupScriptName := fmt.Sprintf("%s/%s", tmpFolder, scriptName)
 	dbStartupScript := fmt.Sprintf(dbStartupScriptTemplate, dbPort)
-	if err = os.WriteFile(startupScriptName, []byte(dbStartupScript), fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create tmp db script for `%v` test environment", applicationYamlKey)
-	}
-	dbDockerComposeYAMLName := fmt.Sprintf("%s/%s", tmpFolder, dockerComposeName)
-	dbDockerComposeYAML := fmt.Sprintf(dockerComposeYAMLTemplate, dbPort)
-	if err = os.WriteFile(dbDockerComposeYAMLName, []byte(dbDockerComposeYAML), fileMode); err != nil {
-		return nil, errors.Wrapf(err, "failed to create tmp .yaml docker compose for `%v` test environment", applicationYamlKey)
-	}
 
-	return []string{dbDockerComposeYAMLName}, nil
-}
-
-func findDBPort(applicationYamlKey string) (int, error) {
-	var cfg struct {
-		DB struct {
-			User     string   `yaml:"user"`
-			Password string   `yaml:"password"`
-			URLs     []string `yaml:"urls"`
-		} `yaml:"db"`
-	}
-	config.MustLoadFromKey(applicationYamlKey, &cfg)
-	if len(cfg.DB.URLs) == 0 {
-		return 0, errors.Errorf("invalid/missing application.yaml for `%v`", applicationYamlKey)
-	}
-	port, err := strconv.Atoi(strings.Split(cfg.DB.URLs[0], ":")[1])
-	if err != nil {
-		return 0, errors.Wrapf(err, "could not find a valid db port for `%v`", applicationYamlKey)
-	}
-
-	return port, nil
+	return errors.Wrap(os.WriteFile(startupScriptName, []byte(dbStartupScript), fileMode), "failed to create tmp db script")
 }
