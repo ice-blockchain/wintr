@@ -5,7 +5,6 @@ package fixture
 import (
 	"context"
 	_ "embed"
-	"os"
 	"testing"
 )
 
@@ -17,7 +16,7 @@ type (
 
 	TestRunner interface {
 		RunTests(*testing.M) SystemExitCode
-		StartConnectorsIndefinitely(chan os.Signal)
+		StartConnectorsIndefinitely()
 	}
 	TestConnector interface {
 		Setup(context.Context) ContextErrClose

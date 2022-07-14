@@ -6,8 +6,10 @@ import (
 	"context"
 	"flag"
 	"os"
+	"os/signal"
 	"sort"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -63,7 +65,7 @@ func processHooks(connectorLifecycleHooks *ConnectorLifecycleHooks) *ConnectorLi
 }
 
 //nolint:funlen,gocognit,gocyclo // Alot of panic recovery. Mega ugly, but :shrug:, what can you do?
-func (tr *testRunner) StartConnectorsIndefinitely(quit chan os.Signal) {
+func (tr *testRunner) StartConnectorsIndefinitely() {
 	//nolint:revive,staticcheck // String is good enough for local env.
 	ctx := context.WithValue(context.Background(), applicationYAMLKeyContextValueKey, tr.applicationYAMLKey)
 	beforeConnectorsStartedCleanUp := tr.BeforeConnectorsStarted(ctx)
@@ -122,6 +124,8 @@ func (tr *testRunner) StartConnectorsIndefinitely(quit chan os.Signal) {
 	log.Info("started connectors indefinitely")
 	defer log.Info("stopping connectors...")
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 }
 
