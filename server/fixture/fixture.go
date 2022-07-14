@@ -43,6 +43,26 @@ func NewTestConnector(
 		main:                      main,
 		order:                     order,
 		additionalContainerMounts: additionalContainerMounts,
+		autoRemoveContainers:      true,
+	}
+}
+func NewTestConnectorNoRemove(
+	applicationYAMLKey, swaggerRoot, expectedSwaggerJSON string, order int, main func(),
+	additionalContainerMounts ...func(projectRoot string) testcontainers.ContainerMount,
+) TestConnector {
+	var cfg server.Config
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+
+	return &testConnector{
+		cfg:                       &cfg,
+		serviceName:               strings.ReplaceAll(applicationYAMLKey, "cmd/", ""),
+		applicationYAMLKey:        applicationYAMLKey,
+		swaggerRoot:               swaggerRoot,
+		expectedSwaggerJSON:       expectedSwaggerJSON,
+		main:                      main,
+		order:                     order,
+		additionalContainerMounts: additionalContainerMounts,
+		autoRemoveContainers:      false,
 	}
 }
 
@@ -116,7 +136,7 @@ func (tc *testConnector) buildContainerRequest(ctx context.Context) testcontaine
 		},
 		Labels:       map[string]string{"os": _os, "arch": goarch},
 		Mounts:       tc.mounts(),
-		AutoRemove:   true,
+		AutoRemove:   tc.autoRemoveContainers,
 		NetworkMode:  "host",
 		Name:         tc.containerID,
 		ExposedPorts: []string{fmt.Sprintf("%v/tcp", port)},

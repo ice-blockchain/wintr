@@ -75,6 +75,7 @@ type (
 		serverAddr                string
 		additionalContainerMounts []func(projectRoot string) testcontainers.ContainerMount
 		order                     int
+		autoRemoveContainers      bool
 	}
 	httpTestClient struct {
 		client              *http.Client
