@@ -5,6 +5,7 @@ package fixture
 import (
 	"context"
 	"fmt"
+	stdlog "log"
 	"os"
 	"strings"
 
@@ -74,7 +75,7 @@ func (c *testConnector) startDockerCompose(tmpFolder, applicationYamlKey, contai
 	paths, err := c.createRequiredTestEnvFiles(tmpFolder, applicationYamlKey)
 	log.Panic(errors.Wrapf(err, "`%v` failed to createRequiredTestEnvFiles for `%v` test environment", c.name, applicationYamlKey))
 
-	dockerCompose := testcontainers.NewLocalDockerCompose(paths, containerID)
+	dockerCompose := testcontainers.NewLocalDockerCompose(paths, containerID, testcontainers.WithLogger(stdlog.Default()))
 	dockerCompose.WithExposedService(fmt.Sprintf("%v%v", c.name, c.port), c.port, wait.ForLog(c.waitForLog))
 	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
 	dockerCompose.WithCommand([]string{"up", "-d"})

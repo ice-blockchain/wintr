@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	stdlog "log"
 	"net/http"
 	"os"
 	"path"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -43,6 +45,7 @@ func NewTestConnector(
 		main:                      main,
 		order:                     order,
 		additionalContainerMounts: additionalContainerMounts,
+		logConsumer:               new(containerLogConsumer),
 	}
 }
 
@@ -77,12 +80,18 @@ func (tc *testConnector) Setup(ctx context.Context) connectorsfixture.ContextErr
 func (tc *testConnector) startContainer(ctx context.Context) (cleanUp connectorsfixture.ContextErrClose) {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: tc.buildContainerRequest(ctx),
-		Started:          true,
+		Logger:           stdlog.Default(),
 	})
-	log.Panic(errors.Wrapf(err, "failed to start %v container", tc.serviceName))
+	log.Panic(errors.Wrapf(err, "failed to build %v container", tc.serviceName))
+	container.FollowOutput(tc.logConsumer)
+	log.Panic(errors.Wrapf(container.StartLogProducer(ctx), "failed to start log producer for %v container", tc.serviceName))
+	log.Panic(errors.Wrapf(container.Start(ctx), "failed to start %v container", tc.serviceName))
 	defer func() {
 		cleanUp = func(ctx context.Context) error {
-			return errors.Wrapf(container.Terminate(ctx), "%v[%v] container failed to terminate", tc.serviceName, container.GetContainerID())
+			return errors.Wrapf(multierror.Append(nil,
+				errors.Wrapf(container.StopLogProducer(), "%v[%v] failed to stop consuming logs for container", tc.serviceName, container.GetContainerID()),
+				errors.Wrapf(container.Terminate(ctx), "%v[%v] container failed to terminate", tc.serviceName, container.GetContainerID())).ErrorOrNil(),
+				"failed to cleanup container")
 		}
 		if e := recover(); e != nil {
 			log.Error(cleanUp(ctx))
@@ -194,5 +203,16 @@ func (tc *testConnector) localhostTLS() *tls.Config {
 	return &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		RootCAs:    caCertPool,
+	}
+}
+
+func (c *containerLogConsumer) Accept(logMsg testcontainers.Log) {
+	switch logMsg.LogType {
+	case testcontainers.StdoutLog:
+		log.Info(string(logMsg.Content))
+	case testcontainers.StderrLog:
+		log.Error(errors.New(string(logMsg.Content)))
+	default:
+		log.Panic(errors.Errorf("unexpected logType %v", logMsg.LogType))
 	}
 }

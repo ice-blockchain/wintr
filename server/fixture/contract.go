@@ -63,6 +63,7 @@ type (
 		*httpTestClient
 		main                      func()
 		cfg                       *server.Config
+		logConsumer               *containerLogConsumer
 		applicationYAMLKey        string
 		swaggerRoot               string
 		expectedSwaggerJSON       string
@@ -82,4 +83,5 @@ type (
 		expectedSwaggerJSON string
 		serverAddr          string
 	}
+	containerLogConsumer struct{}
 )
