@@ -12,15 +12,22 @@ import (
 
 type (
 	Client interface {
-		Send(context.Context, string, string, *NotificationData) error
-		SendMulti(context.Context, string, string, []*NotificationData) error
-		Get(context.Context, string, string) ([]*NotificationData, error)
+		Send(context.Context, string, *Parcel) error
+		SendMulti(context.Context, string, []*Parcel) error
+		GetAll(context.Context, string) ([]*Parcel, error)
 	}
 
-	NotificationData struct {
-		Header   string
-		ImageURL string
-		BodyText string
+	Parcel struct {
+		Data        map[string]string
+		ReferenceID string
+		Action      string
+		Actor       ID
+		Subject     ID
+	}
+
+	ID struct {
+		Type  string
+		Value string
 	}
 )
 
@@ -32,6 +39,7 @@ var cfg config
 type (
 	inApp struct {
 		client *stream.Client
+		slug   string
 	}
 
 	config struct {
