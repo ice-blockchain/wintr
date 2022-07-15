@@ -5,8 +5,10 @@ package inapp
 import (
 	"context"
 	"strings"
+	"sync"
 
 	stream "github.com/GetStream/stream-go2/v7"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
 	appCfg "github.com/ice-blockchain/wintr/config"
@@ -28,22 +30,38 @@ func New(applicationYamlKey, slug string) Client {
 	return c
 }
 
-func (i *inApp) Send(ctx context.Context, userID string, data *Parcel) error {
-	not, err := i.createNotificationFeed(i.slug, userID)
+func (i *inApp) Send(ctx context.Context, data *Parcel) error {
+	not, err := i.createNotificationFeed(i.slug, data.UserID)
 	if err != nil {
-		return errors.Wrapf(err, "unable to create notification feed")
+		return errors.Wrapf(err, "unable to create notification feed for %v", data.UserID)
 	}
 
 	return errors.Wrap(i.addNotificationActivity(ctx, not, data), "unable to send notification")
 }
 
-func (i *inApp) SendMulti(ctx context.Context, userID string, data []*Parcel) error {
-	not, err := i.createNotificationFeed(i.slug, userID)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create notification feed")
+func (i *inApp) SendMulti(ctx context.Context, parcels []*Parcel) error {
+	var wg sync.WaitGroup
+	chErr := make(chan error, len(parcels))
+
+	for _, a := range parcels {
+		wg.Add(1)
+		copyA := a
+
+		go func() {
+			defer wg.Done()
+			chErr <- i.Send(ctx, copyA)
+		}()
 	}
 
-	return errors.Wrapf(i.addNotificationActivities(ctx, not, data), "unable to send notifications")
+	wg.Wait()
+	close(chErr)
+
+	var m *multierror.Error
+	for e := range chErr {
+		m = multierror.Append(m, e)
+	}
+
+	return errors.Wrapf(m.ErrorOrNil(), "error sending to multiple notification feeds")
 }
 
 func (i *inApp) GetAll(ctx context.Context, userID string) ([]*Parcel, error) {

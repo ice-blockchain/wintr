@@ -39,14 +39,3 @@ func (i *inApp) addNotificationActivity(ctx context.Context, notify *stream.Noti
 
 	return errors.Wrapf(err, "error adding notification activity")
 }
-
-func (i *inApp) addNotificationActivities(ctx context.Context, notify *stream.NotificationFeed, data []*Parcel) error {
-	activities := make([]stream.Activity, len(data))
-	for c, d := range data {
-		activities[c] = i.makeActivity(d)
-	}
-
-	_, err := notify.AddActivities(ctx, activities...)
-
-	return errors.Wrapf(err, "error adding multiple notification activities")
-}

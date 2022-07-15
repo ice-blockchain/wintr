@@ -12,12 +12,15 @@ import (
 
 type (
 	Client interface {
-		Send(context.Context, string, *Parcel) error
-		SendMulti(context.Context, string, []*Parcel) error
+		Send(context.Context, *Parcel) error
+		SendMulti(context.Context, []*Parcel) error
 		GetAll(context.Context, string) ([]*Parcel, error)
 	}
 
+	UserID = string
+
 	Parcel struct {
+		UserID
 		Data        map[string]string
 		ReferenceID string
 		Action      string
