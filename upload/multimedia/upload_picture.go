@@ -17,8 +17,8 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func New(applicationYamlKey string) Client {
-	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+func New(applicationYAMLKey string) Client {
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	m := &multimedia{}
 

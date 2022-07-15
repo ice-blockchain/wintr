@@ -16,8 +16,8 @@ import (
 	"github.com/ice-blockchain/wintr/terror"
 )
 
-func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicationYamlKey string) (db tarantool.Connector) {
-	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicationYAMLKey string) (db tarantool.Connector) {
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	var err error
 
 	schemaInitCtx, schemaInitCancel := context.WithTimeout(ctx, dbSchemaInitDeadline)

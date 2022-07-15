@@ -19,17 +19,19 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func NewTestConnector(applicationYamlKey string, order int) TestConnector {
+func NewTestConnector(applicationYAMLKey string, order int) TestConnector {
 	var c cfg
-	applicationYamlTestKey := fmt.Sprintf("%v_test", applicationYamlKey)
-	config.MustLoadFromKey(applicationYamlTestKey, &c)
+	applicationYAMLTestKey := fmt.Sprintf("%v_test", applicationYAMLKey)
+	config.MustLoadFromKey(applicationYAMLTestKey, &c)
 
-	return &testConnector{
+	tc := &testConnector{
 		cfg:                &c,
-		applicationYamlKey: applicationYamlTestKey,
+		applicationYAMLKey: applicationYAMLTestKey,
 		order:              order,
-		delegate:           fixture.NewConnector("db", dockerComposeYAMLTemplate, "ready to accept requests", order, findDBPort, createLuaScriptFile),
 	}
+	tc.delegate = fixture.NewConnector("db", dockerComposeYAMLTemplate, "ready to accept requests", order, tc.findDBPort, createLuaScriptFile)
+
+	return tc
 }
 
 func (tc *testConnector) Order() int {
@@ -45,15 +47,15 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 		}
 	}()
 	if tc.cfg.DB.SchemaPath != "" {
-		tc.Connector = storage.MustConnect(ctx, func() {}, tc.schema(), tc.applicationYamlKey)
+		tc.Connector = storage.MustConnect(ctx, func() {}, tc.schema(), tc.applicationYAMLKey)
 	}
 
 	return func(cctx context.Context) error {
 		var errs []error
 		if tc.Connector != nil {
-			errs = append(errs, errors.Wrapf(tc.Connector.Close(), "failed closing the test storage client for %v", tc.applicationYamlKey))
+			errs = append(errs, errors.Wrapf(tc.Connector.Close(), "failed closing the test storage client for %v", tc.applicationYAMLKey))
 		}
-		errs = append(errs, errors.Wrapf(cleanUp(cctx), "failed to cleanup storage connector for %v", tc.applicationYamlKey))
+		errs = append(errs, errors.Wrapf(cleanUp(cctx), "failed to cleanup storage connector for %v", tc.applicationYAMLKey))
 
 		return errors.Wrapf(multierror.Append(nil, errs...).ErrorOrNil(), "failed to cleanup storage test connector")
 	}
@@ -80,15 +82,13 @@ func (tc *testConnector) schema() string {
 	return string(r)
 }
 
-func findDBPort(applicationYamlKey string) (int, bool, error) {
-	var c cfg
-	config.MustLoadFromKey(applicationYamlKey, &c)
-	if len(c.DB.URLs) == 0 {
-		return 0, false, errors.Errorf("invalid/missing application.yaml for `%v`", applicationYamlKey)
+func (tc *testConnector) findDBPort() (int, bool, error) {
+	if len(tc.cfg.DB.URLs) == 0 {
+		return 0, false, errors.Errorf("invalid/missing application.yaml for `%v`", tc.applicationYAMLKey)
 	}
-	port, err := strconv.Atoi(strings.Split(c.DB.URLs[0], ":")[1])
+	port, err := strconv.Atoi(strings.Split(tc.cfg.DB.URLs[0], ":")[1])
 	if err != nil {
-		return 0, false, errors.Wrapf(err, "could not find a valid db port for `%v`", applicationYamlKey)
+		return 0, false, errors.Wrapf(err, "could not find a valid db port for `%v`", tc.applicationYAMLKey)
 	}
 
 	return port, false, nil

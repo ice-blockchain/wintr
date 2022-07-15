@@ -61,7 +61,7 @@ type (
 	}
 	testConnector struct {
 		createAdditionalFiles     func(port int, tmpFolder string) error
-		findPort                  func(applicationYAMLKey string) (port int, ssl bool, err error)
+		findPort                  func() (port int, ssl bool, err error)
 		name                      string
 		waitForLog                string
 		dockerComposeYAMLTemplate string

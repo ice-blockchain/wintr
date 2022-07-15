@@ -20,15 +20,17 @@ import (
 
 func NewTestConnector(applicationYAMLKey string, order int) TestConnector {
 	var cfg messagebroker.Config
-	applicationYamlTestKey := fmt.Sprintf("%v_test", applicationYAMLKey)
-	config.MustLoadFromKey(applicationYamlTestKey, &cfg)
+	applicationYAMLTestKey := fmt.Sprintf("%v_test", applicationYAMLKey)
+	config.MustLoadFromKey(applicationYAMLTestKey, &cfg)
 
-	return &testConnector{
+	tc := &testConnector{
 		cfg:                &cfg,
-		applicationYAMLKey: applicationYamlTestKey,
+		applicationYAMLKey: applicationYAMLTestKey,
 		order:              order,
-		delegate:           fixture.NewConnector("mb", dockerComposeYAMLTemplate, "Successfully started Redpanda!", order, findMessageBrokerPort, nil),
 	}
+	tc.delegate = fixture.NewConnector("mb", dockerComposeYAMLTemplate, "Successfully started Redpanda!", order, tc.findMessageBrokerPort, nil)
+
+	return tc
 }
 
 func (tc *testConnector) Order() int {
@@ -60,21 +62,14 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 	}
 }
 
-func findMessageBrokerPort(applicationYamlKey string) (int, bool, error) {
-	var cfg struct {
-		MessageBroker struct {
-			CertPath string   `yaml:"certPath"`
-			URLs     []string `yaml:"urls"`
-		} `yaml:"messageBroker"`
+func (tc *testConnector) findMessageBrokerPort() (int, bool, error) {
+	if len(tc.cfg.MessageBroker.URLs) == 0 {
+		return 0, false, errors.Errorf("invalid/missing application.yaml for `%v`", tc.applicationYAMLKey)
 	}
-	config.MustLoadFromKey(applicationYamlKey, &cfg)
-	if len(cfg.MessageBroker.URLs) == 0 {
-		return 0, false, errors.Errorf("invalid/missing application.yaml for `%v`", applicationYamlKey)
-	}
-	port, err := strconv.Atoi(strings.Split(cfg.MessageBroker.URLs[0], ":")[1])
+	port, err := strconv.Atoi(strings.Split(tc.cfg.MessageBroker.URLs[0], ":")[1])
 	if err != nil {
-		return 0, false, errors.Wrapf(err, "could not find a valid messageBroker port for `%v`", applicationYamlKey)
+		return 0, false, errors.Wrapf(err, "could not find a valid messageBroker port for `%v`", tc.applicationYAMLKey)
 	}
 
-	return port, cfg.MessageBroker.CertPath != "", nil
+	return port, tc.cfg.MessageBroker.CertPath != "", nil
 }

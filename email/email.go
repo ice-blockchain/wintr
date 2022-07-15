@@ -16,8 +16,8 @@ import (
 	appCfg "github.com/ice-blockchain/wintr/config"
 )
 
-func New(applicationYamlKey string) Client {
-	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+func New(applicationYAMLKey string) Client {
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	c := &email{}
 	c.client = sendgrid.NewSendClient(cfg.Credentials.APIKey)

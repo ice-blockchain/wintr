@@ -46,7 +46,7 @@ type (
 		delegate connectorsfixture.TestConnector
 		tarantool.Connector
 		cfg                *cfg
-		applicationYamlKey string
+		applicationYAMLKey string
 		order              int
 	}
 )

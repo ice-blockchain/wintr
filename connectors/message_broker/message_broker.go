@@ -23,8 +23,8 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func MustConnect(ctx context.Context, applicationYamlKey string) Client {
-	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+func MustConnect(ctx context.Context, applicationYAMLKey string) Client {
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	mb := &messageBroker{}
 	mb.connectCreateAndValidateTopics(ctx)
@@ -32,8 +32,8 @@ func MustConnect(ctx context.Context, applicationYamlKey string) Client {
 	return mb
 }
 
-func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc, applicationYamlKey string, processors map[Topic]Processor) Client {
-	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc, applicationYAMLKey string, processors map[Topic]Processor) Client {
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if len(processors) == 0 {
 		log.Panic(errors.New("alteast one processor required if you want to start consuming"))
 	}
