@@ -42,7 +42,7 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(errors.Wrapf(cleanUp(ctx), "failed to cleanup message_broker connector due to premature panic"))
-			log.Panic(e)
+			log.Panic(errors.New(e.(string)))
 		}
 	}()
 	tc.testMessageStore = new(testMessageStore)

@@ -95,7 +95,7 @@ func (tc *testConnector) startContainer(ctx context.Context) (cleanUp connectors
 		}
 		if e := recover(); e != nil {
 			log.Error(cleanUp(ctx))
-			log.Panic(e)
+			log.Panic(errors.New(e.(string)))
 		}
 	}()
 	ip, err := container.Host(ctx)

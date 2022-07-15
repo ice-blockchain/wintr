@@ -46,7 +46,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
-			log.Panic(e)
+			log.Panic(errors.New(e.(string)))
 		}
 	}()
 
@@ -58,7 +58,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 		defer func() {
 			if e := recover(); e != nil {
 				log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
-				log.Panic(e)
+				log.Panic(errors.New(e.(string)))
 			}
 			log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
 		}()

@@ -72,7 +72,7 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 	beforeConnectorsStartedCleanUp := tr.BeforeConnectorsStarted(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 		}
 		if err := beforeConnectorsStartedCleanUp(ctx); err != nil {
 			log.Error(errors.Wrapf(err, "failed to cleanUp beforeConnectorsStarted"))
@@ -81,11 +81,11 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 	cleanUP := tr.startConnectors(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 		}
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 				if err := cleanUP(ctx); err != nil {
 					log.Error(errors.Wrapf(err, "failed to cleanup connectors"))
 				}
@@ -94,7 +94,7 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 		beforeConnectorsStoppedCleanUp := tr.BeforeConnectorsStopped(ctx)
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			}
 			if err := beforeConnectorsStoppedCleanUp(ctx); err != nil {
 				log.Error(errors.Wrapf(err, "failed to cleanUp beforeConnectorsStopped"))
@@ -106,7 +106,7 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 		afterConnectorsStoppedCleanUp := tr.AfterConnectorsStopped(ctx)
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			}
 			if err := afterConnectorsStoppedCleanUp(ctx); err != nil {
 				log.Error(errors.Wrapf(err, "failed to cleanUp afterConnectorsStopped"))
@@ -116,7 +116,7 @@ func (tr *testRunner) StartConnectorsIndefinitely() {
 	afterConnectorsStartedCleanUp := tr.AfterConnectorsStarted(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 		}
 		if err := afterConnectorsStartedCleanUp(ctx); err != nil {
 			log.Error(errors.Wrapf(err, "failed to cleanUp afterConnectorsStarted"))
@@ -139,7 +139,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	var exitCode int
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			exitCode = 1
 		}
 		os.Exit(exitCode)
@@ -150,7 +150,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	ctx, cancel := context.WithTimeout(value, 30*time.Minute)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			exitCode = 1
 		}
 		cancel()
@@ -158,7 +158,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	beforeConnectorsStartedCleanUp := tr.BeforeConnectorsStarted(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			exitCode = 1
 		}
 		if err := beforeConnectorsStartedCleanUp(ctx); err != nil {
@@ -169,12 +169,12 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	cleanUP := tr.startConnectors(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			exitCode = 1
 		}
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 				exitCode = 1
 				if err := cleanUP(ctx); err != nil {
 					log.Error(errors.Wrapf(err, "failed to cleanup connectors"))
@@ -184,7 +184,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 		beforeConnectorsStoppedCleanUp := tr.BeforeConnectorsStopped(ctx)
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 				exitCode = 1
 			}
 			if err := beforeConnectorsStoppedCleanUp(ctx); err != nil {
@@ -199,7 +199,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 		afterConnectorsStoppedCleanUp := tr.AfterConnectorsStopped(ctx)
 		defer func() {
 			if e := recover(); e != nil {
-				log.Error(errors.Wrapf(e.(error), "recovered panic"))
+				log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 				exitCode = 1
 			}
 			if err := afterConnectorsStoppedCleanUp(ctx); err != nil {
@@ -211,7 +211,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	afterConnectorsStartedCleanUp := tr.AfterConnectorsStarted(ctx)
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error(errors.Wrapf(e.(error), "recovered panic"))
+			log.Error(errors.Wrapf(errors.New(e.(string)), "recovered panic"))
 			exitCode = 1
 		}
 		if err := afterConnectorsStartedCleanUp(ctx); err != nil {
@@ -236,7 +236,7 @@ func (tr *testRunner) startConnectors(ctx context.Context) (cleanUpAll ContextEr
 				defer wg.Done()
 				defer func() {
 					if e := recover(); e != nil {
-						log.Error(errors.Wrapf(e.(error), "recovered from panic"))
+						log.Error(errors.Wrapf(errors.New(e.(string)), "recovered from panic"))
 						cleanUpChan <- orderedCleanUp{order: tc.Order(), cleanUp: func(context.Context) error { return nil }}
 						atomic.AddUint64(&paniced, 1)
 					}
@@ -275,7 +275,7 @@ func (tr *testRunner) cleanUpConnectors(ctx context.Context) error {
 				defer wg.Done()
 				defer func() {
 					if e := recover(); e != nil {
-						errChan <- errors.Wrap(e.(error), "recovered from panic while cleaning up a connector")
+						errChan <- errors.Wrap(errors.New(e.(string)), "recovered from panic while cleaning up a connector")
 					}
 				}()
 				errChan <- errors.Wrap(cleanUp(ctx), "failed to cleanup connector")
