@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -222,8 +223,10 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	exitCode = m.Run()
 }
 
-func (tr *testRunner) startConnectors(ctx context.Context) ContextErrClose {
+//nolint:funlen // Alot of error handling.
+func (tr *testRunner) startConnectors(ctx context.Context) (cleanUpAll ContextErrClose) {
 	cleanUpChan := make(chan orderedCleanUp, tr.testConnectorCount)
+	var paniced uint64
 	for order := range tr.orderedSequence {
 		connectors := tr.orderedTestConnectors[order]
 		wg := new(sync.WaitGroup)
@@ -231,6 +234,13 @@ func (tr *testRunner) startConnectors(ctx context.Context) ContextErrClose {
 		for _, tc := range connectors {
 			go func(tc TestConnector) {
 				defer wg.Done()
+				defer func() {
+					if e := recover(); e != nil {
+						log.Error(errors.Wrapf(e.(error), "recovered from panic"))
+						cleanUpChan <- orderedCleanUp{order: tc.Order(), cleanUp: func(context.Context) error { return nil }}
+						atomic.AddUint64(&paniced, 1)
+					}
+				}()
 				cleanUp := tc.Setup(ctx)
 				cleanUpChan <- orderedCleanUp{order: tc.Order(), cleanUp: cleanUp}
 			}(tc)
@@ -243,10 +253,15 @@ func (tr *testRunner) startConnectors(ctx context.Context) ContextErrClose {
 		order := orderedConnectorCleanUp.order
 		tr.orderedConnectorCleanUps[order] = append(tr.orderedConnectorCleanUps[order], orderedConnectorCleanUp.cleanUp)
 	}
-
-	return func(cleanUpCtx context.Context) error {
+	cleanUpAll = func(cleanUpCtx context.Context) error {
 		return errors.Wrapf(tr.cleanUpConnectors(cleanUpCtx), "`%v` fixture cleanup failed", tr.applicationYAMLKey)
 	}
+	if paniced > 0 {
+		log.Error(errors.Wrapf(cleanUpAll(ctx), "failed to cleanup connectors due to premature panic recovery"))
+		log.Panic(errors.Errorf("premature panic while starting connectors for %v", tr.applicationYAMLKey))
+	}
+
+	return cleanUpAll
 }
 
 func (tr *testRunner) cleanUpConnectors(ctx context.Context) error {
