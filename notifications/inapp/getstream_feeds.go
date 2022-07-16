@@ -20,17 +20,12 @@ func (i *inApp) createNotificationFeed(slug, userID string) (*stream.Notificatio
 }
 
 func (i *inApp) makeActivity(data *Parcel) stream.Activity {
-	m := make(map[string]interface{}, len(data.Data))
-	for k, v := range data.Data {
-		m[k] = v
-	}
-
 	return stream.Activity{
 		Actor:     fmt.Sprintf("%s:%s", data.Actor.Type, data.Actor.Value),
 		Verb:      data.Action,
 		ForeignID: data.ReferenceID,
 		Object:    fmt.Sprintf("%s:%s", data.Subject.Type, data.Subject.Value),
-		Extra:     m,
+		Extra:     data.Data,
 	}
 }
 

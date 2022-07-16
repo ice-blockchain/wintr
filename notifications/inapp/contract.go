@@ -11,17 +11,16 @@ import (
 // Public API.
 
 type (
+	UserID = string
 	Client interface {
 		Send(context.Context, *Parcel) error
 		SendMulti(context.Context, []*Parcel) error
-		GetAll(context.Context, string) ([]*Parcel, error)
+		GetAll(context.Context, UserID) ([]*Parcel, error)
 	}
-
-	UserID = string
 
 	Parcel struct {
 		UserID
-		Data        map[string]string
+		Data        map[string]interface{}
 		ReferenceID string
 		Action      string
 		Actor       ID
@@ -41,8 +40,8 @@ var cfg config
 
 type (
 	inApp struct {
-		client *stream.Client
-		slug   string
+		client   *stream.Client
+		feedName string
 	}
 
 	config struct {

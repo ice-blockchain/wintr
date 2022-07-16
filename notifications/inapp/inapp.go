@@ -15,7 +15,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func New(applicationYamlKey, slug string) Client {
+func New(applicationYamlKey, feedName string) Client {
 	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
 
 	c := &inApp{}
@@ -25,13 +25,13 @@ func New(applicationYamlKey, slug string) Client {
 	}
 
 	c.client = cl
-	c.slug = slug
+	c.feedName = feedName
 
 	return c
 }
 
 func (i *inApp) Send(ctx context.Context, data *Parcel) error {
-	not, err := i.createNotificationFeed(i.slug, data.UserID)
+	not, err := i.createNotificationFeed(i.feedName, data.UserID)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create notification feed for %v", data.UserID)
 	}
@@ -69,7 +69,7 @@ func (i *inApp) GetAll(ctx context.Context, userID string) ([]*Parcel, error) {
 		Looks like a bug in getstream lib. NotificationFeed returns wrong struct so we use FlatFeed
 		Actually, all stream types are the same Flat type but with different interfaces
 	*/
-	not, err := i.client.FlatFeed(i.slug, userID)
+	not, err := i.client.FlatFeed(i.feedName, userID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create flat feed")
 	}
@@ -81,30 +81,26 @@ func (i *inApp) GetAll(ctx context.Context, userID string) ([]*Parcel, error) {
 
 	res := make([]*Parcel, 0, len(resp.Results))
 	for c := 0; c < len(resp.Results); c++ {
-		m := make(map[string]string, len(resp.Results[c].Extra))
-		for k, v := range resp.Results[c].Extra {
-			m[k] = v.(string)
-		}
 		res = append(res, &Parcel{
 			ReferenceID: resp.Results[c].ForeignID,
 			Action:      resp.Results[c].Verb,
-			Actor:       *i.splitID(resp.Results[c].Actor),
-			Subject:     *i.splitID(resp.Results[c].Object),
-			Data:        m,
+			Actor:       new(ID).parse(resp.Results[c].Actor),
+			Subject:     new(ID).parse(resp.Results[c].Object),
+			Data:        resp.Results[c].Extra,
 		})
 	}
 
 	return res, nil
 }
 
-func (i *inApp) splitID(data string) *ID {
+func (i *ID) parse(data string) ID {
 	r := strings.Split(data, ":")
 
 	if len(r) != 1+1 {
-		return &ID{}
+		return ID{Value: data}
 	}
 
-	return &ID{
+	return ID{
 		Type:  r[0],
 		Value: r[1],
 	}
