@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imroc/req/v3 v3.14.0
+	github.com/joho/godotenv v1.4.0
 	github.com/magiclabs/magic-admin-go v0.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.27.0

@@ -64,7 +64,12 @@ func (tc *testConnector) Setup(ctx context.Context) connectorsfixture.ContextErr
 	}()
 
 	if runtime.GOOS == "darwin" { // Because it is an issue with macOS with hostNetwork and with inter container communication.
-		go tc.main()
+		go func() {
+			if e := recover(); e != nil {
+				log.Error(errors.New(e.(string)))
+			}
+			tc.main()
+		}()
 		//nolint:gomnd // It's not a magic number, it's the sleep time.
 		time.Sleep(20 * time.Second)
 		tc.serverAddr = fmt.Sprintf("localhost:%v", tc.cfg.HTTPServer.Port)
@@ -134,6 +139,15 @@ func (tc *testConnector) buildContainerRequest(ctx context.Context) testcontaine
 }
 
 func (tc *testConnector) mounts() testcontainers.ContainerMounts {
+	dotEnvPath := fmt.Sprintf(`%v.env`, tc.projectRoot)
+	// We create an empty .env file because otherwise container will not start if a mount is missing.
+	if _, err := os.Stat(dotEnvPath); err != nil && errors.Is(err, os.ErrNotExist) {
+		emptyDotEnvFile, cErr := os.Create(dotEnvPath)
+		if cErr != nil {
+			log.Panic(err)
+		}
+		log.Panic(emptyDotEnvFile.Close())
+	}
 	m := testcontainers.ContainerMounts{
 		testcontainers.BindMount(
 			fmt.Sprintf("%v/localhost.crt", tc.tmpFolder),
@@ -145,6 +159,7 @@ func (tc *testConnector) mounts() testcontainers.ContainerMounts {
 			fmt.Sprintf("%v.testdata/application.yaml", tc.testdataPath),
 			"/application.yaml",
 		),
+		testcontainers.BindMount(dotEnvPath, `/.env`),
 	}
 	for i := range tc.additionalContainerMounts {
 		m = append(m, tc.additionalContainerMounts[i](tc.projectRoot))

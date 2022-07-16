@@ -3,12 +3,14 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -16,6 +18,13 @@ import (
 //nolint:gochecknoinits // Because we load the configs once, for the whole runtime
 func init() {
 	loadFirstApplicationConfigFile()
+	dotEnvPath := `.env`
+	for i := 0; i < 5; i++ {
+		if err := godotenv.Load(dotEnvPath); err == nil {
+			break
+		}
+		dotEnvPath = fmt.Sprintf(`../%v`, dotEnvPath)
+	}
 }
 
 func MustLoadFromKey(key string, cfg interface{}) {
