@@ -190,7 +190,7 @@ func RequiredStrings(fields map[string]string) *Response {
 	return BadRequest(err, "MISSING_PROPERTIES")
 }
 
-func RootHandler(r func() ParsedRequest, handleRequest func(context.Context, ParsedRequest) Response) func(*gin.Context) {
+func RootHandler[T ParsedRequest](r func() T, handleRequest func(context.Context, T) Response) func(*gin.Context) {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), cfg.DefaultEndpointTimeout)
 		defer cancel()

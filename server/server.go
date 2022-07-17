@@ -63,8 +63,8 @@ func (s *srv) setupRouter() {
 }
 
 func (s *srv) setupHealthCheckRoutes() {
-	s.router.GET("health-check", RootHandler(NewRequestCheckHealth, func(ctx context.Context, request ParsedRequest) Response {
-		return s.State.CheckHealth(ctx, request.(*RequestCheckHealth))
+	s.router.GET("health-check", RootHandler(NewRequestCheckHealth, func(ctx context.Context, request *RequestCheckHealth) Response {
+		return s.State.CheckHealth(ctx, request)
 	}))
 }
 
@@ -134,7 +134,7 @@ func (s *srv) shutDown() {
 	}
 }
 
-func NewRequestCheckHealth() ParsedRequest {
+func NewRequestCheckHealth() *RequestCheckHealth {
 	return new(RequestCheckHealth)
 }
 
