@@ -4,7 +4,6 @@ package inapp
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	stream "github.com/GetStream/stream-go2/v7"
@@ -64,7 +63,7 @@ func (i *inApp) SendMulti(ctx context.Context, parcels []*Parcel) error {
 	return errors.Wrapf(m.ErrorOrNil(), "error sending to multiple notification feeds")
 }
 
-func (i *inApp) GetAll(ctx context.Context, userID string) ([]*Parcel, error) {
+func (i *inApp) GetAll(ctx context.Context, userID UserID) ([]*Parcel, error) {
 	/*
 		Looks like a bug in getstream lib. NotificationFeed returns wrong struct so we use FlatFeed
 		Actually, all stream types are the same Flat type but with different interfaces
@@ -81,27 +80,8 @@ func (i *inApp) GetAll(ctx context.Context, userID string) ([]*Parcel, error) {
 
 	res := make([]*Parcel, 0, len(resp.Results))
 	for c := 0; c < len(resp.Results); c++ {
-		res = append(res, &Parcel{
-			ReferenceID: resp.Results[c].ForeignID,
-			Action:      resp.Results[c].Verb,
-			Actor:       new(ID).parse(resp.Results[c].Actor),
-			Subject:     new(ID).parse(resp.Results[c].Object),
-			Data:        resp.Results[c].Extra,
-		})
+		res = append(res, new(Parcel).activityToParcel(&resp.Results[c]))
 	}
 
 	return res, nil
-}
-
-func (i *ID) parse(data string) ID {
-	r := strings.Split(data, ":")
-
-	if len(r) != 1+1 {
-		return ID{Value: data}
-	}
-
-	return ID{
-		Type:  r[0],
-		Value: r[1],
-	}
 }
