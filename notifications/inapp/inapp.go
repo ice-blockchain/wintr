@@ -4,6 +4,7 @@ package inapp
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	stream "github.com/GetStream/stream-go2/v7"
@@ -16,6 +17,13 @@ import (
 
 func New(applicationYamlKey, feedName string) Client {
 	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
+
+	if cfg.Credentials.Key == "" {
+		cfg.Credentials.Key = os.Getenv("INAPP_CLIENT_KEY")
+	}
+	if cfg.Credentials.Secret == "" {
+		cfg.Credentials.Secret = os.Getenv("INAPP_CLIENT_SECRET")
+	}
 
 	c := &inApp{}
 	cl, err := stream.New(cfg.Credentials.Key, cfg.Credentials.Secret)
