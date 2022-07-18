@@ -19,9 +19,9 @@ type (
 	}
 
 	Parcel struct {
-		UserID      `json:"user_id"`
+		UserID      UserID                 `json:"userID"`
 		Data        map[string]interface{} `json:"data"`
-		ReferenceID string                 `json:"reference_id"`
+		ReferenceID string                 `json:"referenceID"`
 		Action      string                 `json:"action"`
 		Actor       ID                     `json:"actor"`
 		Subject     ID                     `json:"subject"`
