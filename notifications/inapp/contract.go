@@ -19,17 +19,17 @@ type (
 	}
 
 	Parcel struct {
-		UserID      UserID                 `json:"userId"`
-		Data        map[string]interface{} `json:"data"`
-		ReferenceID string                 `json:"referenceId"`
-		Action      string                 `json:"action"`
-		Actor       ID                     `json:"actor"`
-		Subject     ID                     `json:"subject"`
+		UserID      UserID                 `json:"userId" example:"users:john"`
+		Data        map[string]interface{} `json:"data" example:"any additional data"`
+		ReferenceID string                 `json:"referenceId" example:"users:michael"`
+		Action      string                 `json:"action" example:"slaps you with a large trout"`
+		Actor       ID                     `json:"actor" example:""`
+		Subject     ID                     `json:"subject" example:""`
 	}
 
 	ID struct {
-		Type  string `json:"type"`
-		Value string `json:"value"`
+		Type  string `json:"type" example:"userId"`
+		Value string `json:"value" example:"john"`
 	}
 )
 
