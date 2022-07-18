@@ -19,10 +19,10 @@ func New(applicationYamlKey, feedName string) Client {
 	appCfg.MustLoadFromKey(applicationYamlKey, &cfg)
 
 	if cfg.Credentials.Key == "" {
-		cfg.Credentials.Key = os.Getenv("INAPP_CLIENT_KEY")
+		cfg.Credentials.Key = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_KEY")
 	}
 	if cfg.Credentials.Secret == "" {
-		cfg.Credentials.Secret = os.Getenv("INAPP_CLIENT_SECRET")
+		cfg.Credentials.Secret = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_SECRET")
 	}
 
 	c := &inApp{}
