@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -19,17 +20,20 @@ import (
 func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
-	c := &email{}
-	c.client = sendgrid.NewSendClient(cfg.Credentials.APIKey)
+	if cfg.Credentials.APIKey == "" {
+		cfg.Credentials.APIKey = os.Getenv("EMAIL_CLIENT_APIKEY")
+	}
 
-	return c
+	return &email{
+		client: sendgrid.NewSendClient(cfg.Credentials.APIKey),
+	}
 }
 
-func (e *email) createCustomEmail(ctx context.Context, parcel *Parcel) *mail.SGMailV3 {
-	m := mail.NewV3Mail()
+func (*email) createCustomEmail(parcel *Parcel) *mail.SGMailV3 {
+	mailParcel := mail.NewV3Mail()
 	from := mail.NewEmail(parcel.From.Name, parcel.From.Email)
-	m.SetFrom(from)
-	m.Subject = parcel.Subject
+	mailParcel.SetFrom(from)
+	mailParcel.Subject = parcel.Subject
 
 	person := mail.NewPersonalization()
 
@@ -38,22 +42,22 @@ func (e *email) createCustomEmail(ctx context.Context, parcel *Parcel) *mail.SGM
 
 	for _, c := range parcel.Content {
 		content := mail.NewContent(c.Type, c.Data)
-		m.AddPersonalizations(person)
-		m.AddContent(content)
+		mailParcel.AddPersonalizations(person)
+		mailParcel.AddContent(content)
 	}
 
-	return m
+	return mailParcel
 }
 
-func (e *email) Send(ctx context.Context, parcel *Parcel) error {
-	response, err := e.client.Send(e.createCustomEmail(ctx, parcel))
+func (e *email) Send(_ context.Context, parcel *Parcel) error {
+	response, err := e.client.Send(e.createCustomEmail(parcel))
 	if err != nil {
 		return errors.Wrapf(err, "error sending email to %v", parcel.To.Email)
 	}
 
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		var j errorReply
-		err := json.Unmarshal([]byte(response.Body), &j)
+		err = json.Unmarshal([]byte(response.Body), &j)
 
 		if err == nil {
 			return errors.New(j.Errors[0].Message)

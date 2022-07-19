@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	stdlibtime "time"
 
 	"github.com/imroc/req/v3"
@@ -20,12 +21,14 @@ import (
 func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
-	m := &multimedia{}
+	if cfg.PictureStorage.AccessKey == "" {
+		cfg.PictureStorage.AccessKey = os.Getenv("PICTURE_STORAGE_CLIENT_ACCESSKEY")
+	}
 
-	return m
+	return &multimedia{}
 }
 
-func (m *multimedia) UploadPicture(ctx context.Context, data *multipart.FileHeader) error {
+func (*multimedia) UploadPicture(ctx context.Context, data *multipart.FileHeader) error {
 	if data == nil || data.Size == 0 {
 		return nil
 	}

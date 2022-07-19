@@ -24,8 +24,11 @@ type (
 
 // Private API.
 
-//nolint:gochecknoglobals // Because its loaded once, at runtime.
-var cfg config
+//
+var (
+	//nolint:gochecknoglobals // Because its loaded once, at runtime.
+	cfg config
+)
 
 type (
 	sms struct {

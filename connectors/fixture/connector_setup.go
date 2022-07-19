@@ -17,6 +17,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
+//nolint:revive // A lot better to inline and use.
 func NewConnector(
 	name, dockerComposeYAMLTemplate, waitForLog string, order int,
 	findPort func() (port int, ssl bool, err error),
@@ -46,7 +47,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
-			log.Panic(errors.New(e.(string)))
+			log.Panic(e)
 		}
 	}()
 
@@ -58,7 +59,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 		defer func() {
 			if e := recover(); e != nil {
 				log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
-				log.Panic(errors.New(e.(string)))
+				log.Panic(e)
 			}
 			log.Error(cleanUpTMPFolder(applicationYAMLKey, tmpFolder))
 		}()
@@ -70,7 +71,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 func (c *testConnector) startDockerCompose(tmpFolder, applicationYAMLKey, containerID string) *testcontainers.LocalDockerCompose {
 	var err error
 	c.port, c.ssl, err = c.findPort()
-	log.Panic(errors.Wrapf(err, "could not find `%v` port for `%v`", applicationYAMLKey, c.name))
+	log.Panic(errors.Wrapf(err, "could not find `%v` port for `%v`", applicationYAMLKey, c.name)) //nolint:revive // That's the point.
 
 	paths, err := c.createRequiredTestEnvFiles(tmpFolder, applicationYAMLKey)
 	log.Panic(errors.Wrapf(err, "`%v` failed to createRequiredTestEnvFiles for `%v` test environment", c.name, applicationYAMLKey))

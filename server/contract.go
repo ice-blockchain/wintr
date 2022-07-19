@@ -9,17 +9,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 )
 
 // Public API.
 
-var (
-	ErrSomethingWentWrong = errors.New("oops, something went wrong")
-	ErrNotAuthenticated   = errors.New("not authenticated")
-)
-
 type (
+	Router = gin.Engine
 	Server interface {
 		// ListenAndServe starts everything and blocks indefinitely.
 		ListenAndServe(ctx context.Context, cancel context.CancelFunc)
@@ -27,44 +22,26 @@ type (
 	// AuthenticatedUser is the payload structure extracted from the Authorization header, after a successful authentication.
 	AuthenticatedUser struct {
 		// ID is the token`s issuer.
-		ID string `json:"id"`
+		ID string `json:"id,omitempty"`
 	}
 	// State is the actual custom behaviour that has to be implemented by users of this package to customize their http server`s lifecycle.
 	State interface {
 		Init(context.Context, context.CancelFunc)
 		Close(context.Context) error
-		RegisterRoutes(*gin.Engine)
-		CheckHealth(context.Context, *RequestCheckHealth) Response
+		RegisterRoutes(*Router)
+		CheckHealth(context.Context) error
 	}
-	RequestCheckHealth struct {
-		ClientIP net.IP `json:"clientIP" swaggerignore:"true"`
+	Request[REQ any, RESP any] struct {
+		Data              *REQ `json:"data,omitempty"`
+		ginCtx            *gin.Context
+		AuthenticatedUser AuthenticatedUser `json:"authenticatedUser,omitempty"`
+		ClientIP          net.IP            `json:"clientIp,omitempty"`
+		bindings          map[requestBinding]struct{}
+		requiredFields    []string
+		allowUnauthorized bool
 	}
-	// ParsedRequest has to be implemented by every endpoint`s request struct.
-	ParsedRequest interface {
-		// Validate is responsible for validating the struct after binding it properly and returning http.StatusBadRequest.
-		Validate() *Response
-		// Bindings are responsible for parsing structs (via tags or custom impl) and returning http.StatusUnprocessableEntity.
-		Bindings(*gin.Context) []func(interface{}) error
-	}
-	// ClientIPSetGetter is a marker interface that should be implemented by request structs that need access to the Client`s actual IP.
-	ClientIPSetGetter interface {
-		SetClientIP(net.IP)
-		GetClientIP() net.IP
-	}
-	// AuthenticatedUserSetGetter is a marker interface that should be implemented by request structs that need access to AuthenticatedUser.
-	AuthenticatedUserSetGetter interface {
-		SetAuthenticatedUser(AuthenticatedUser)
-		GetAuthenticatedUser() AuthenticatedUser
-	}
-	// AuthenticatedUserCondition is a marker interface that should be implemented by request structs that need access to AuthenticatedUser
-	// in a *conditional* manner.
-	AuthenticatedUserCondition interface {
-		ShouldAuthenticateUser(*gin.Context) bool
-	}
-	// Response is the structure returned and handled by the router.
-	//	Data can be any JSON serializable struct, error or ErrorResponse.
-	Response struct {
-		Data interface{}
+	Response[RESP any] struct {
+		Data *RESP
 		Code int
 	}
 	// ErrorResponse is the struct that is eventually serialized as a negative response back to the user.
@@ -74,8 +51,6 @@ type (
 		Error string                 `json:"error" example:"something is missing"`
 		Code  string                 `json:"code,omitempty" example:"SOMETHING_NOT_FOUND"`
 	}
-
-	// Public for testing purposes (to setup containers in fixture).
 	Config struct {
 		HTTPServer struct {
 			CertPath string `yaml:"certPath"`
@@ -88,7 +63,17 @@ type (
 
 // Private API.
 
-const authenticatedUserGinCtxKey = "authenticatedUser"
+const (
+	json requestBinding = iota
+	uri
+	query
+	header
+	formMultipart
+)
+
+const (
+	requestingUserIDCtxValueKey = "requestingUserIDCtxValueKey"
+)
 
 var (
 	//nolint:gochecknoglobals // Because its loaded once, at runtime.
@@ -98,6 +83,10 @@ var (
 )
 
 type (
+	healthCheck struct {
+		_ struct{} `allowUnauthorized:"true"` //nolint:revive // It's processed by the router.
+	}
+	requestBinding uint8
 	// | srv is the internal representation of everything needed to bootstrap the http server.
 	srv struct {
 		State

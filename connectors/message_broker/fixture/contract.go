@@ -28,8 +28,11 @@ type (
 
 // Private API.
 
-//go:embed .testdata/docker-compose.yaml
-var dockerComposeYAMLTemplate string
+//
+var (
+	//go:embed .testdata/docker-compose.yaml
+	dockerComposeYAMLTemplate string
+)
 
 type (
 	testConnector struct {

@@ -35,7 +35,7 @@ func MustConnect(ctx context.Context, applicationYAMLKey string) Client {
 func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc, applicationYAMLKey string, processors map[Topic]Processor) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if len(processors) == 0 {
-		log.Panic(errors.New("alteast one processor required if you want to start consuming"))
+		log.Panic(errors.New("at least one processor required if you want to start consuming"))
 	}
 	mb := &messageBroker{concurrentConsumer: &concurrentConsumer{
 		mx:                     new(sync.Mutex),
@@ -145,14 +145,16 @@ func (mb *messageBroker) createAndValidateTopics(ctx context.Context) []string {
 	return ts
 }
 
-//nolint:gofumpt // To be removed when golangci-lint works properly with go1.18.
-func (mb *messageBroker) createTopic(ctx context.Context, tpc struct {
-	Name              string        `yaml:"name" json:"name"`
-	CleanupPolicy     string        `yaml:"cleanupPolicy" json:"cleanupPolicy"`
-	Partitions        uint64        `yaml:"partitions" json:"partitions"`
-	ReplicationFactor uint64        `yaml:"replicationFactor" json:"replicationFactor"`
-	Retention         time.Duration `yaml:"retention" json:"retention"`
-}) {
+func (mb *messageBroker) createTopic(
+	ctx context.Context,
+	tpc struct {
+		Name              string        `yaml:"name" json:"name"`
+		CleanupPolicy     string        `yaml:"cleanupPolicy" json:"cleanupPolicy"`
+		Partitions        uint64        `yaml:"partitions" json:"partitions"`
+		ReplicationFactor uint64        `yaml:"replicationFactor" json:"replicationFactor"`
+		Retention         time.Duration `yaml:"retention" json:"retention"`
+	},
+) {
 	p := tpc.CleanupPolicy
 	if p == "" {
 		p = "delete"
@@ -164,14 +166,14 @@ func (mb *messageBroker) createTopic(ctx context.Context, tpc struct {
 		"segment.ms":          kadm.StringPtr(strconv.Itoa(int(tpc.Retention.Milliseconds()))),
 	}
 	log.Info("trying to create topic", "topic", tpc)
-	r, cErr := mb.admClient.CreateTopics(ctx, int32(tpc.Partitions), int16(tpc.ReplicationFactor), configs, tpc.Name)
+	createTopicsResponse, cErr := mb.admClient.CreateTopics(ctx, int32(tpc.Partitions), int16(tpc.ReplicationFactor), configs, tpc.Name)
 	if cErr != nil {
 		log.Panic(errors.Wrap(cErr, "could not create topic"), "topic", tpc)
 	}
-	if r[tpc.Name].Err != nil && !errors.Is(r[tpc.Name].Err, kerr.TopicAlreadyExists) {
-		log.Panic(errors.Wrap(r[tpc.Name].Err, "could not create topic"), "topic", tpc)
+	if createTopicsResponse[tpc.Name].Err != nil && !errors.Is(createTopicsResponse[tpc.Name].Err, kerr.TopicAlreadyExists) {
+		log.Panic(errors.Wrap(createTopicsResponse[tpc.Name].Err, "could not create topic"), "topic", tpc)
 	}
-	if r[tpc.Name].Err != nil && errors.Is(r[tpc.Name].Err, kerr.TopicAlreadyExists) {
+	if createTopicsResponse[tpc.Name].Err != nil && errors.Is(createTopicsResponse[tpc.Name].Err, kerr.TopicAlreadyExists) {
 		log.Info("topic already exists, so we`re ok", "topic", tpc)
 	}
 }
@@ -239,7 +241,7 @@ func (mb *messageBroker) Close() error {
 	return errors.Wrap(err, "failed to close message broker client")
 }
 
-func (mb *messageBroker) Level() kgo.LogLevel {
+func (*messageBroker) Level() kgo.LogLevel {
 	switch log.Level() {
 	case "trace":
 		return kgo.LogLevelDebug
@@ -260,7 +262,7 @@ func (mb *messageBroker) Level() kgo.LogLevel {
 	}
 }
 
-func (mb *messageBroker) Log(level kgo.LogLevel, msg string, keyValEnumeration ...interface{}) {
+func (*messageBroker) Log(level kgo.LogLevel, msg string, keyValEnumeration ...interface{}) {
 	switch level {
 	case kgo.LogLevelError:
 		log.Error(errors.New(msg), keyValEnumeration...)
@@ -278,6 +280,7 @@ func (mb *messageBroker) Log(level kgo.LogLevel, msg string, keyValEnumeration .
 		log.Debug(msg, keyValEnumeration...)
 
 		return
+	case kgo.LogLevelNone:
 	default:
 	}
 }

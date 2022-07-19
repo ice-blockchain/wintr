@@ -20,15 +20,15 @@ import (
 
 // nolint:gochecknoinits // log is global, so it's initialization can be done in init
 func init() {
-	var c cfg
-	config.MustLoadFromKey("logger", &c)
+	var appCfg cfg
+	config.MustLoadFromKey("logger", &appCfg)
 
 	var isJSON bool
-	if strings.EqualFold(c.Encoder, "json") {
+	if strings.EqualFold(appCfg.Encoder, "json") {
 		isJSON = true
 	}
-	setupLogger(isJSON, c.Level)
-	setupStdLibLogger(isJSON, c.Level)
+	setupLogger(isJSON, appCfg.Level)
+	setupStdLibLogger(isJSON, appCfg.Level)
 }
 
 func setupLogger(isJSON bool, level string) {
@@ -57,11 +57,11 @@ func setupStdLibLogger(isJSON bool, level string) {
 	log.SetOutput(l)
 }
 
-func buildLogger(isJSON bool, level string) (*zerolog.Logger, error) {
-	var w io.Writer = os.Stderr
+func buildLogger(isJSON bool, level string) (*zerolog.Logger, error) { //nolint:revive // Control coupling is intended here.
+	var logWriter io.Writer = os.Stderr
 	if !isJSON {
-		w = &zerolog.ConsoleWriter{
-			Out:        w,
+		logWriter = &zerolog.ConsoleWriter{
+			Out:        logWriter,
 			TimeFormat: time.RFC3339Nano,
 			PartsOrder: []string{
 				zerolog.LevelFieldName,
@@ -79,9 +79,9 @@ func buildLogger(isJSON bool, level string) (*zerolog.Logger, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid logger level")
 	}
-	l := zerolog.New(w).With().Timestamp().Stack().Logger().Level(lvl)
+	lgr := zerolog.New(logWriter).With().Timestamp().Stack().Logger().Level(lvl)
 
-	return &l, nil
+	return &lgr, nil
 }
 
 func errorStackMarshaller(err error) interface{} {
@@ -89,17 +89,17 @@ func errorStackMarshaller(err error) interface{} {
 	if m == nil {
 		return nil
 	}
-	frames := m.([]map[string]string)
-	if len(frames) == stackFramesToSkip {
+	frames, ok := m.([]map[string]string)
+	if !ok || len(frames) == stackFramesToSkip {
 		return nil
 	}
-	r := make([]string, 0, len(frames)-stackFramesToSkip)
+	stacks := make([]string, 0, len(frames)-stackFramesToSkip)
 	for _, frame := range frames[:len(frames)-stackFramesToSkip] {
-		r = append(r, fmt.Sprintf("%s:%s:%s",
+		stacks = append(stacks, fmt.Sprintf("%s:%s:%s",
 			frame[pkgerrors.StackSourceFileName],
 			frame[pkgerrors.StackSourceLineName],
 			frame[pkgerrors.StackSourceFunctionName]))
 	}
 
-	return strings.Join(r, "<<")
+	return strings.Join(stacks, "<<")
 }

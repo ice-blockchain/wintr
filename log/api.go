@@ -2,90 +2,94 @@
 
 package log
 
+import (
+	"github.com/pkg/errors"
+)
+
 func Error(err error, fields ...interface{}) {
 	if err == nil {
 		return
 	}
-	e := logger.Err(err)
+	errorEvent := logger.Err(err)
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		errorEvent = errorEvent.Fields(fields)
 	}
 
-	e.Send()
+	errorEvent.Send()
 }
 
 func Debug(msg string, fields ...interface{}) {
-	e := logger.Debug()
+	debugEvent := logger.Debug()
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		debugEvent = debugEvent.Fields(fields)
 	}
 
-	e.Msg(msg)
+	debugEvent.Msg(msg)
 }
 
 func Info(msg string, fields ...interface{}) {
-	e := logger.Info()
+	infoEvent := logger.Info()
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		infoEvent = infoEvent.Fields(fields)
 	}
 
-	e.Msg(msg)
+	infoEvent.Msg(msg)
 }
 
 func Warn(msg string, fields ...interface{}) {
-	e := logger.Warn()
+	warningEvent := logger.Warn()
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		warningEvent = warningEvent.Fields(fields)
 	}
 
-	e.Msg(msg)
+	warningEvent.Msg(msg)
 }
 
-func Fatal(i interface{}, fields ...interface{}) {
-	if i == nil {
+func Fatal(anything any, fields ...interface{}) {
+	if anything == nil {
 		return
 	}
-	e := logger.Fatal()
+	fatalEvent := logger.Fatal()
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		fatalEvent = fatalEvent.Fields(fields)
 	}
 
-	switch o := i.(type) {
+	switch obj := anything.(type) {
 	case error:
-		e.Err(o).Send()
+		fatalEvent.Err(obj).Send()
 
 		return
 	case string:
-		e.Msg(o)
+		fatalEvent.Msg(obj)
 
 		return
 	default:
-		e.Send()
+		fatalEvent.Send()
 
 		return
 	}
 }
 
-func Panic(i interface{}, fields ...interface{}) {
-	if i == nil {
+func Panic(anything any, fields ...interface{}) {
+	if anything == nil {
 		return
 	}
-	e := logger.Panic()
+	panicEvent := logger.Panic()
 	if len(fields) > 0 {
-		e = e.Fields(fields)
+		panicEvent = panicEvent.Fields(fields)
 	}
 
-	switch o := i.(type) {
+	switch obj := anything.(type) {
 	case error:
-		e.Err(o).Send()
+		panicEvent.Err(obj).Send()
 
 		return
 	case string:
-		e.Msg(o)
+		panicEvent.Err(errors.New(obj)).Send()
 
 		return
 	default:
-		e.Send()
+		panicEvent.Err(errors.Errorf("%#v", obj)).Send()
 
 		return
 	}

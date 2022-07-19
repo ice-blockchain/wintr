@@ -33,6 +33,9 @@ func TestTime(t *testing.T) {
 	var t2 tmpStruct
 	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":1}`), &t2))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1).UTC())}, t2)
+	bytes, err = json.Marshal(&tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 0).UTC())})
+	require.NoError(t, err)
+	assert.Equal(t, `{"createdAt":null}`, string(bytes))
 	var t21 tmpStruct
 	require.NoError(t, json.Unmarshal([]byte(`{"createdAt":1655303440552373000}`), &t21))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1655303440552373000).UTC())}, t21)

@@ -102,15 +102,15 @@ func (i *ICEFlake) EncodeMsgpack(enc *msgpack.Encoder) error {
 }
 
 func (i *ICEFlake) DecodeMsgpack(dec *msgpack.Decoder) error {
-	v, err := dec.DecodeString()
+	val, err := dec.DecodeString()
 	if err != nil {
 		return errors.Wrap(err, "could not DecodeMsgpack->DecodeString *ICEFlake")
 	}
-	if v == "" {
-		v = "0"
+	if val == "" {
+		val = "0"
 	}
 
-	return errors.Wrapf(i.Unmarshal([]byte(v)), "coud not DecodeMsgpack->Unmarshal *ICEFlake %v", v)
+	return errors.Wrapf(i.Unmarshal([]byte(val)), "coud not DecodeMsgpack->Unmarshal *ICEFlake %v", val)
 }
 
 func (i *ICEFlake) ICE() (*ICE, error) {
@@ -154,16 +154,16 @@ func (i *ICEFlake) UnsafeICE() *ICE {
 }
 
 func (i *ICE) ICEFlake() (*ICEFlake, error) {
-	v := strings.Trim(string(*i), " ")
-	ix := strings.Index(v, ".")
+	val := strings.Trim(string(*i), " ")
+	ix := strings.Index(val, ".")
 	if ix < 0 {
-		return NewAmount(v + e9Zeros)
+		return NewAmount(val + e9Zeros)
 	}
-	missingZeros := e9 - len(v[ix+1:])
+	missingZeros := e9 - len(val[ix+1:])
 	for i := 0; i < missingZeros; i++ {
-		v += "0"
+		val += "0"
 	}
-	r := v[:ix] + v[ix+1:]
+	r := val[:ix] + val[ix+1:]
 	r = strings.TrimLeftFunc(r, func(r rune) bool { return r == '0' })
 
 	return NewAmount(r)
@@ -177,45 +177,44 @@ func (i *ICE) UnsafeICEFlake() *ICEFlake {
 }
 
 func (i *ICE) Format() string {
-	r := strings.Trim(string(*i), " ")
-	if r == "" {
+	val := strings.Trim(string(*i), " ")
+	if val == "" {
 		return zero
 	}
-	dotIx := strings.Index(r, ".")
+	dotIx := strings.Index(val, ".")
 	if dotIx == 0 {
-		r = "0" + r
+		val = "0" + val
 		dotIx = 1
 	}
 	if dotIx < 0 {
-		dotIx = len(r)
+		dotIx = len(val)
 	}
-	s := formatGroups(dotIx, r)
+	s := formatGroups(dotIx, val)
 	if s[0] == ',' {
 		s = s[1:]
 	}
-	r = s + r[dotIx:]
-	if !strings.Contains(r, ".") {
-		r += ".0"
+	val = s + val[dotIx:]
+	if !strings.Contains(val, ".") {
+		val += ".0"
 	}
 
-	return r
+	return val
 }
 
 func formatGroups(dotIx int, r string) string {
-	var s, g string
+	var val, group string
 	for j := dotIx - 1; j >= 0; j-- {
-		g = string(r[j]) + g
-		//nolint:gomnd // Its not a magic number, it's the number of elements in a group.
-		if len(g) == 3 {
-			s = "," + g + s
-			g = ""
+		group = string(r[j]) + group
+		if len(group) == 3 { //nolint:gomnd // Its not a magic number, it's the number of elements in a group.
+			val = "," + group + val
+			group = ""
 		}
 	}
-	if g != "" {
-		s = g + s
+	if group != "" {
+		val = group + val
 	}
 
-	return s
+	return val
 }
 
 func (i *ICE) MarshalJSON() ([]byte, error) {
@@ -227,28 +226,29 @@ func (i *ICE) MarshalJSON() ([]byte, error) {
 }
 
 func (i *ICE) UnmarshalJSON(bytes []byte) error {
-	r := strings.ReplaceAll(string(bytes), ",", "")
-	r = strings.ReplaceAll(r, `"`, "")
-	r = strings.Trim(r, " ")
-	_, err := NewAmount(toICEFlake(r))
+	val := strings.ReplaceAll(string(bytes), ",", "")
+	val = strings.ReplaceAll(val, `"`, "")
+	val = strings.Trim(val, " ")
+	_, err := NewAmount(toICEFlake(val))
 	if err != nil {
 		return errors.Wrapf(err, "invalid number: ice amount %v", string(bytes))
 	}
-	if r == "" {
-		r = zero
+	if val == "" {
+		val = zero
 	}
-	if !strings.Contains(r, ".") {
-		r += ".0"
+	if !strings.Contains(val, ".") {
+		val += ".0"
 	}
-	if strings.Index(r, ".") == 0 {
-		r = "0" + r
+	if strings.Index(val, ".") == 0 {
+		val = "0" + val
 	}
-	*i = ICE(r)
+	*i = ICE(val)
 
 	return nil
 }
 
-func toICEFlake(ice string) string {
+func toICEFlake(iceValue string) string {
+	ice := iceValue
 	dotIdx := strings.Index(ice, ".")
 	if dotIdx >= 0 {
 		if dotIdx == 0 {

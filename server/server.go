@@ -63,8 +63,12 @@ func (s *srv) setupRouter() {
 }
 
 func (s *srv) setupHealthCheckRoutes() {
-	s.router.GET("health-check", RootHandler(NewRequestCheckHealth, func(ctx context.Context, request *RequestCheckHealth) Response {
-		return s.State.CheckHealth(ctx, request)
+	s.router.GET("health-check", RootHandler(func(ctx context.Context, _ *Request[healthCheck, map[string]string]) (*Response[map[string]string], *Response[ErrorResponse]) { //nolint:lll // .
+		if err := s.State.CheckHealth(ctx); err != nil {
+			return nil, Unexpected(errors.Wrapf(err, "health check failed"))
+		}
+
+		return OK(&map[string]string{"clientIp": "1.2.3.4"}), nil
 	}))
 }
 
@@ -81,7 +85,7 @@ func (s *srv) setupSwaggerRoutes() {
 }
 
 func (s *srv) setupServer(ctx context.Context) {
-	s.server = &http.Server{
+	s.server = &http.Server{ //nolint:gosec // Not an issue, each request has a deadline set by the handler; and we're behind a proxy.
 		Addr:    fmt.Sprintf(":%v", cfg.HTTPServer.Port),
 		Handler: s.router,
 		BaseContext: func(_ net.Listener) context.Context {
@@ -106,7 +110,7 @@ func (s *srv) startServer(cancel context.CancelFunc) {
 	}
 }
 
-func (s *srv) wait(ctx context.Context) {
+func (*srv) wait(ctx context.Context) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -132,26 +136,4 @@ func (s *srv) shutDown() {
 	} else {
 		log.Info("state close succeeded")
 	}
-}
-
-func NewRequestCheckHealth() *RequestCheckHealth {
-	return new(RequestCheckHealth)
-}
-
-func (r *RequestCheckHealth) Validate() *Response {
-	return nil
-}
-
-func (r *RequestCheckHealth) Bindings(c *gin.Context) []func(obj interface{}) error {
-	return []func(interface{}) error{ShouldBindClientIP(c)}
-}
-
-func (r *RequestCheckHealth) SetClientIP(ip net.IP) {
-	if r.ClientIP == nil {
-		r.ClientIP = ip
-	}
-}
-
-func (r *RequestCheckHealth) GetClientIP() net.IP {
-	return r.ClientIP
 }

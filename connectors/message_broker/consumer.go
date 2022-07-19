@@ -12,10 +12,10 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//nolint:gocognit // Because of the nested x.EachXX, but there's no better way.
+//nolint:revive // Because of the nested x.EachXX, but there's no better way.
 func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.CancelFunc) {
 	mb.cancel = cancel
-	defer mb.close()
+	defer mb.shutdownGracefully()
 	log.Info("message broker client started consuming...")
 	for ctx.Err() == nil {
 		fetches := mb.client.PollRecords(ctx, cfg.MessageBroker.MaxPollRecords)
@@ -44,69 +44,69 @@ func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.Canc
 	}
 }
 
-func (mb *messageBroker) partitionConsumers(t kgo.FetchTopic) *sync.Map {
-	topicConsumers, foundTopicConsumers := mb.consumers.Load(t.Topic)
+func (mb *messageBroker) partitionConsumers(fetchedTopic kgo.FetchTopic) *sync.Map {
+	topicConsumers, foundTopicConsumers := mb.consumers.Load(fetchedTopic.Topic)
 	if !foundTopicConsumers {
 		mb.mx.Lock()
 		//nolint:gocritic,staticcheck // Because we just want to make sure we wait for any in progress state changes
 		mb.mx.Unlock()
-		topicConsumers, foundTopicConsumers = mb.consumers.Load(t.Topic)
+		topicConsumers, foundTopicConsumers = mb.consumers.Load(fetchedTopic.Topic)
 		if !foundTopicConsumers {
-			log.Warn("no consumer for topic found", "topic", t.Topic)
-			mb.processNotFoundPartitions(t, t.Partitions...)
+			log.Warn("no consumer for topic found", "topic", fetchedTopic.Topic)
+			mb.processNotFoundPartitions(fetchedTopic, fetchedTopic.Partitions...)
 
 			return nil
 		}
 	}
 
-	return topicConsumers.(*sync.Map)
+	return topicConsumers.(*sync.Map) //nolint:forcetypeassert // We know for sure.
 }
 
-func (mb *messageBroker) partitionConsumer(p kgo.FetchPartition, t kgo.FetchTopic, partitionConsumers *sync.Map) *partitionConsumer {
-	if p.Err != nil {
+func (mb *messageBroker) partitionConsumer(fetchedPartition kgo.FetchPartition, fetchedTopic kgo.FetchTopic, partitionConsumers *sync.Map) *partitionConsumer {
+	if fetchedPartition.Err != nil {
 		return nil
 	}
 
-	pc, foundPartitionConsumer := partitionConsumers.Load(p.Partition)
+	pc, foundPartitionConsumer := partitionConsumers.Load(fetchedPartition.Partition)
 	if !foundPartitionConsumer {
 		mb.mx.Lock()
 		//nolint:gocritic,staticcheck // Because we just want to make sure we wait for any in progress state changes
 		mb.mx.Unlock()
-		pc, foundPartitionConsumer = partitionConsumers.Load(p.Partition)
+		pc, foundPartitionConsumer = partitionConsumers.Load(fetchedPartition.Partition)
 		if !foundPartitionConsumer {
-			log.Warn("no consumer for partition found", "partition", p.Partition)
-			mb.processNotFoundPartitions(t, p)
+			log.Warn("no consumer for partition found", "partition", fetchedPartition.Partition)
+			mb.processNotFoundPartitions(fetchedTopic, fetchedPartition)
 
 			return nil
 		}
 	}
-	if pc.(*partitionConsumer).closing {
-		log.Warn("partition consumer was closing", "partition", p.Partition)
-		mb.processNotFoundPartitions(t, p)
+	if pc.(*partitionConsumer).closing { //nolint:forcetypeassert // We know for sure.
+		log.Warn("partition consumer was closing", "partition", fetchedPartition.Partition)
+		mb.processNotFoundPartitions(fetchedTopic, fetchedPartition)
 
 		return nil
 	}
 
-	return pc.(*partitionConsumer)
+	return pc.(*partitionConsumer) //nolint:forcetypeassert // We know for sure.
 }
 
-func (mb *messageBroker) processNotFoundPartitions(t kgo.FetchTopic, ps ...kgo.FetchPartition) {
+func (mb *messageBroker) processNotFoundPartitions(fetchedTopic kgo.FetchTopic, fetchPartitions ...kgo.FetchPartition) {
 	mb.mx.Lock()
 	defer mb.mx.Unlock()
-	partitionRecords, partitions := mb.records(t, ps)
+	partitionRecords, partitions := mb.records(fetchedTopic, fetchPartitions)
 	if len(partitionRecords) == 0 {
 		return
 	}
-	mb.assignPartitions(context.Background(), map[string][]int32{t.Topic: partitions})
-	partitionConsumers, _ := mb.consumers.Load(t.Topic)
+	mb.assignPartitions(context.Background(), map[string][]int32{fetchedTopic.Topic: partitions})
+	partitionConsumers, _ := mb.consumers.Load(fetchedTopic.Topic)
 	for partition, records := range partitionRecords {
 		pc, _ := partitionConsumers.(*sync.Map).Load(partition)
-		pc.(*partitionConsumer).recordsChan <- records
+		pc.(*partitionConsumer).recordsChan <- records //nolint:forcetypeassert // We know for sure.
 	}
-	mb.revokePartitions(context.Background(), map[string][]int32{t.Topic: partitions})
+	mb.revokePartitions(context.Background(), map[string][]int32{fetchedTopic.Topic: partitions})
 }
 
-func (mb *messageBroker) records(t kgo.FetchTopic, ps []kgo.FetchPartition) (map[int32][]*kgo.Record, []int32) {
+func (*messageBroker) records(fetchedTopic kgo.FetchTopic, ps []kgo.FetchPartition) (map[int32][]*kgo.Record, []int32) {
 	var partitions []int32
 	partitionRecords := make(map[int32][]*kgo.Record)
 	partitionIterator := func(p kgo.FetchPartition) {
@@ -121,20 +121,20 @@ func (mb *messageBroker) records(t kgo.FetchTopic, ps []kgo.FetchPartition) (map
 			partitionIterator(p)
 		}
 	} else {
-		t.EachPartition(partitionIterator)
+		fetchedTopic.EachPartition(partitionIterator)
 	}
 
 	return partitionRecords, partitions
 }
 
-func (mb *messageBroker) close() {
+func (mb *messageBroker) shutdownGracefully() {
 	mb.mx.Lock()
 	defer mb.mx.Unlock()
 	defer mb.cancel()
 	defer log.Info("message broker client stopped consuming")
 	mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers interface{}) bool {
-		partitionConsumers.(*sync.Map).Range(func(_, pc interface{}) bool {
-			pc.(*partitionConsumer).close()
+		partitionConsumers.(*sync.Map).Range(func(_, pc interface{}) bool { //nolint:forcetypeassert // We know for sure.
+			pc.(*partitionConsumer).stop() //nolint:forcetypeassert // We know for sure.
 
 			return true
 		})
@@ -144,7 +144,7 @@ func (mb *messageBroker) close() {
 }
 
 func (mb *messageBroker) closeAndWaitForConsumersToFinishProcessing(ctx context.Context) (err error) {
-	mb.close()
+	mb.shutdownGracefully()
 	err = errors.Wrap(mb.client.CommitUncommittedOffsets(ctx), "closing: committing uncommitted offsets failed")
 	defer func() {
 		if err == nil {
@@ -154,12 +154,12 @@ func (mb *messageBroker) closeAndWaitForConsumersToFinishProcessing(ctx context.
 	done := true
 	for ctx.Err() != nil {
 		mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers interface{}) bool {
-			partitionConsumers.(*sync.Map).Range(func(_, pc interface{}) bool {
-				if !pc.(*partitionConsumer).done {
+			partitionConsumers.(*sync.Map).Range(func(_, pc interface{}) bool { //nolint:forcetypeassert // We know for sure.
+				if !pc.(*partitionConsumer).done { //nolint:forcetypeassert // We know for sure.
 					done = false
 				}
 
-				return pc.(*partitionConsumer).done
+				return pc.(*partitionConsumer).done //nolint:forcetypeassert // We know for sure.
 			})
 
 			return done
@@ -188,15 +188,16 @@ func (c *concurrentConsumer) assignPartitions(ctx context.Context, assigned map[
 		partitionConsumers, _ := c.consumers.LoadOrStore(topic, &sync.Map{})
 		for _, partition := range partitions {
 			pc, loaded := partitionConsumers.(*sync.Map).Load(partition)
-			if !loaded || pc.(*partitionConsumer).closing {
-				c.replaceConsumer(ctx, topic, partition, partitionConsumers.(*sync.Map), pc)
+			if !loaded || pc.(*partitionConsumer).closing { //nolint:forcetypeassert // We know for sure.
+				c.replaceConsumer(ctx, topic, partition, partitionConsumers.(*sync.Map), pc) //nolint:forcetypeassert // We know for sure.
 			}
 		}
 	}
 }
 
+//nolint:revive // Intended.
 func (c *concurrentConsumer) replaceConsumer(ctx context.Context, topic string, partition int32, partitionConsumers *sync.Map, pc interface{}) {
-	if pc != nil && !pc.(*partitionConsumer).done {
+	if pc != nil && !pc.(*partitionConsumer).done { //nolint:forcetypeassert // We know for sure.
 		waitForClosingConsumerToFinish(ctx, pc)
 	}
 	pc = &partitionConsumer{
@@ -207,15 +208,16 @@ func (c *concurrentConsumer) replaceConsumer(ctx context.Context, topic string, 
 		partition:          partition,
 	}
 	if partitionCount, ok := c.partitionCountPerTopic.Load(topic); ok {
-		pc.(*partitionConsumer).partitionCount = partitionCount.(int32)
+		pc.(*partitionConsumer).partitionCount = partitionCount.(int32) //nolint:forcetypeassert,errcheck // We know for sure.
 	}
 
 	partitionConsumers.Store(partition, pc)
-	go pc.(*partitionConsumer).consume()
+	go pc.(*partitionConsumer).consume() //nolint:forcetypeassert // We know for sure.
 }
 
 func waitForClosingConsumerToFinish(ctx context.Context, pc interface{}) {
-	for pc.(*partitionConsumer).closing && ctx.Err() == nil && !pc.(*partitionConsumer).done {
+	//nolint:revive // Its a loop.
+	for pc.(*partitionConsumer).closing && ctx.Err() == nil && !pc.(*partitionConsumer).done { //nolint:forcetypeassert // We know for sure.
 	}
 }
 
@@ -239,7 +241,7 @@ func (c *concurrentConsumer) revokePartitions(_ context.Context, lost map[string
 		}
 		for _, partition := range partitions {
 			if pc, ok := partitionConsumers.(*sync.Map).Load(partition); ok {
-				pc.(*partitionConsumer).close()
+				pc.(*partitionConsumer).stop() //nolint:forcetypeassert // We know for sure.
 
 				continue
 			}
@@ -248,7 +250,7 @@ func (c *concurrentConsumer) revokePartitions(_ context.Context, lost map[string
 	}
 }
 
-func (pc *partitionConsumer) close() {
+func (pc *partitionConsumer) stop() {
 	if !pc.closing {
 		pc.closing = true
 		close(pc.recordsChan)
@@ -292,7 +294,7 @@ func (pc *partitionConsumer) processRecord(record *kgo.Record) {
 	pCtx, cancel := context.WithTimeout(context.Background(), messageBrokerConsumeDeadline)
 	defer cancel()
 	defer pc.consumingWg.Done()
-	m := &Message{
+	msg := &Message{
 		Key:            string(record.Key),
 		Value:          record.Value,
 		Headers:        extractHeaders(record),
@@ -300,8 +302,13 @@ func (pc *partitionConsumer) processRecord(record *kgo.Record) {
 		PartitionCount: pc.partitionCount,
 		Topic:          pc.topic,
 	}
-	log.Error(errors.Wrap(pc.Process(pCtx, m), "could not process new message"),
-		"key", m.Key, "value", string(m.Value), "headers", m.Headers, "partition", m.Partition, "partitionCount", m.PartitionCount, "topic", m.Topic)
+	log.Error(errors.Wrap(pc.Process(pCtx, msg), "could not process new message"),
+		"key", msg.Key,
+		"value", string(msg.Value),
+		"headers", msg.Headers,
+		"partition", msg.Partition,
+		"partitionCount", msg.PartitionCount,
+		"topic", msg.Topic)
 }
 
 func extractHeaders(record *kgo.Record) map[string]string {

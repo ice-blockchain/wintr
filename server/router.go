@@ -8,10 +8,12 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/goccy/go-reflect"
+	"github.com/hashicorp/go-multierror"
 	"github.com/magiclabs/magic-admin-go/token"
 	"github.com/pkg/errors"
 
@@ -25,258 +27,169 @@ func init() {
 	}
 }
 
-func ScanRequest(req ParsedRequest, bindings ...func(obj interface{}) error) *Response {
-	for _, f := range bindings {
-		if err := f(req); err != nil {
-			return &Response{
-				Code: http.StatusUnprocessableEntity,
-				Data: ErrorResponse{
-					error: errors.Wrapf(err, "binding failed"),
-					Error: err.Error(),
-					Code:  "STRUCTURE_VALIDATION_FAILED",
-				},
-			}
-		}
-	}
-
-	return req.Validate()
-}
-
-func BadRequest(err error, code string, data ...map[string]interface{}) *Response {
-	var d map[string]interface{}
-	if len(data) == 1 {
-		d = data[0]
-	}
-
-	return &Response{
-		Data: ErrorResponse{
-			error: err,
-			Error: err.Error(),
-			Code:  code,
-			Data:  d,
-		},
-		Code: http.StatusBadRequest,
-	}
-}
-
-func Conflict(err error, code string, data ...map[string]interface{}) *Response {
-	var d map[string]interface{}
-	if len(data) == 1 {
-		d = data[0]
-	}
-
-	return &Response{
-		Data: ErrorResponse{
-			error: err,
-			Error: err.Error(),
-			Code:  code,
-			Data:  d,
-		},
-		Code: http.StatusConflict,
-	}
-}
-
-func NotFound(err error, code string, data ...map[string]interface{}) *Response {
-	var d map[string]interface{}
-	if len(data) == 1 {
-		d = data[0]
-	}
-
-	return &Response{
-		Data: ErrorResponse{
-			error: err,
-			Error: err.Error(),
-			Code:  code,
-			Data:  d,
-		},
-		Code: http.StatusNotFound,
-	}
-}
-
-func Unexpected(err error) Response {
-	return Response{Data: err}
-}
-
-func Unauthorized(err error, data ...map[string]interface{}) *Response {
-	var d map[string]interface{}
-	if len(data) == 1 {
-		d = data[0]
-	}
-
-	return &Response{
-		Code: http.StatusUnauthorized,
-		Data: ErrorResponse{
-			error: errors.Wrapf(err, "authorization failed"),
-			Error: err.Error(),
-			Code:  "INVALID_TOKEN",
-			Data:  d,
-		},
-	}
-}
-
-func Forbidden(err error, data ...map[string]interface{}) *Response {
-	var d map[string]interface{}
-	if len(data) == 1 {
-		d = data[0]
-	}
-
-	return &Response{
-		Code: http.StatusForbidden,
-		Data: ErrorResponse{
-			error: err,
-			Error: err.Error(),
-			Code:  "OPERATION_NOT_ALLOWED",
-			Data:  d,
-		},
-	}
-}
-
-func NoContent() Response {
-	return Response{Code: http.StatusNoContent}
-}
-
-func Created(data interface{}) Response {
-	return Response{Code: http.StatusCreated, Data: data}
-}
-
-func OK(b ...interface{}) Response {
-	var data interface{}
-	if len(b) == 1 {
-		data = b[0]
-	}
-
-	return Response{Code: http.StatusOK, Data: data}
-}
-
-func ShouldBindClientIP(c *gin.Context) func(obj interface{}) error {
-	return func(obj interface{}) error {
-		if ip, isOk := obj.(ClientIPSetGetter); isOk {
-			ip.SetClientIP(net.ParseIP(c.ClientIP()))
-		}
-
-		return nil
-	}
-}
-
-func ShouldBindAuthenticatedUser(c *gin.Context) func(obj interface{}) error {
-	return func(obj interface{}) error {
-		if authenticatedUserSetGetter, isOk := obj.(AuthenticatedUserSetGetter); isOk {
-			if authenticatedUser, exists := c.Get(authenticatedUserGinCtxKey); exists {
-				authenticatedUserSetGetter.SetAuthenticatedUser(authenticatedUser.(AuthenticatedUser))
-			} else if condition, ok := obj.(AuthenticatedUserCondition); !ok || condition.ShouldAuthenticateUser(c) {
-				return ErrNotAuthenticated
-			}
-		}
-
-		return nil
-	}
-}
-
-func RequiredStrings(fields map[string]string) *Response {
-	var failedFields []string
-	for fieldName, fieldValue := range fields {
-		if strings.TrimSpace(fieldValue) == "" {
-			failedFields = append(failedFields, fmt.Sprintf("`%v`", fieldName))
-		}
-	}
-
-	if len(failedFields) == 0 {
-		return nil
-	}
-	sort.Slice(failedFields, func(i, j int) bool { return failedFields[i] < failedFields[j] })
-
-	err := errors.Errorf("properties %v are required", strings.Join(failedFields, ","))
-
-	return BadRequest(err, "MISSING_PROPERTIES")
-}
-
-func RootHandler[T ParsedRequest](r func() T, handleRequest func(context.Context, T) Response) func(*gin.Context) {
-	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), cfg.DefaultEndpointTimeout)
+//nolint:funlen,gofumpt // No idea why.
+func RootHandler[REQ any, RESP any](handleRequest func(context.Context, *Request[REQ, RESP]) (*Response[RESP], *Response[ErrorResponse])) func(*gin.Context) {
+	return func(ginCtx *gin.Context) {
+		ctx, cancel := context.WithTimeout(ginCtx.Request.Context(), cfg.DefaultEndpointTimeout)
 		defer cancel()
-		req := r()
-		if c.Request.Proto != "HTTP/2.0" {
-			log.Warn(fmt.Sprintf("suboptimal http version used for %[1]T", req), "expected", "HTTP/2.0", "actual", c.Request.Proto)
+		if ginCtx.Request.Proto != "HTTP/2.0" {
+			log.Warn(fmt.Sprintf("suboptimal http version used for %[1]T", new(REQ)), "expected", "HTTP/2.0", "actual", ginCtx.Request.Proto)
 		}
-
-		if resp := authorize(req, c); resp != nil {
-			err := errors.Wrap(resp.Data.(ErrorResponse).error, "endpoint authentication failed")
-			log.Error(err, fmt.Sprintf("%[1]T", req), req, "Response", resp)
-			c.JSON(resp.Code, resp.Data)
+		req := new(Request[REQ, RESP]).init(ginCtx)
+		if resp := req.processRequest(); resp != nil {
+			log.Error(errors.Wrap(resp.Data.InternalErr(), "endpoint processing failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", resp)
+			ginCtx.JSON(resp.Code, resp.Data)
 
 			return
 		}
-
-		if resp := ScanRequest(req, req.Bindings(c)...); resp != nil {
-			err := errors.Wrap(resp.Data.(ErrorResponse).error, "endpoint binding failed")
-			log.Error(err, fmt.Sprintf("%[1]T", req), req, "Response", resp)
-			c.JSON(resp.Code, resp.Data)
+		if resp := req.authorize(); resp != nil {
+			log.Error(errors.Wrap(resp.Data.InternalErr(), "endpoint authentication failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", resp)
+			ginCtx.JSON(resp.Code, resp.Data)
 
 			return
 		}
+		success, failure := handleRequest(context.WithValue(ctx, requestingUserIDCtxValueKey, req.AuthenticatedUser.ID), req) //nolint:revive,staticcheck // .
+		if failure != nil {
+			log.Error(errors.Wrap(failure.Data.InternalErr(), "endpoint failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", failure)
+			ginCtx.JSON(req.processErrorResponse(ctx, failure))
 
-		if resp := handleRequest(ctx, req); resp.Data != nil {
-			c.JSON(handleData(ctx, c.Request.Context(), req, resp))
+			return
+		}
+		if success.Data != nil {
+			ginCtx.JSON(success.Code, success.Data)
 		} else {
-			c.Status(resp.Code)
+			ginCtx.Status(success.Code)
 		}
 	}
 }
 
-func authorize(req ParsedRequest, c *gin.Context) *Response {
-	if _, ok := req.(AuthenticatedUserSetGetter); !ok {
-		return nil
+func (req *Request[REQ, RESP]) init(ginCtx *gin.Context) *Request[REQ, RESP] {
+	req.Data = new(REQ)
+	req.ClientIP = net.ParseIP(ginCtx.ClientIP())
+	req.ginCtx = ginCtx
+
+	return req
+}
+
+//nolint:funlen,gocognit,revive // Alot of usecases.
+func (req *Request[REQ, RESP]) processTags() {
+	elem := reflect.TypeOf(req.Data).Elem()
+	if elem.Kind() != reflect.Struct {
+		log.Panic("request data's have to be structs")
 	}
-	if condition, ok := req.(AuthenticatedUserCondition); ok && !condition.ShouldAuthenticateUser(c) {
-		return nil
+	const enabled = "true"
+	fieldCount := elem.NumField()
+	req.requiredFields = make([]string, 0, fieldCount)
+	req.bindings = make(map[requestBinding]struct{}, 5) //nolint:gomnd // They're 5 possible values.
+	for i := 0; i < fieldCount; i++ {
+		field := elem.Field(i)
+		tag := field.Tag
+		if tag.Get("required") == enabled {
+			req.requiredFields = append(req.requiredFields, field.Name)
+		}
+		if tag.Get("allowUnauthorized") == enabled {
+			req.allowUnauthorized = true
+		}
+		if jsonTag := tag.Get("json"); jsonTag != "" && jsonTag != "-" {
+			req.bindings[json] = struct{}{}
+		}
+		if tag.Get("uri") != "" {
+			req.bindings[uri] = struct{}{}
+		}
+		if tag.Get("header") != "" {
+			req.bindings[header] = struct{}{}
+		}
+		if tag.Get("form") != "" {
+			if tag.Get("formMultipart") == "" {
+				req.bindings[query] = struct{}{}
+			}
+		}
+		if tag.Get("formMultipart") != "" {
+			req.bindings[formMultipart] = struct{}{}
+		}
 	}
-	tk, err := token.NewToken(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer "))
-	if err != nil {
-		return Unauthorized(err)
+}
+
+func (req *Request[REQ, RESP]) processRequest() *Response[ErrorResponse] {
+	req.processTags()
+	var errs []error
+	for b := range req.bindings {
+		switch b {
+		case json:
+			errs = append(errs, req.ginCtx.ShouldBindJSON(req.Data))
+		case uri:
+			errs = append(errs, req.ginCtx.ShouldBindUri(req.Data))
+		case query:
+			errs = append(errs, req.ginCtx.ShouldBindQuery(req.Data))
+		case header:
+			errs = append(errs, req.ginCtx.ShouldBindHeader(req.Data))
+		case formMultipart:
+			errs = append(errs, req.ginCtx.ShouldBindWith(req.Data, binding.FormMultipart))
+		}
 	}
-	err = tk.Validate()
-	if err != nil {
-		return Unauthorized(err)
+	if err := multierror.Append(nil, errs...).ErrorOrNil(); err != nil {
+		return UnprocessableEntity(errors.Wrapf(err, "binding failed"), "STRUCTURE_VALIDATION_FAILED")
 	}
 
-	c.Set(authenticatedUserGinCtxKey, AuthenticatedUser{
-		ID: tk.GetIssuer(),
-	})
+	return req.validate()
+}
+
+func (req *Request[REQ, RESP]) validate() *Response[ErrorResponse] {
+	if len(req.requiredFields) == 0 {
+		return nil
+	}
+	value := reflect.ValueOf(req.Data).Elem()
+	requiredFields := make([]string, 0, len(req.requiredFields))
+	for _, field := range req.requiredFields {
+		if value.FieldByName(field).IsZero() {
+			requiredFields = append(requiredFields, field)
+		}
+	}
+	if len(requiredFields) == 0 {
+		return nil
+	}
+
+	return UnprocessableEntity(errors.Errorf("properties `%v` are required", strings.Join(requiredFields, ",")), "MISSING_PROPERTIES")
+}
+
+func (req *Request[REQ, RESP]) authorize() (errResp *Response[ErrorResponse]) {
+	if req.allowUnauthorized {
+		defer func() {
+			errResp = nil
+		}()
+	}
+
+	tk, err := token.NewToken(strings.TrimPrefix(req.ginCtx.GetHeader("Authorization"), "Bearer "))
+	if err != nil {
+		return Unauthorized(err)
+	}
+	if err = tk.Validate(); err != nil {
+		return Unauthorized(err)
+	}
+	req.AuthenticatedUser.ID = tk.GetIssuer()
+
+	userID := strings.Trim(req.ginCtx.Param("userId"), " ")
+	if userID != "" &&
+		userID != "-" &&
+		req.AuthenticatedUser.ID != userID &&
+		(req.ginCtx.Request.Method != http.MethodGet || !strings.HasSuffix(req.ginCtx.Request.URL.Path, userID)) {
+		return Forbidden(errors.Errorf("operation not allowed. uri>%v!=token>%v", userID, req.AuthenticatedUser.ID))
+	}
 
 	return nil
 }
 
-func handleData(ctx, baseCtx context.Context, req ParsedRequest, resp Response) (int, interface{}) {
-	if e, isOk := resp.Data.(error); isOk {
-		log.Error(errors.Wrap(e, "endpoint failed"), fmt.Sprintf("%[1]T", req), req, "Response", resp)
-		if _, isOk = resp.Data.(ErrorResponse); !isOk {
-			return handleUnexpectedError(ctx, baseCtx, resp.Code, e)
-		}
+func (req *Request[REQ, RESP]) processErrorResponse(ctx context.Context, failure *Response[ErrorResponse]) (int, *ErrorResponse) {
+	err := failure.Data.InternalErr()
+	if errors.Is(err, req.ginCtx.Request.Context().Err()) {
+		return http.StatusServiceUnavailable, &ErrorResponse{Error: "service is shutting down"}
+	}
+	if errors.Is(err, ctx.Err()) {
+		return http.StatusGatewayTimeout, &ErrorResponse{Error: "request timed out"}
+	}
+	if failure.Code <= 0 {
+		return http.StatusInternalServerError, &ErrorResponse{Error: "oops, something went wrong"}
 	}
 
-	return resp.Code, resp.Data
-}
-
-func handleUnexpectedError(ctx, baseCtx context.Context, code int, e error) (int, interface{}) {
-	if errors.Is(e, baseCtx.Err()) {
-		return http.StatusServiceUnavailable, ErrorResponse{Error: "service is shutting down"}
-	}
-	if errors.Is(e, ctx.Err()) {
-		return http.StatusGatewayTimeout, ErrorResponse{Error: "request timed out"}
-	}
-	if code == 0 {
-		return http.StatusInternalServerError, ErrorResponse{Error: ErrSomethingWentWrong.Error()}
-	}
-
-	return code, ErrorResponse{Error: e.Error()}
-}
-
-func (e ErrorResponse) Fail(err error) ErrorResponse {
-	e.error = err
-
-	return e
-}
-
-func (e ErrorResponse) InternalErr() error {
-	return e.error
+	return failure.Code, failure.Data
 }

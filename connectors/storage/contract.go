@@ -10,7 +10,9 @@ import (
 
 // Public API.
 
-const IndexName = "indexName"
+const (
+	IndexName = "indexName"
+)
 
 var (
 	ErrNotFound                 = errors.New("not found")
@@ -25,7 +27,7 @@ type (
 	DBConfig struct {
 		User               string   `yaml:"user"`
 		Password           string   `yaml:"password"`
-		URLs               []string `yaml:"urls"`
+		URLs               []string `yaml:"urls"` //nolint:tagliatelle // Nope.
 		Spaces             []string `yaml:"spaces"`
 		ReadOnly           bool     `yaml:"readOnly"`
 		SkipSchemaCreation bool     `yaml:"skipSchemaCreation"`
@@ -42,5 +44,8 @@ const (
 	getAllUserSpacesFunctionName = "get_all_user_spaces"
 )
 
-//nolint:gochecknoglobals // Because its loaded once, at runtime.
-var cfg Config
+//
+var (
+	//nolint:gochecknoglobals // Because its loaded once, at runtime.
+	cfg Config
+)

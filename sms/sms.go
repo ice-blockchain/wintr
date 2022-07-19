@@ -4,6 +4,7 @@ package sms
 
 import (
 	"context"
+	"os"
 	"sync"
 	stdlibtime "time"
 
@@ -20,13 +21,19 @@ import (
 func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
-	c := &sms{}
-	c.client = twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username: cfg.Credentials.Login,
-		Password: cfg.Credentials.Password,
-	})
+	if cfg.Credentials.Login == "" {
+		cfg.Credentials.Login = os.Getenv("SMS_CLIENT_LOGIN")
+	}
+	if cfg.Credentials.Password == "" {
+		cfg.Credentials.Password = os.Getenv("SMS_CLIENT_PASSWORD")
+	}
 
-	return c
+	return &sms{
+		client: twilio.NewRestClientWithParams(twilio.ClientParams{
+			Username: cfg.Credentials.Login,
+			Password: cfg.Credentials.Password,
+		}),
+	}
 }
 
 func (s *sms) Send(ctx context.Context, parcel Parcel) error {
@@ -48,16 +55,14 @@ func (s *sms) Send(ctx context.Context, parcel Parcel) error {
 
 func (s *sms) SendMulti(ctx context.Context, parcels []Parcel) error {
 	var wg sync.WaitGroup
+	wg.Add(len(parcels))
 	ch := make(chan error, len(parcels))
 
-	for _, a := range parcels {
-		wg.Add(1)
-		copyA := a
-
-		go func() {
+	for ix := range parcels {
+		go func(i int) {
 			defer wg.Done()
-			ch <- s.Send(ctx, copyA)
-		}()
+			ch <- s.Send(ctx, parcels[i])
+		}(ix)
 	}
 
 	wg.Wait()

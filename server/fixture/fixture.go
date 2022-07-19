@@ -29,6 +29,7 @@ import (
 	"github.com/ice-blockchain/wintr/server"
 )
 
+//nolint:revive // Need, a lot simpler to use and inline.
 func NewTestConnector(
 	applicationYAMLKey, swaggerRoot, expectedSwaggerJSON string, order int, main func(),
 	additionalContainerMounts ...func(projectRoot string) testcontainers.ContainerMount,
@@ -65,9 +66,9 @@ func (tc *testConnector) Setup(ctx context.Context) connectorsfixture.ContextErr
 
 	if runtime.GOOS == "darwin" { // Because it is an issue with macOS with hostNetwork and with inter container communication.
 		go func() {
-			if e := recover(); e != nil {
-				log.Error(errors.New(e.(string)))
-			}
+			defer func() {
+				log.Error(mapErr(recover()))
+			}()
 			tc.main()
 		}()
 		//nolint:gomnd // It's not a magic number, it's the sleep time.
@@ -87,12 +88,13 @@ func (tc *testConnector) startContainer(ctx context.Context) (cleanUp connectors
 		ContainerRequest: tc.buildContainerRequest(ctx),
 		Logger:           stdlog.Default(),
 	})
-	log.Panic(errors.Wrapf(err, "failed to build %v container", tc.serviceName))
+	log.Panic(errors.Wrapf(err, "failed to build %v container", tc.serviceName)) //nolint:revive // That's the point.
 	container.FollowOutput(tc.logConsumer)
 	log.Panic(errors.Wrapf(container.StartLogProducer(ctx), "failed to start log producer for %v container", tc.serviceName))
 	log.Panic(errors.Wrapf(container.Start(ctx), "failed to start %v container", tc.serviceName))
 	defer func() {
 		cleanUp = func(ctx context.Context) error {
+			//nolint:revive // Wrong
 			return errors.Wrapf(multierror.Append(nil,
 				errors.Wrapf(container.StopLogProducer(), "%v[%v] failed to stop consuming logs for container", tc.serviceName, container.GetContainerID()),
 				errors.Wrapf(container.Terminate(ctx), "%v[%v] container failed to terminate", tc.serviceName, container.GetContainerID())).ErrorOrNil(),
@@ -100,7 +102,7 @@ func (tc *testConnector) startContainer(ctx context.Context) (cleanUp connectors
 		}
 		if e := recover(); e != nil {
 			log.Error(cleanUp(ctx))
-			log.Panic(errors.New(e.(string)))
+			log.Panic(e)
 		}
 	}()
 	ip, err := container.Host(ctx)
@@ -115,7 +117,7 @@ func (tc *testConnector) startContainer(ctx context.Context) (cleanUp connectors
 
 func (tc *testConnector) buildContainerRequest(ctx context.Context) testcontainers.ContainerRequest {
 	var (
-		_os    = "linux"
+		osName = "linux"
 		goarch = runtime.GOARCH
 	)
 	tc.setupContainerRequiredFileSystem()
@@ -126,9 +128,9 @@ func (tc *testConnector) buildContainerRequest(ctx context.Context) testcontaine
 			Context:       tc.dockerFileContext,
 			Dockerfile:    fmt.Sprintf("cmd%c%v%cDockerfile", os.PathSeparator, tc.serviceName, os.PathSeparator),
 			PrintBuildLog: true,
-			BuildArgs:     map[string]*string{"SERVICE_NAME": &tc.serviceName, "TARGETOS": &_os, "TARGETARCH": &goarch, "PORT": &port},
+			BuildArgs:     map[string]*string{"SERVICE_NAME": &tc.serviceName, "TARGETOS": &osName, "TARGETARCH": &goarch, "PORT": &port},
 		},
-		Labels:       map[string]string{"os": _os, "arch": goarch},
+		Labels:       map[string]string{"os": osName, "arch": goarch},
 		Mounts:       tc.mounts(),
 		AutoRemove:   true,
 		NetworkMode:  "host",
@@ -148,7 +150,7 @@ func (tc *testConnector) mounts() testcontainers.ContainerMounts {
 		}
 		log.Panic(emptyDotEnvFile.Close())
 	}
-	m := testcontainers.ContainerMounts{
+	mounts := testcontainers.ContainerMounts{
 		testcontainers.BindMount(
 			fmt.Sprintf("%v/localhost.crt", tc.tmpFolder),
 			testcontainers.ContainerMountTarget(fmt.Sprintf("/%v", tc.cfg.HTTPServer.CertPath)),
@@ -162,10 +164,10 @@ func (tc *testConnector) mounts() testcontainers.ContainerMounts {
 		testcontainers.BindMount(dotEnvPath, `/.env`),
 	}
 	for i := range tc.additionalContainerMounts {
-		m = append(m, tc.additionalContainerMounts[i](tc.projectRoot))
+		mounts = append(mounts, tc.additionalContainerMounts[i](tc.projectRoot))
 	}
 
-	return m
+	return mounts
 }
 
 func (tc *testConnector) waitFor(ctx context.Context) *wait.MultiStrategy {
@@ -202,6 +204,7 @@ func (tc *testConnector) setupContainerRequiredFileSystem() {
 
 	tc.containerID = strings.ToLower(uuid.New().String())
 	tc.tmpFolder = fmt.Sprintf("%v/.tmp-%s", tc.testdataPath, tc.containerID)
+	//nolint:revive // That's the point.
 	log.Panic(errors.Wrapf(os.Mkdir(tc.tmpFolder, fileMode), "failed to create .tmp folder for `%v` test environment", tc.applicationYAMLKey))
 	log.Panic(errors.Wrapf(os.WriteFile(fmt.Sprintf("%s/%s", tc.tmpFolder, crtName), []byte(localhostCrt), fileMode),
 		"failed to create tmp `%v` docker compose for `%v` test environment", crtName, tc.applicationYAMLKey))
@@ -209,7 +212,7 @@ func (tc *testConnector) setupContainerRequiredFileSystem() {
 		"failed to create tmp `%v` docker compose for `%v` test environment", keyName, tc.applicationYAMLKey))
 }
 
-func (tc *testConnector) localhostTLS() *tls.Config {
+func (*testConnector) localhostTLS() *tls.Config {
 	caCertPool := x509.NewCertPool()
 	if ok := caCertPool.AppendCertsFromPEM([]byte(localhostCrt)); !ok {
 		log.Panic(errors.New("failed to append localhost tls to cert pool"))
@@ -221,7 +224,7 @@ func (tc *testConnector) localhostTLS() *tls.Config {
 	}
 }
 
-func (c *containerLogConsumer) Accept(logMsg testcontainers.Log) {
+func (*containerLogConsumer) Accept(logMsg testcontainers.Log) {
 	switch logMsg.LogType {
 	case testcontainers.StdoutLog:
 		log.Info(string(logMsg.Content))
@@ -230,4 +233,19 @@ func (c *containerLogConsumer) Accept(logMsg testcontainers.Log) {
 	default:
 		log.Panic(errors.Errorf("unexpected logType %v", logMsg.LogType))
 	}
+}
+
+func mapErr(maybeError any) error {
+	if maybeError == nil {
+		return nil
+	}
+
+	if errString, ok := maybeError.(string); ok {
+		return errors.New(errString)
+	}
+	if actualErr, ok := maybeError.(error); ok {
+		return actualErr
+	}
+
+	return errors.Errorf("unexpected error: %#v", maybeError)
 }

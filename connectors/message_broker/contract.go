@@ -39,7 +39,7 @@ type (
 		MessageBroker struct {
 			ConsumerGroup   string   `yaml:"consumerGroup"`
 			CertPath        string   `yaml:"certPath"`
-			URLs            []string `yaml:"urls"`
+			URLs            []string `yaml:"urls"` //nolint:tagliatelle // Nope.
 			ConsumingTopics []string `yaml:"consumingTopics"`
 			Topics          []struct {
 				Name              string        `yaml:"name" json:"name"`
@@ -66,8 +66,11 @@ const (
 	consumerRecordBufferSize        = 100
 )
 
-//nolint:gochecknoglobals // Because its loaded once, at runtime.
-var cfg Config
+//
+var (
+	//nolint:gochecknoglobals // Because its loaded once, at runtime.
+	cfg Config
+)
 
 type (
 	// | messageBroker manages all operations and is exposed publicly as Client.

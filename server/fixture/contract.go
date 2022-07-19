@@ -47,16 +47,18 @@ type (
 // Private API.
 
 const (
-	crtName  = "localhost.crt"
-	keyName  = "localhost.key"
-	fileMode = 0o777
+	jsonContentType = "application/json"
+	crtName         = "localhost.crt"
+	keyName         = "localhost.key"
+	fileMode        = 0o777
 )
 
-//go:embed .testdata/localhost.crt
-var localhostCrt string
-
-//go:embed .testdata/localhost.key
-var localhostKey string
+var (
+	//go:embed .testdata/localhost.crt
+	localhostCrt string
+	//go:embed .testdata/localhost.key
+	localhostKey string
+)
 
 type (
 	testConnector struct {

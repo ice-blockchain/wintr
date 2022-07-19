@@ -142,22 +142,22 @@ func CheckSQLDMLErr(resp *tarantool.Response, err error) error {
 }
 
 func parseTarantoolSQLDMLErr(err error) error {
-	e := new(tarantool.Error)
-	if ok := errors.As(err, e); ok {
-		switch e.Code {
-		case tarantool.ER_TUPLE_FOUND:
+	dbErr := new(tarantool.Error)
+	if ok := errors.As(err, dbErr); ok {
+		switch dbErr.Code {
+		case tarantool.ER_TUPLE_FOUND: //nolint:nosnakecase // External library.
 			return terror.New(ErrDuplicate, map[string]interface{}{
-				IndexName: strings.Split(strings.Replace(e.Msg, `Duplicate key exists in unique index "`, "", 1), `"`)[0],
+				IndexName: strings.Split(strings.Replace(dbErr.Msg, `Duplicate key exists in unique index "`, "", 1), `"`)[0],
 			})
-		case tarantool.ER_TUPLE_NOT_FOUND:
+		case tarantool.ER_TUPLE_NOT_FOUND: //nolint:nosnakecase // External library.
 			return ErrNotFound
-		case tarantool.ER_SQL_EXECUTE:
+		case tarantool.ER_SQL_EXECUTE: //nolint:nosnakecase // External library.
 			// Here we guess as no other reliable info is available.
-			if strings.Contains(e.Msg, "FOREIGN KEY constraint failed") {
+			if strings.Contains(dbErr.Msg, "FOREIGN KEY constraint failed") {
 				return ErrRelationNotFound
 			}
 			// Hack/hotfix to go around a tarantool issue.
-			if strings.Contains(e.Msg, "NOT NULL constraint failed") {
+			if strings.Contains(dbErr.Msg, "NOT NULL constraint failed") {
 				return errors.Wrap(ErrRetryOnInvalidForeignKey, "DML operation failed")
 			}
 		}

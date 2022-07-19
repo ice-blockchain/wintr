@@ -18,41 +18,73 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (tc *httpTestClient) Get(ctx context.Context, tb testing.TB, url string, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+func (tc *httpTestClient) Get(
+	ctx context.Context,
+	tb testing.TB,
+	url string,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	return tc.doRequest(ctx, tb, http.MethodGet, url, nil, headers...)
 }
 
-func (tc *httpTestClient) Delete(ctx context.Context, tb testing.TB, url string, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+func (tc *httpTestClient) Delete(
+	ctx context.Context,
+	tb testing.TB,
+	url string,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	return tc.doRequest(ctx, tb, http.MethodDelete, url, nil, headers...)
 }
 
-//nolint:lll // Looks alot better.
-func (tc *httpTestClient) Post(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+func (tc *httpTestClient) Post(
+	ctx context.Context,
+	tb testing.TB,
+	url string,
+	body io.Reader,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	return tc.doRequest(ctx, tb, http.MethodPost, url, body, headers...)
 }
 
-//nolint:lll // Looks alot better.
-func (tc *httpTestClient) Put(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+func (tc *httpTestClient) Put(
+	ctx context.Context,
+	tb testing.TB,
+	url string,
+	body io.Reader,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	return tc.doRequest(ctx, tb, http.MethodPut, url, body, headers...)
 }
 
-//nolint:lll // Looks alot better.
-func (tc *httpTestClient) Patch(ctx context.Context, tb testing.TB, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+func (tc *httpTestClient) Patch(
+	ctx context.Context,
+	tb testing.TB,
+	url string,
+	body io.Reader,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	return tc.doRequest(ctx, tb, http.MethodPatch, url, body, headers...)
 }
 
-//nolint:lll // Looks alot better.
-func (tc *httpTestClient) doRequest(ctx context.Context, tb testing.TB, method, url string, body io.Reader, headers ...http.Header) (respBody string, statusCode int, header http.Header) {
+//nolint:revive // Looks alot better.
+func (tc *httpTestClient) doRequest(
+	ctx context.Context,
+	tb testing.TB,
+	method,
+	url string,
+	body io.Reader,
+	headers ...http.Header,
+) (respBody string, statusCode int, header http.Header) {
 	tb.Helper()
 
 	r, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("https://%v%v", tc.serverAddr, url), body)
@@ -130,13 +162,14 @@ func (tc *httpTestClient) TestHealthCheck(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
 	body, status, headers := tc.Get(ctx, tb, "/health-check", http.Header{"CF-Connecting-IP": []string{"1.2.3.4"}})
-	assert.Equal(tb, `{"clientIP":"1.2.3.4"}`, body)
+	assert.Equal(tb, `{"clientIp":"1.2.3.4"}`, body)
 	assert.Equal(tb, http.StatusOK, status)
 	headers.Del("Date")
 	require.Equal(tb, http.Header{"Content-Length": []string{"22"}, "Content-Type": []string{"application/json; charset=utf-8"}}, headers)
 }
 
 func addHeaders(headers []http.Header, r *http.Request) {
+	//nolint:revive // False negative.
 	if len(headers) != 0 && headers[0] != nil {
 		for k, vs := range headers[0] {
 			for _, v := range vs {
@@ -146,7 +179,7 @@ func addHeaders(headers []http.Header, r *http.Request) {
 	}
 }
 
-func (tc *httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body string, status int, headers http.Header) {
+func (*httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body string, status int, headers http.Header) {
 	tb.Helper()
 
 	assert.Equal(tb, expectedBody, body)
@@ -159,15 +192,15 @@ func (tc *httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body s
 	assert.Equal(tb, http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, headers)
 }
 
-func (tc *httpTestClient) WrapJSONBody(jsonData string) (reqBody io.Reader, contentType string) {
+func (*httpTestClient) WrapJSONBody(jsonData string) (reqBody io.Reader, contentType string) {
 	if jsonData == "" {
-		return nil, "application/json"
+		return nil, jsonContentType
 	}
 
-	return bytes.NewBuffer([]byte(jsonData)), "application/json"
+	return bytes.NewBuffer([]byte(jsonData)), jsonContentType
 }
 
-func (tc *httpTestClient) WrapMultipartBody(tb testing.TB, values map[string]interface{}) (reqBody io.Reader, contentType string) {
+func (*httpTestClient) WrapMultipartBody(tb testing.TB, values map[string]interface{}) (reqBody io.Reader, contentType string) {
 	tb.Helper()
 
 	body := new(bytes.Buffer)
@@ -176,14 +209,14 @@ func (tc *httpTestClient) WrapMultipartBody(tb testing.TB, values map[string]int
 		require.NoError(tb, writer.Close())
 	}()
 	for fieldName, fieldValue := range values {
-		switch v := fieldValue.(type) {
+		switch val := fieldValue.(type) {
 		case *os.File:
-			formFile, err := writer.CreateFormFile(fieldName, v.Name())
+			formFile, err := writer.CreateFormFile(fieldName, val.Name())
 			require.NoError(tb, err)
-			_, err = io.Copy(formFile, v)
+			_, err = io.Copy(formFile, val)
 			require.NoError(tb, err)
 		default:
-			require.NoError(tb, writer.WriteField(fieldName, fmt.Sprintf("%v", v)))
+			require.NoError(tb, writer.WriteField(fieldName, fmt.Sprintf("%v", val)))
 		}
 	}
 

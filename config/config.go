@@ -79,14 +79,14 @@ func findAllApplicationConfigFiles() []string {
 func relativeFiles() []string {
 	var files []string
 	//nolint:dogsled // Because those 3 blank identifiers are useless
-	_, b, _, _ := runtime.Caller(0)
-	pattern := filepath.Join(filepath.Dir(b), "..", "application.yaml")
+	_, callerFile, _, _ := runtime.Caller(0)
+	pattern := filepath.Join(filepath.Dir(callerFile), "..", "application.yaml")
 	if f, err := filepath.Glob(pattern); err != nil {
 		log.Println(errors.Wrapf(err, "glob failed for [%v]", pattern))
 	} else {
 		files = append(files, f...)
 	}
-	pattern = filepath.Join(filepath.Dir(b), "..", "..", "application.yaml")
+	pattern = filepath.Join(filepath.Dir(callerFile), "..", "..", "application.yaml")
 	if f, err := filepath.Glob(pattern); err != nil {
 		log.Println(errors.Wrapf(err, "glob failed for [%v]", pattern))
 	} else {

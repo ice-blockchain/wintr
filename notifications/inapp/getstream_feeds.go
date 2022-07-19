@@ -20,7 +20,7 @@ func (i *inApp) createNotificationFeed(feedName string, userID UserID) (*stream.
 	return notify, nil
 }
 
-func (i *inApp) makeActivity(data *Parcel) stream.Activity {
+func (*inApp) makeActivity(data *Parcel) stream.Activity {
 	return stream.Activity{
 		Actor:     fmt.Sprintf("%s:%s", data.Actor.Type, data.Actor.Value),
 		Verb:      data.Action,
@@ -37,13 +37,13 @@ func (i *inApp) addNotificationActivity(ctx context.Context, notify *stream.Noti
 }
 
 func (i *ID) parse(data string) *ID {
-	r := strings.Split(data, ":")
+	parts := strings.Split(data, ":")
 
-	if len(r) != 1+1 {
+	if len(parts) != 1+1 {
 		i.Value = data
 	} else {
-		i.Type = r[0]
-		i.Value = r[1]
+		i.Type = parts[0]
+		i.Value = parts[1]
 	}
 
 	return i

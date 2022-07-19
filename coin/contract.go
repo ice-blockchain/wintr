@@ -11,8 +11,10 @@ import (
 
 // Public API.
 
-// Denomination is the factor between `ice` and its smallest subunit called `ice flake`.
-const Denomination = 1e9
+const (
+	// Denomination is the factor between `ice` and its smallest subunit called `ice flake`.
+	Denomination = 1e9
+)
 
 type (
 	ICE      string

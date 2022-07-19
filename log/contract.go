@@ -8,12 +8,19 @@ import (
 
 // Private API.
 
-const stackFramesToSkip = 2
+const (
+	stackFramesToSkip = 2
+)
 
-// nolint:gochecknoglobals // we need only one log for the app, hence it is global
-var logger *zerolog.Logger
+//
+var (
+	// nolint:gochecknoglobals // we need only one log for the app, hence it is global
+	logger *zerolog.Logger
+)
 
-type cfg struct {
-	Encoder string `yaml:"encoder"`
-	Level   string `yaml:"level"`
-}
+type (
+	cfg struct {
+		Encoder string `yaml:"encoder"`
+		Level   string `yaml:"level"`
+	}
+)

@@ -25,16 +25,15 @@ func New(applicationYamlKey, feedName string) Client {
 		cfg.Credentials.Secret = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_SECRET")
 	}
 
-	c := &inApp{}
 	cl, err := stream.New(cfg.Credentials.Key, cfg.Credentials.Secret)
 	if err != nil {
 		log.Panic(errors.Wrapf(err, "unable to init GetStream client"))
 	}
 
-	c.client = cl
-	c.feedName = feedName
-
-	return c
+	return &inApp{
+		client:   cl,
+		feedName: feedName,
+	}
 }
 
 func (i *inApp) Send(ctx context.Context, data *Parcel) error {

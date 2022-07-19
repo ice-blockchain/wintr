@@ -11,22 +11,22 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func (mb *messageBroker) SendMessage(ctx context.Context, m *Message, responder chan<- error) {
-	headers := make([]kgo.RecordHeader, 0, len(m.Headers))
-	if m.Headers != nil {
-		for k, v := range m.Headers {
+func (mb *messageBroker) SendMessage(ctx context.Context, msg *Message, responder chan<- error) {
+	headers := make([]kgo.RecordHeader, 0, len(msg.Headers))
+	if msg.Headers != nil {
+		for k, v := range msg.Headers {
 			headers = append(headers, kgo.RecordHeader{Key: k, Value: []byte(v)})
 		}
 	}
-	r := &kgo.Record{
-		Key:     []byte(m.Key),
-		Value:   m.Value,
+	record := &kgo.Record{
+		Key:     []byte(msg.Key),
+		Value:   msg.Value,
 		Headers: headers,
-		Topic:   m.Topic,
+		Topic:   msg.Topic,
 	}
-	mb.client.Produce(ctx, r, func(record *kgo.Record, err error) {
+	mb.client.Produce(ctx, record, func(record *kgo.Record, err error) {
 		if err != nil {
-			log.Error(errors.Wrap(err, "failed to produce record"), "record.value", string(m.Value), "record", m)
+			log.Error(errors.Wrap(err, "failed to produce record"), "record.value", string(msg.Value), "record", msg)
 		} else {
 			log.Debug("record produced", "record.value", string(record.Value), "record", record)
 		}

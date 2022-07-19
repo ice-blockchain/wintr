@@ -28,16 +28,17 @@ const (
 	fileMode   = 0o777
 )
 
-//go:embed .testdata/docker-compose.yaml
-var dockerComposeYAMLTemplate string
-
-//go:embed .testdata/init.lua
-var dbStartupScriptTemplate string
+var (
+	//go:embed .testdata/docker-compose.yaml
+	dockerComposeYAMLTemplate string
+	//go:embed .testdata/init.lua
+	dbStartupScriptTemplate string
+)
 
 type (
 	dbCfg struct {
-		SchemaPath       string `yaml:"schemaPath"`
-		storage.DBConfig `mapstructure:",squash"`
+		SchemaPath       string                   `yaml:"schemaPath"`
+		storage.DBConfig `mapstructure:",squash"` //nolint:tagliatelle // Nope.
 	}
 	cfg struct {
 		DB dbCfg `yaml:"db"`
