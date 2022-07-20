@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,6 +19,10 @@ import (
 
 func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+
+	if cfg.Credentials.APIKey == "" {
+		cfg.Credentials.APIKey = os.Getenv("EMAIL_CLIENT_APIKEY")
+	}
 
 	c := &email{}
 	c.client = sendgrid.NewSendClient(cfg.Credentials.APIKey)

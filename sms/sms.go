@@ -4,6 +4,7 @@ package sms
 
 import (
 	"context"
+	"os"
 	"sync"
 	stdlibtime "time"
 
@@ -19,6 +20,13 @@ import (
 
 func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+
+	if cfg.Credentials.Login == "" {
+		cfg.Credentials.Login = os.Getenv("SMS_CLIENT_LOGIN")
+	}
+	if cfg.Credentials.Password == "" {
+		cfg.Credentials.Password = os.Getenv("SMS_CLIENT_PASSWORD")
+	}
 
 	c := &sms{}
 	c.client = twilio.NewRestClientWithParams(twilio.ClientParams{
