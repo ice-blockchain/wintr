@@ -48,6 +48,7 @@ func RootHandler[REQ any, RESP any](handleRequest func(context.Context, *Request
 
 			return
 		}
+		//nolint:nolintlint // Its gonna come back.
 		success, failure := handleRequest(context.WithValue(ctx, requestingUserIDCtxValueKey, req.AuthenticatedUser.ID), req) //nolint:revive,staticcheck // .
 		if failure != nil {
 			log.Error(errors.Wrap(failure.Data.InternalErr(), "endpoint failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", failure)
