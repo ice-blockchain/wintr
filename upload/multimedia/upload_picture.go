@@ -22,7 +22,7 @@ func New(applicationYAMLKey string) Client {
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.PictureStorage.AccessKey == "" {
-		cfg.PictureStorage.AccessKey = os.Getenv("PICTURESTORAGE_CLIENT_ACCESSKEY")
+		cfg.PictureStorage.AccessKey = os.Getenv("PICTURE_STORAGE_CLIENT_ACCESSKEY")
 	}
 
 	m := &multimedia{}
