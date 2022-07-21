@@ -34,8 +34,6 @@ func (s *testMessageStore) VerifyMessages(ctx context.Context, expected ...RawMe
 	}
 
 	if !s.recordsFound(expected...) {
-		//nolint:nolintlint // Its gonna come back.
-		//nolint:revive // This errors package is better.
 		return errors.New(fmt.Sprintf("verifyMessages failed! expected %#v, actual %#v", expected, s.chronologicalMessageList))
 	}
 
