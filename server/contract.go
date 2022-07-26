@@ -39,6 +39,7 @@ type (
 		bindings          map[requestBinding]struct{}
 		requiredFields    []string
 		allowUnauthorized bool
+		allowForbiddenGet bool
 	}
 	Response[RESP any] struct {
 		Data *RESP

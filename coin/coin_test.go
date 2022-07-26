@@ -30,6 +30,7 @@ func TestICEConversion(t *testing.T) {
 	a8 := UnsafeNewAmount("5")
 	a9 := UnsafeNewAmount("0")
 	a10 := UnsafeNewAmount("100000005")
+	a11 := UnsafeNewAmount("1123123123010000000")
 
 	assert.EqualValues(t, "115792089237316195423570985008687907853269984665640564039457584007913.129639935", *a1.UnsafeICE())
 	assert.EqualValues(t, "12.0", *a2.UnsafeICE())
@@ -41,6 +42,7 @@ func TestICEConversion(t *testing.T) {
 	assert.EqualValues(t, "0.000000005", *a8.UnsafeICE())
 	assert.EqualValues(t, "0.0", *a9.UnsafeICE())
 	assert.EqualValues(t, "0.100000005", *a10.UnsafeICE())
+	assert.EqualValues(t, "1123123123.01", *a11.UnsafeICE())
 }
 
 func TestICEFlakeConversion(t *testing.T) {
@@ -95,8 +97,10 @@ func TestICEJSONSerialization(t *testing.T) {
 	bytes, err = json.Marshal(whatever{ICE: &ice2})
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(bytes))
-	we = whatever{ICE: new(ICE)}
-	bytes, err = json.Marshal(we)
+	bytes, err = json.Marshal(whatever{ICE: UnsafeNewAmount("1123123123010000000").UnsafeICE()})
+	require.NoError(t, err)
+	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(bytes))
+	bytes, err = json.Marshal(whatever{ICE: new(ICE)})
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"0.0"}`, string(bytes))
 	var w3 whatever
@@ -114,14 +118,16 @@ func TestICEUnmarshalJSON(t *testing.T) {
 	assert.NoError(t, ice2.UnmarshalJSON([]byte(" .0")))
 	ice3 := new(ICE)
 	assert.NoError(t, ice3.UnmarshalJSON([]byte("0")))
+	ice4 := new(ICE)
+	assert.NoError(t, ice4.UnmarshalJSON([]byte("1123123123.01")))
 	assert.Equal(t, ICE("0.0"), *ice1)
 	assert.Equal(t, ICE("0.0"), *ice2)
-	assert.Equal(t, ICE("0.0"), *ice3)
+	assert.Equal(t, ICE("1123123123.01"), *ice4)
 }
 
+//nolint:funlen // Alot of usecases.
 func TestICEFormat(t *testing.T) {
 	t.Parallel()
-
 	a1 := ICE("115792089237316195423570985008687907853269984665640564039457584007913.129639935")
 	a3 := ICE("12.000000001")
 	a4 := ICE("1.0")
@@ -136,6 +142,7 @@ func TestICEFormat(t *testing.T) {
 	a13 := ICE("913")
 	a14 := ICE("13")
 	a15 := ICE("")
+	a16 := ICE("1123123123.01")
 	assert.Equal(t, "115,792,089,237,316,195,423,570,985,008,687,907,853,269,984,665,640,564,039,457,584,007,913.129639935", a1.Format())
 	assert.Equal(t, "12.000000001", a3.Format())
 	assert.Equal(t, "1.0", a4.Format())
@@ -150,6 +157,7 @@ func TestICEFormat(t *testing.T) {
 	assert.Equal(t, "913.0", a13.Format())
 	assert.Equal(t, "13.0", a14.Format())
 	assert.Equal(t, "0.0", a15.Format())
+	assert.Equal(t, "1,123,123,123.01", a16.Format())
 }
 
 func TestICEFlakeJSONSerialization(t *testing.T) {

@@ -135,12 +135,26 @@ func (i *ICEFlake) ICE() (*ICE, error) {
 	return &ice, nil
 }
 
-func (i *ICEFlake) transformNumbersBiggerThan1ICE(v string) (*ICE, error) {
+func (i *ICEFlake) transformNumbersBiggerThan1ICE(val string) (*ICE, error) {
 	var ice ICE
 	if i.Mod(denomination).IsZero() {
-		ice = ICE(v[:len(v)-e9] + ".0")
+		ice = ICE(val[:len(val)-e9] + ".0")
 	} else {
-		ice = ICE(v[:len(v)-e9] + "." + v[len(v)-e9:])
+		digits := []rune(val[len(val)-e9:])
+		rest := make([]rune, 0, e9)
+		var hasNonZeroTrailing bool
+		for digitIx := len(digits) - 1; digitIx >= 0; digitIx-- {
+			if digits[digitIx] != 48 { //nolint:gomnd // Not magical at all, that's 0 in ASCII.
+				hasNonZeroTrailing = true
+			}
+			if hasNonZeroTrailing {
+				rest = append(rest, digits[digitIx])
+			}
+		}
+		for ii, jj := 0, len(rest)-1; ii < jj; ii, jj = ii+1, jj-1 {
+			rest[ii], rest[jj] = rest[jj], rest[ii]
+		}
+		ice = ICE(val[:len(val)-e9] + "." + string(rest))
 	}
 
 	return &ice, nil

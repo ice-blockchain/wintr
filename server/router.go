@@ -90,6 +90,9 @@ func (req *Request[REQ, RESP]) processTags() {
 		if tag.Get("allowUnauthorized") == enabled {
 			req.allowUnauthorized = true
 		}
+		if tag.Get("allowForbiddenGet") == enabled {
+			req.allowForbiddenGet = true
+		}
 		if jsonTag := tag.Get("json"); jsonTag != "" && jsonTag != "-" {
 			req.bindings[json] = struct{}{}
 		}
@@ -172,7 +175,7 @@ func (req *Request[REQ, RESP]) authorize() (errResp *Response[ErrorResponse]) {
 	if userID != "" &&
 		userID != "-" &&
 		req.AuthenticatedUser.ID != userID &&
-		(req.ginCtx.Request.Method != http.MethodGet || !strings.HasSuffix(req.ginCtx.Request.URL.Path, userID)) {
+		(req.ginCtx.Request.Method != http.MethodGet || (!req.allowForbiddenGet && !strings.HasSuffix(req.ginCtx.Request.URL.Path, userID))) {
 		return Forbidden(errors.Errorf("operation not allowed. uri>%v!=token>%v", userID, req.AuthenticatedUser.ID))
 	}
 
