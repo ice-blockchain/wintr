@@ -18,6 +18,10 @@ func IT(_ string, logic func()) {
 	logic()
 }
 
+func AND(_ string, logic func()) {
+	logic()
+}
+
 func SETUP(_ string, logic func()) {
 	logic()
 }
