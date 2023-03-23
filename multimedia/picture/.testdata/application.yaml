@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+write:
+  wintr/multimedia/picture:
+    urlUpload: https://storage.bunnycdn.com/ice-staging/profile
+    urlDownload: https://ice-staging.b-cdn.net/profile
+read:
+  wintr/multimedia/picture:
+    urlDownload: https://ice-staging.b-cdn.net/profile
