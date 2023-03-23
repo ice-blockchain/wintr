@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+wintr/privacy:
+   secret: a8e6b45b422ceb5ba22d3cfddbf13a4a751aec18abf312836dabd7e5cacb999a9d9c12120d1e8b588aa907f5

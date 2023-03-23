@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+cmd/dummy-service:
+  host: localhost
+  version: local
+  defaultEndpointTimeout: 30s
+  httpServer:
+    port: 443
+    certPath: connectors/message_broker/fixture/.testdata/localhost.crt
+    keyPath: connectors/message_broker/fixture/.testdata/localhost.key
+  defaultPagination:
+    limit: 20
+    maxLimit: 1000

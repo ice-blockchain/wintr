@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: ice License 1.0
+
+version: '3.7'
+
+services:
+  mb%[1]v:
+    command:
+      - redpanda
+      - start
+      - --smp
+      - '1'
+      - --reserve-memory
+      - 0M
+      - --overprovisioned
+      - --node-id
+      - '0'
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:2%[1]v,OUTSIDE://0.0.0.0:%[1]v
+      - --advertise-kafka-addr
+      - PLAINTEXT://mb:2%[1]v,OUTSIDE://localhost:%[1]v
+      - --set
+      - redpanda.enable_idempotence=true
+      - --set
+      - redpanda.kafka_api_tls={"name":"OUTSIDE","enabled":%[2]v,"cert_file":"/cert.pem","key_file":"/key.pem"}
+      - --set
+      - redpanda.admin_api_tls={"name":"OUTSIDE","enabled":%[2]v,"cert_file":"/cert.pem","key_file":"/key.pem"}
+    image: docker.vectorized.io/vectorized/redpanda:latest
+    pull_policy: always
+    ports:
+      - %[1]v:%[1]v
+      - 2%[1]v:2%[1]v
+    volumes:
+      - ./localhost.crt:/cert.pem
+      - ./localhost.key:/key.pem
