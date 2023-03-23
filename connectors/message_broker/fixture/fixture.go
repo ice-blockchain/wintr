@@ -18,7 +18,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func NewTestConnector(applicationYAMLKey string, order int) TestConnector {
+func NewTestConnector(applicationYAMLKey string, order int, processors ...messagebroker.Processor) TestConnector {
 	var cfg messagebroker.Config
 	applicationYAMLTestKey := fmt.Sprintf("%v_test", applicationYAMLKey)
 	config.MustLoadFromKey(applicationYAMLTestKey, &cfg)
@@ -27,6 +27,7 @@ func NewTestConnector(applicationYAMLKey string, order int) TestConnector {
 		cfg:                &cfg,
 		applicationYAMLKey: applicationYAMLTestKey,
 		order:              order,
+		customProcessors:   processors,
 	}
 	tc.delegate = fixture.NewConnector("mb", dockerComposeYAMLTemplate, "Successfully started Redpanda!", order, tc.findMessageBrokerPort, nil)
 
@@ -48,11 +49,7 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 	tc.testMessageStore = new(testMessageStore)
 	tc.testMessageStore.mx = new(sync.RWMutex)
 	tc.testMessageStore.chronologicalMessageList = []RawMessage{}
-	processors := make([]messagebroker.Processor, 0, len(tc.cfg.MessageBroker.Topics))
-	for range tc.cfg.MessageBroker.Topics {
-		processors = append(processors, tc.testMessageStore)
-	}
-	tc.Client = messagebroker.MustConnectAndStartConsuming(ctx, func() {}, tc.applicationYAMLKey, processors...)
+	tc.ReconnectConsumer(ctx)
 
 	return func(cctx context.Context) error {
 		return errors.Wrapf(multierror.Append(nil,
@@ -60,6 +57,18 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 			errors.Wrapf(cleanUp(cctx), "failed to cleanup message broker connector for %v", tc.applicationYAMLKey)).ErrorOrNil(),
 			"failed to cleanup messagebroker test connector")
 	}
+}
+
+func (tc *testConnector) ReconnectConsumer(ctx context.Context) {
+	processors := make([]messagebroker.Processor, 0, len(tc.cfg.MessageBroker.Topics))
+	for range tc.cfg.MessageBroker.Topics {
+		if len(tc.customProcessors) == 0 {
+			processors = append(processors, tc.testMessageStore)
+		} else {
+			processors = append(processors, &proxyProcessor{tc.testMessageStore, tc.customProcessors})
+		}
+	}
+	tc.Client = messagebroker.MustConnectAndStartConsuming(ctx, func() {}, tc.applicationYAMLKey, processors...)
 }
 
 func (tc *testConnector) findMessageBrokerPort() (int, bool, error) {

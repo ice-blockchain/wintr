@@ -8,11 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 // Public API.
+var (
+	ErrUnrecoverable = errors.New("unrecoverable processor error")
+)
 
 type (
 	Partition      = int32
@@ -88,12 +92,15 @@ type (
 		admClient              *kadm.Client
 		consumingWg            *sync.WaitGroup
 		mx                     *sync.Mutex
+		pausedMx               *sync.RWMutex
 		consumers              *sync.Map // Is a map[Topic]map[Partition]*partitionConsumer.
 		processors             map[Topic]Processor
 		consumerTopicConfigs   map[Topic]*ConsumerTopicConfig
 		partitionCountPerTopic *sync.Map // Is a map[Topic]PartitionCount.
 		cancel                 context.CancelFunc
 		done                   bool
+		paused                 bool
+		cancelling             bool
 	}
 	// | partitionConsumer is responsible for processing partition records.
 	partitionConsumer struct {
