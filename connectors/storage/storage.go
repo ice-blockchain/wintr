@@ -21,7 +21,7 @@ func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicatio
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	var err error
 	schemaInitCtx, schemaInitCancel := ctx, cancel
-	if !cfg.DB.ReadOnly {
+	if !cfg.DB.ReadOnly && !cfg.DB.SkipSchemaCreation {
 		schemaInitCtx, schemaInitCancel = context.WithTimeout(ctx, dbSchemaInitDeadline)
 	}
 	if db, err = connectDB(schemaInitCtx, schemaInitCancel); err != nil {
@@ -33,7 +33,7 @@ func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicatio
 		}
 		log.Panic(err)
 	}
-	if cfg.DB.ReadOnly {
+	if cfg.DB.ReadOnly || cfg.DB.SkipSchemaCreation {
 		return db
 	}
 	// The reason we close it and then reconnect it is because, sadly, schema loading happens after connection is established.
@@ -68,11 +68,10 @@ func initDBSchema(db tarantool.Connector, ddl string) error {
 		if resp, err := db.Eval(fmt.Sprintf("%v\nenable_sync_on_all_user_spaces()", ddl), []any{}); err != nil || resp.Code != tarantool.OkCode {
 			return errors.Wrap(err, "DDL eval failed")
 		}
-	}
-
-	log.Info("checking DB schema...")
-	if err := checkDBSchema(db, ddl); err != nil {
-		return errors.Wrap(err, "DB schema check failed")
+		log.Info("checking DB schema...")
+		if err := checkDBSchema(db, ddl); err != nil {
+			return errors.Wrap(err, "DB schema check failed")
+		}
 	}
 
 	return nil
