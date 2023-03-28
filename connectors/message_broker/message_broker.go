@@ -113,6 +113,10 @@ func (mb *messageBroker) connect(additionalOpts ...kgo.Opt) error { //nolint:fun
 		}
 		opts = append(opts, kgo.DialTLSConfig(tlsConfig))
 	}
+	if mb.cfg.MessageBroker.MaxMessageBytes == 0 {
+		mb.cfg.MessageBroker.MaxMessageBytes = 10485760
+	}
+	opts = append(opts, kgo.ProducerBatchMaxBytes(int32(mb.cfg.MessageBroker.MaxMessageBytes)))
 	log.Info("connecting to MessageBroker...", "URLs", mb.cfg.MessageBroker.URLs)
 	var err error
 	mb.client, err = kgo.NewClient(opts...)

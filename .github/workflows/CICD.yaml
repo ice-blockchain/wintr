@@ -123,10 +123,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ steps.findLatestGoVersion.outputs.latestGoVersion }}
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: latest
       - name: Slack Notification For Failure/Cancellation
         if: ${{ github.event_name == 'push' && (failure() || cancelled()) }}
         uses: rtCamp/action-slack-notify@v2
