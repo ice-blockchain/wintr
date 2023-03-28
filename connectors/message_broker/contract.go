@@ -47,6 +47,7 @@ type (
 			CreateTopics       bool                   `yaml:"createTopics"`
 			DisableIdempotence bool                   `yaml:"disableIdempotence"`
 			MaxPollRecords     int                    `yaml:"maxPollRecords"`
+			MaxMessageBytes    int                    `yaml:"maxMessageBytes" json:"maxMessageBytes"`
 		} `yaml:"messageBroker"`
 	}
 	TopicConfig struct {
