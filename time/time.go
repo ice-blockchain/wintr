@@ -43,6 +43,8 @@ func (t *Time) Scan(src any) error {
 	if ok {
 		date = date.UTC()
 		t.Time = &date
+
+		return nil
 	}
 
 	return errors.Errorf("unexpected type for src:%#v", src)
