@@ -59,6 +59,19 @@ func mustConnectPool(ctx context.Context, url string) (db *pgxpool.Pool) {
 	return db
 }
 
+func (db *DB) Close() error {
+	if db.master != nil {
+		db.master.Close()
+	}
+	if len(db.lb.replicas) != 0 {
+		for _, replica := range db.lb.replicas {
+			replica.Close()
+		}
+	}
+
+	return nil
+}
+
 func (db *DB) Primary() *pgxpool.Pool {
 	return db.master
 }
