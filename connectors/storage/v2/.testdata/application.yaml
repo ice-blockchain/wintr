@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+self:
+  wintr/connectors/storage/v2:
+    runDDL: true
+    primaryURL: postgresql://bogus-user:bogus-pass@bogus-host:bogus-port/bogus-database?sslmode=require
+    replicaURLs:
+      - postgresql://bogus-user:bogus-pass@bogus-host:bogus-port/bogus-database?sslmode=require
