@@ -38,6 +38,16 @@ func (t *Time) DecodeMsgpack(dec *msgpack.Decoder) error {
 	return nil
 }
 
+func (t *Time) Scan(src any) error {
+	date, ok := src.(stdlibtime.Time)
+	if ok {
+		date = date.UTC()
+		t.Time = &date
+	}
+
+	return errors.Errorf("unexpected type for src:%#v", src)
+}
+
 func (t *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
 	var nanos uint64
 	if t.Location() != stdlibtime.UTC {

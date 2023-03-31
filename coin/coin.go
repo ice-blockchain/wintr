@@ -262,6 +262,18 @@ func (i *ICEFlake) DecodeMsgpack(dec *msgpack.Decoder) error {
 	return errors.Wrapf(i.Unmarshal([]byte(val)), "coud not DecodeMsgpack->Unmarshal *ICEFlake %v", val)
 }
 
+func (i *ICEFlake) Scan(src any) error {
+	if val, ok := src.(string); ok {
+		if val == "" {
+			val = "0"
+		}
+
+		return errors.Wrapf(i.Unmarshal([]byte(val)), "failed to Unmarshal val:%v", val)
+	}
+
+	return errors.Errorf("value:%#v is not a string", src)
+}
+
 func (i *ICEFlake) ICE() (*ICE, error) {
 	if i.IsZero() {
 		ice := ICE(zero)
@@ -320,6 +332,20 @@ func (i *ICE) DecodeMsgpack(decoder *msgpack.Decoder) error {
 	iceFlakes := new(ICEFlake)
 	if err := iceFlakes.DecodeMsgpack(decoder); err != nil {
 		return errors.Wrapf(err, "failed to DecodeMsgpack as ICEFlake")
+	}
+	if ice, err := iceFlakes.ICE(); err != nil {
+		return errors.Wrapf(err, "failed to convert iceFlakes to ice")
+	} else { //nolint:revive // Nope, it's better this way.
+		*i = *ice
+
+		return nil
+	}
+}
+
+func (i *ICE) Scan(src any) error {
+	iceFlakes := new(ICEFlake)
+	if err := iceFlakes.Scan(src); err != nil {
+		return errors.Wrapf(err, "failed to Scan as ICEFlake")
 	}
 	if ice, err := iceFlakes.ICE(); err != nil {
 		return errors.Wrapf(err, "failed to convert iceFlakes to ice")

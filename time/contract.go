@@ -3,6 +3,7 @@
 package time
 
 import (
+	"database/sql"
 	stdlibtime "time"
 
 	"github.com/goccy/go-json"
@@ -24,4 +25,5 @@ var (
 	_ msgpack.CustomDecoder   = (*Time)(nil)
 	_ json.UnmarshalerContext = (*Time)(nil)
 	_ json.MarshalerContext   = (*Time)(nil)
+	_ sql.Scanner             = (*Time)(nil)
 )

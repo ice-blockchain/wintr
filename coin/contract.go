@@ -3,6 +3,8 @@
 package coin
 
 import (
+	"database/sql"
+
 	"cosmossdk.io/math"
 	"github.com/goccy/go-json"
 	"github.com/vmihailenco/msgpack/v5"
@@ -53,6 +55,8 @@ var (
 	_ json.MarshalerContext   = (*ICEFlake)(nil)
 	_ json.UnmarshalerContext = (*ICE)(nil)
 	_ json.MarshalerContext   = (*ICE)(nil)
+	_ sql.Scanner             = (*ICE)(nil)
+	_ sql.Scanner             = (*ICEFlake)(nil)
 	//nolint:gochecknoglobals // Its goroutine safe.
 	denomination = math.NewUint(Denomination)
 )
