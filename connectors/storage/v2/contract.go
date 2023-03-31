@@ -4,9 +4,16 @@ package storage
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 )
 
 // Public API.
+
+var (
+	ErrNotFound         = errors.New("not found")
+	ErrRelationNotFound = errors.New("relation not found")
+	ErrDuplicate        = errors.New("duplicate")
+)
 
 type (
 	DB struct {

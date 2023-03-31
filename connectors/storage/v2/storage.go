@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
@@ -72,10 +73,18 @@ func (db *DB) Close() error {
 	return nil
 }
 
-func (db *DB) Primary() *pgxpool.Pool {
+func (db *DB) primary() *pgxpool.Pool {
 	return db.master
 }
 
-func (db *DB) Replica() *pgxpool.Pool {
+func (db *DB) replica() *pgxpool.Pool {
 	return db.lb.replicas[atomic.AddUint64(&db.lb.currentIndex, 1)%uint64(len(db.lb.replicas))]
+}
+
+func (*DB) Exec(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+	panic("should not be used because its implemented just for type matching")
+}
+
+func (*DB) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+	panic("should not be used because its implemented just for type matching")
 }
