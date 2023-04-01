@@ -30,7 +30,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/testcontainers/testcontainers-go v0.19.0
 	github.com/twilio/twilio-go v1.4.0
-	github.com/twmb/franz-go v1.13.1
+	github.com/twmb/franz-go v1.13.2
 	github.com/twmb/franz-go/pkg/kadm v1.8.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	golang.org/x/net v0.8.0
