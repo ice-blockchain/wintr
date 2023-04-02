@@ -22,9 +22,21 @@ type (
 
 		messagebroker.Client
 
+		MessageVerifier
+		ReconnectConsumer(ctx context.Context)
+	}
+	MessageVerifier interface {
 		VerifyMessages(context.Context, ...RawMessage) error
 		VerifyNoMessages(context.Context, ...RawMessage) error
 	}
+
+	CallCounterProcessor struct {
+		RetErrs                  *sync.Map // Map[string]error.
+		LastReceivedMessage      RawMessage
+		ProcessCallCounts        uint64
+		SuccessProcessCallCounts uint64
+	}
+	ErrorBuilder func(*messagebroker.Message) error
 )
 
 // Private API.
@@ -42,10 +54,15 @@ type (
 		*testMessageStore
 		cfg                *messagebroker.Config
 		applicationYAMLKey string
+		customProcessors   []messagebroker.Processor
 		order              int
 	}
 	testMessageStore struct {
 		mx                       *sync.RWMutex
 		chronologicalMessageList []RawMessage
+	}
+	proxyProcessor struct {
+		messageStore *testMessageStore
+		processors   []messagebroker.Processor
 	}
 )

@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+self: &self
+  messageBroker: &selfMessageBroker
+    consumerGroup: testing-group
+    createTopics: true
+    urls:
+      - localhost:9092
+    topics:
+      - name: testing-topic
+        partitions: 10
+        replicationFactor: 1
+        retention: 1000h
+    consumingTopics:
+      - name: testing-topic
+self_one_goroutine: &self_one_goroutine
+  <<: *self
+  messageBroker:
+    <<: *selfMessageBroker
+    urls:
+      - localhost:9093
+    consumingTopics:
+      - name: testing-topic
+        oneGoroutinePerPartition: true
+
+self_test:
+  <<: *self
+  messageBroker:
+    <<: *selfMessageBroker
+
+self_one_goroutine_test:
+  <<: *self_one_goroutine

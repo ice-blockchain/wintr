@@ -20,7 +20,10 @@ func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.Canc
 		mb.shutdownConsumerGracefully()
 		cancel()
 	}()
-	defer mb.concurrentConsumer.cancel()
+	defer func() {
+		mb.concurrentConsumer.cancelling = true
+		mb.concurrentConsumer.cancel()
+	}()
 	log.Info("message broker client started consuming...")
 	var shouldStop bool
 	for !shouldStop && cctx.Err() == nil {
@@ -191,7 +194,7 @@ func (mb *messageBroker) shutdownConsumerGracefully() { //nolint:funlen,revive /
 	}
 	ccctx, cccancel := context.WithTimeout(context.Background(), messageBrokerCloseDeadline)
 	defer cccancel()
-	if err := mb.client.CommitUncommittedOffsets(ccctx); err != nil && !errors.Is(err, kgo.ErrClientClosed) {
+	if err := mb.client.CommitMarkedOffsets(ccctx); err != nil && !errors.Is(err, kgo.ErrClientClosed) {
 		log.Error(errors.Wrap(err, "shutdownConsumerGracefully: closing: committing uncommitted offsets failed"))
 	}
 	if err := mb.client.Flush(ccctx); err != nil && !errors.Is(err, kgo.ErrClientClosed) {
@@ -256,7 +259,7 @@ func (c *concurrentConsumer) OnPartitionsLost(ctx context.Context, cl *kgo.Clien
 	cCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second) //nolint:gomnd // .
 	defer cancel()
 	//nolint:contextcheck // Nope, we're trying to make sure commit happens, even if the parent context is cancelled.
-	log.Error(errors.Wrap(cl.CommitUncommittedOffsets(cCtx), "handleLostPartitions: failed to CommitUncommittedOffsets"))
+	log.Error(errors.Wrap(cl.CommitMarkedOffsets(cCtx), "handleLostPartitions: failed to CommitUncommittedOffsets"))
 }
 
 func (c *concurrentConsumer) revokePartitions(cctx context.Context, lost map[string][]int32) {
@@ -338,14 +341,43 @@ func (pc *partitionConsumer) processRecord(record *kgo.Record) {
 		PartitionCount: pc.partitionCount,
 		Topic:          pc.topic,
 	}
-	log.Error(errors.Wrap(pc.Process(pCtx, msg), "could not process new message"),
-		"key", msg.Key,
-		"value", string(msg.Value),
-		"Timestamp", record.Timestamp,
-		"headers", msg.Headers,
-		"partition", msg.Partition,
-		"partitionCount", msg.PartitionCount,
-		"topic", msg.Topic)
+	if err := pc.Process(pCtx, msg); pc.shouldPauseConsuming(err) {
+		pc.pausedMx.Lock()
+		pc.paused = true
+		pc.pausedMx.Unlock()
+		pc.retryProcessingFailedMessage(record, msg)
+	} else if err != nil {
+		log.Error(errors.Wrap(err, "could not process new message"),
+			"key", msg.Key,
+			"value", string(msg.Value),
+			"Timestamp", record.Timestamp,
+			"headers", msg.Headers,
+			"partition", msg.Partition,
+			"partitionCount", msg.PartitionCount,
+			"topic", msg.Topic)
+	}
+	if !pc.cancelling {
+		pc.client.MarkCommitRecords(record)
+	}
+}
+
+func (*partitionConsumer) shouldPauseConsuming(err error) bool {
+	return errors.Is(err, ErrUnrecoverable)
+}
+
+func (pc *partitionConsumer) retryProcessingFailedMessage(record *kgo.Record, msg *Message) {
+	err := ErrUnrecoverable
+	for !pc.closing && !pc.cancelling && (err != nil && pc.shouldPauseConsuming(err)) {
+		pCtx, cancel := context.WithTimeout(context.Background(), messageBrokerProcessRecordDeadline)
+		err = pc.Process(pCtx, msg)
+		cancel()
+	}
+	if !pc.shouldPauseConsuming(err) {
+		pc.pausedMx.Lock()
+		pc.paused = false
+		pc.pausedMx.Unlock()
+		pc.client.MarkCommitRecords(record)
+	}
 }
 
 func extractHeaders(record *kgo.Record) map[string]string {

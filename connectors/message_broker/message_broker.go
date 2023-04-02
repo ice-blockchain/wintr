@@ -48,6 +48,7 @@ func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc
 			processors:             processorPerTopicMappings,
 			consumingWg:            new(sync.WaitGroup),
 			partitionCountPerTopic: new(sync.Map),
+			pausedMx:               new(sync.RWMutex),
 		},
 	}
 	mb.connectCreateAndValidateTopics(ctx, mb.consumerOpts(processorPerTopicMappings)...)
@@ -65,6 +66,7 @@ func (mb *messageBroker) consumerOpts(processors map[Topic]Processor) []kgo.Opt 
 	return []kgo.Opt{
 		kgo.ConsumeTopics(topics...),
 		kgo.FetchIsolationLevel(kgo.ReadUncommitted()),
+		kgo.AutoCommitMarks(),
 		kgo.ConsumerGroup(mb.cfg.MessageBroker.ConsumerGroup),
 		kgo.OnPartitionsRevoked(mb.OnPartitionsLost),
 		kgo.OnPartitionsLost(mb.OnPartitionsLost),
@@ -243,6 +245,7 @@ func (mb *messageBroker) Close() error {
 	defer cancel()
 	if mb.concurrentConsumer != nil {
 		if !mb.concurrentConsumer.done {
+			mb.concurrentConsumer.cancelling = true
 			mb.concurrentConsumer.cancel()
 			for !mb.concurrentConsumer.done && ctx.Err() == nil { //nolint:revive // That's intended, its a blocking wait.
 			}
