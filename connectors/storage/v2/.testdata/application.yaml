@@ -7,6 +7,9 @@ logger:
 self:
   wintr/connectors/storage/v2:
     runDDL: true
-    primaryURL: postgresql://bogus-user:bogus-pass@bogus-host:bogus-port/bogus-database?sslmode=require
+    credentials:
+      user: bogus
+      password: bogus
+    primaryURL: postgresql://root:pass@localhost:5432/ice
     replicaURLs:
-      - postgresql://bogus-user:bogus-pass@bogus-host:bogus-port/bogus-database?sslmode=require
+      - postgresql://root:pass@localhost:5432/ice

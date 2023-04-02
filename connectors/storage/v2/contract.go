@@ -12,7 +12,9 @@ import (
 var (
 	ErrNotFound         = errors.New("not found")
 	ErrRelationNotFound = errors.New("relation not found")
+	ErrRelationInUse    = errors.New("relation in use")
 	ErrDuplicate        = errors.New("duplicate")
+	ErrCheckFailed      = errors.New("check failed")
 )
 
 type (
@@ -31,6 +33,10 @@ type (
 	}
 	config struct {
 		WintrStorage struct {
+			Credentials struct {
+				User     string `yaml:"user"`
+				Password string `yaml:"password"`
+			} `yaml:"credentials" mapstructure:"credentials"`
 			PrimaryURL  string   `yaml:"primaryURL" mapstructure:"primaryURL"`   //nolint:tagliatelle // Nope.
 			ReplicaURLs []string `yaml:"replicaURLs" mapstructure:"replicaURLs"` //nolint:tagliatelle // Nope.
 			RunDDL      bool     `yaml:"runDDL" mapstructure:"runDDL"`           //nolint:tagliatelle // Nope.

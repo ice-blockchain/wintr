@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	stdlibtime "time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
@@ -28,13 +29,13 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.WintrStorage.PrimaryURL != "" {
-		master = mustConnectPool(ctx, cfg.WintrStorage.PrimaryURL)
+		master = mustConnectPool(ctx, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, cfg.WintrStorage.PrimaryURL)
 	}
 	for ix, url := range cfg.WintrStorage.ReplicaURLs {
 		if ix == 0 {
 			replicas = make([]*pgxpool.Pool, len(cfg.WintrStorage.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		replicas[ix] = mustConnectPool(ctx, url)
+		replicas[ix] = mustConnectPool(ctx, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, url)
 	}
 	if master != nil && ddl != "" && cfg.WintrStorage.RunDDL {
 		for _, statement := range strings.Split(ddl, "----") {
@@ -47,9 +48,11 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 }
 
 //nolint:gomnd // Configuration.
-func mustConnectPool(ctx context.Context, url string) (db *pgxpool.Pool) {
+func mustConnectPool(ctx context.Context, user, pass, url string) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
 	log.Panic(errors.Wrapf(err, "failed to parse pool config: %v", url)) //nolint:revive // Intended
+	poolConfig.ConnConfig.User = user
+	poolConfig.ConnConfig.Password = pass
 	poolConfig.ConnConfig.StatementCacheCapacity = 1024
 	poolConfig.ConnConfig.DescriptionCacheCapacity = 1024
 	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * stdlibtime.Second
@@ -162,4 +165,28 @@ func (*DB) Exec(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error
 
 func (*DB) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 	panic("should not be used because its implemented just for type matching")
+}
+
+func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
+	err = backoff.RetryNotify(
+		func() error {
+			tt, err = op()
+
+			return err
+		},
+		//nolint:gomnd // Because those are static configs.
+		backoff.WithContext(&backoff.ExponentialBackOff{
+			InitialInterval:     100 * stdlibtime.Millisecond,
+			RandomizationFactor: 0.5,
+			Multiplier:          2.5,
+			MaxInterval:         stdlibtime.Second,
+			MaxElapsedTime:      25 * stdlibtime.Second,
+			Stop:                backoff.Stop,
+			Clock:               backoff.SystemClock,
+		}, ctx),
+		func(e error, next stdlibtime.Duration) {
+			log.Error(errors.Wrapf(e, "[wintr/storage/v2]call failed. retrying in %v... ", next))
+		})
+
+	return tt, err
 }

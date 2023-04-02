@@ -63,7 +63,7 @@ $$ LANGUAGE plpgsql;`
 		assert.NoError(t, err)
 		assert.NoError(t, db.Close())
 	}()
-	assert.NotNil(t, db.Ping(context.Background()))
+	assert.NoError(t, db.Ping(context.Background()))
 	rowsAffected, err := Exec(context.Background(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, rowsAffected)
