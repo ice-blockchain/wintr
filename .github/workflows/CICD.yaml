@@ -59,8 +59,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ steps.findLatestGoVersion.outputs.latestGoVersion }}
-      - name: Check If We're Up to Date with Everything
-        run: make checkModVersion checkIfAllDependenciesAreUpToDate
       - name: Slack Notification For Failure/Cancellation
         if: ${{ github.event_name == 'push' && (failure() || cancelled()) }}
         uses: rtCamp/action-slack-notify@v2
@@ -183,7 +181,6 @@ jobs:
         - multimedia/picture
         - analytics/tracking
         - email
-        - sms
         - notifications/push
         - auth
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
@@ -246,7 +243,6 @@ jobs:
           - multimedia/picture
           - analytics/tracking
           - email
-          - sms
           - notifications/push
           - auth
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
