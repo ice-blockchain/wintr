@@ -22,6 +22,30 @@ func TestTime(t *testing.T) {
 	time1, err := stdlibtime.Parse(stdlibtime.RFC3339Nano, "2006-01-02T15:04:05.999999999Z")
 	require.NoError(t, err)
 	t1 := tmpStruct{CreatedAt: New(time1)}
+	binary, err := t1.CreatedAt.MarshalBinary()
+	require.NoError(t, err)
+	assert.Equal(t, "2006-01-02T15:04:05.999999999Z", string(binary))
+	text, err := t1.CreatedAt.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, "2006-01-02T15:04:05.999999999Z", string(text))
+	t111 := tmpStruct{CreatedAt: new(Time)}
+	require.NoError(t, t111.CreatedAt.UnmarshalBinary(binary))
+	t112 := tmpStruct{CreatedAt: new(Time)}
+	require.NoError(t, t112.CreatedAt.UnmarshalText(binary))
+	assert.EqualValues(t, t111, t112)
+	assert.EqualValues(t, tmpStruct{CreatedAt: New(time1)}, t112)
+	t111 = tmpStruct{CreatedAt: new(Time)}
+	require.NoError(t, t111.CreatedAt.UnmarshalBinary([]byte("")))
+	t112 = tmpStruct{CreatedAt: new(Time)}
+	require.NoError(t, t112.CreatedAt.UnmarshalText([]byte("")))
+	assert.EqualValues(t, t111, t112)
+	assert.EqualValues(t, tmpStruct{CreatedAt: new(Time)}, t112)
+	marshalBinary1, err := t112.CreatedAt.MarshalBinary()
+	require.NoError(t, err)
+	marshalBinary2, err := t111.CreatedAt.MarshalText()
+	require.NoError(t, err)
+	assert.EqualValues(t, marshalBinary1, marshalBinary2)
+	assert.EqualValues(t, string(marshalBinary1), "")
 	bytes, err := json.MarshalContext(context.Background(), t1)
 	require.NoError(t, err)
 	assert.Equal(t, `{"createdAt":"2006-01-02T15:04:05.999999999Z"}`, string(bytes))
