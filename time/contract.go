@@ -21,9 +21,13 @@ type (
 // Private API.
 
 var (
-	_ msgpack.CustomEncoder   = (*Time)(nil)
-	_ msgpack.CustomDecoder   = (*Time)(nil)
-	_ json.UnmarshalerContext = (*Time)(nil)
-	_ json.MarshalerContext   = (*Time)(nil)
-	_ sql.Scanner             = (*Time)(nil)
+	_ msgpack.CustomEncoder                        = (*Time)(nil)
+	_ msgpack.CustomDecoder                        = (*Time)(nil)
+	_ json.UnmarshalerContext                      = (*Time)(nil)
+	_ json.MarshalerContext                        = (*Time)(nil)
+	_ sql.Scanner                                  = (*Time)(nil)
+	_ interface{ MarshalBinary() ([]byte, error) } = (*Time)(nil)
+	_ interface{ MarshalText() ([]byte, error) }   = (*Time)(nil)
+	_ interface{ UnmarshalBinary([]byte) error }   = (*Time)(nil)
+	_ interface{ UnmarshalText([]byte) error }     = (*Time)(nil)
 )

@@ -61,6 +61,22 @@ func (t *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
 	return errors.Wrap(enc.EncodeUint64(nanos), "failed to EncodeUint64")
 }
 
+func (t *Time) MarshalBinary() ([]byte, error) {
+	if t == nil || t.Time == nil {
+		return nil, nil
+	}
+
+	return t.Time.MarshalText() //nolint:wrapcheck // Not needed.
+}
+
+func (t *Time) MarshalText() ([]byte, error) {
+	if t == nil || t.Time == nil {
+		return nil, nil
+	}
+
+	return t.Time.MarshalText() //nolint:wrapcheck // Not needed.
+}
+
 func (t *Time) MarshalJSON(_ context.Context) ([]byte, error) {
 	if t.UnixNano() == 0 {
 		return []byte("null"), nil
@@ -71,6 +87,24 @@ func (t *Time) MarshalJSON(_ context.Context) ([]byte, error) {
 
 	//nolint:wrapcheck // We're just proxying it.
 	return t.Time.MarshalJSON()
+}
+
+func (t *Time) UnmarshalBinary(data []byte) error {
+	if len(data) == 0 || string(data) == "" { //nolint:gocritic // .
+		return nil
+	}
+	t.Time = new(stdlibtime.Time)
+
+	return t.Time.UnmarshalText(data) //nolint:wrapcheck // Not needed.
+}
+
+func (t *Time) UnmarshalText(data []byte) error {
+	if len(data) == 0 || string(data) == "" { //nolint:gocritic // .
+		return nil
+	}
+	t.Time = new(stdlibtime.Time)
+
+	return t.Time.UnmarshalText(data) //nolint:wrapcheck // Not needed.
 }
 
 func (t *Time) UnmarshalJSON(_ context.Context, bytes []byte) (err error) {
@@ -111,4 +145,8 @@ func (t *Time) unmarshallString(bytes []byte) error {
 	*t.Time = time.UTC()
 
 	return nil
+}
+
+func (t *Time) IsNil() bool {
+	return t == nil || t.Time == nil
 }
