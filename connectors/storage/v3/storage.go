@@ -58,14 +58,21 @@ func MustConnect(ctx context.Context, applicationYAMLKey string) DB { //nolint:f
 	return client
 }
 
-func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error {
-	if len(values) == 0 {
-		_, err := db.HSet(ctx, values[0].Key(), values[0]).Result()
+func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error { //nolint:dupl // .
+	if len(values) == 1 {
+		val := values[0]
+		if val == nil {
+			return nil
+		}
+		_, err := db.HSet(ctx, val.Key(), val).Result()
 
 		return err //nolint:wrapcheck // Not needed.
 	}
 	cmds, err := db.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		for _, value := range values {
+			if value == nil {
+				continue
+			}
 			if err := pipeliner.HSet(ctx, value.Key(), value).Err(); err != nil {
 				return err //nolint:wrapcheck // Not needed.
 			}
@@ -84,14 +91,21 @@ func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error 
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
 }
 
-func AtomicSet(ctx context.Context, db DB, values ...interface{ Key() string }) error {
-	if len(values) == 0 {
-		_, err := db.HSet(ctx, values[0].Key(), values[0]).Result()
+func AtomicSet(ctx context.Context, db DB, values ...interface{ Key() string }) error { //nolint:dupl // .
+	if len(values) == 1 {
+		val := values[0]
+		if val == nil {
+			return nil
+		}
+		_, err := db.HSet(ctx, val.Key(), val).Result()
 
 		return err //nolint:wrapcheck // Not needed.
 	}
 	cmds, err := db.TxPipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		for _, value := range values {
+			if value == nil {
+				continue
+			}
 			if err := pipeliner.HSet(ctx, value.Key(), value).Err(); err != nil {
 				return err //nolint:wrapcheck // Not needed.
 			}
