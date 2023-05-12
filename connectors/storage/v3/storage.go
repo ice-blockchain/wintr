@@ -112,7 +112,7 @@ func AtomicSet(ctx context.Context, db DB, values ...interface{ Key() string }) 
 
 func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //nolint:funlen,gocognit,gocyclo,revive,cyclop,varnamelen // .
 	if len(keys) == 1 { //nolint:nestif // Not that bad.
-		sliceResult := db.HMGet(ctx, keys[0], processRedisFieldTags[T]()...)
+		sliceResult := db.HMGet(ctx, keys[0], ProcessRedisFieldTags[T]()...)
 		var resp any = new(T)
 		if err := sliceResult.Scan(resp); err != nil {
 			return nil, err //nolint:wrapcheck // Not needed.
@@ -135,7 +135,7 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 
 		return nil, nil
 	}
-	redisFieldTags := processRedisFieldTags[T]()
+	redisFieldTags := ProcessRedisFieldTags[T]()
 	if cmdResults, err := db.Pipelined(ctx, func(pipeliner redis.Pipeliner) error { //nolint:nestif // .
 		for _, key := range keys {
 			if err := pipeliner.HMGet(ctx, key, redisFieldTags...).Err(); err != nil {
@@ -174,32 +174,81 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 	}
 }
 
+func Bind[TT any](ctx context.Context, db DB, keys, fields []string, results *[]*TT) error { //nolint:funlen,gocognit,revive // .
+	if cmdResults, err := db.Pipelined(ctx, func(pipeliner redis.Pipeliner) error { //nolint:nestif // .
+		for _, key := range keys {
+			if err := pipeliner.HMGet(ctx, key, fields...).Err(); err != nil {
+				return err //nolint:wrapcheck // Not needed.
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err //nolint:wrapcheck // Not needed.
+	} else { //nolint:revive // Nope.
+		res := *results
+		for _, cmdResult := range cmdResults {
+			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert // Scan checks it.
+			var resp any = new(TT)
+			if sErr := sliceResult.Scan(resp); sErr != nil {
+				return sErr //nolint:wrapcheck // We don't need to, no relevant extra info here.
+			}
+			anyNonNil := false
+			for _, val := range sliceResult.Val() {
+				if val != nil {
+					anyNonNil = true
+
+					break
+				}
+			}
+			if anyNonNil {
+				if intf, ok := resp.(interface{ SetKey(string) }); ok {
+					intf.SetKey(sliceResult.Args()[1].(string)) //nolint:forcetypeassert // We know for sure.
+				}
+				res = append(res, resp.(*TT)) //nolint:forcetypeassert // We know for sure.
+			}
+		}
+		*results = res
+
+		return nil
+	}
+}
+
 // .
 var (
 	//nolint:gochecknoglobals // Singleton.
 	typeCache = new(sync.Map)
 )
 
-func processRedisFieldTags[T any]() []string {
-	val := new(T)
-	fieldNames, found := typeCache.Load(*val)
-	if found {
-		return fieldNames.([]string) //nolint:forcetypeassert // We know for sure.
+func ProcessRedisFieldTags[TT any]() []string {
+	fieldNames, found := typeCache.Load(*new(TT))
+	if !found {
+		val := new(TT)
+		fieldNames, _ = typeCache.LoadOrStore(*val, collectFields(reflect.TypeOf(val).Elem()))
 	}
-	elem := reflect.TypeOf(val).Elem()
+	fields := fieldNames.([]string) //nolint:forcetypeassert,errcheck // We know for sure.
+	if len(fields) == 0 {
+		log.Panic(fmt.Sprintf("%#v has no redis tags", new(TT)))
+	}
+
+	return fields
+}
+
+func collectFields(elem reflect.Type) (fields []string) {
 	if elem.Kind() != reflect.Struct {
-		log.Panic(fmt.Sprintf("%#v has to be a struct", val))
+		return nil
 	}
-	fields := make([]string, 0)
 	for i := 0; i < elem.NumField(); i++ {
-		if redisTag := elem.Field(i).Tag.Get("redis"); redisTag != "" && redisTag != "-" {
+		if field := elem.Field(i); field.Anonymous {
+			embeddedElem := field.Type
+			if embeddedElem.Kind() == reflect.Ptr {
+				embeddedElem = embeddedElem.Elem()
+			}
+			fields = append(fields, collectFields(embeddedElem)...)
+		} else if redisTag := field.Tag.Get("redis"); redisTag != "" && redisTag != "-" {
 			fields = append(fields, redisTag)
 		}
 	}
-	if len(fields) == 0 {
-		log.Panic(fmt.Sprintf("%#v has no redis tags", val))
-	}
-	typeCache.Store(*val, fields)
 
 	return fields
 }
