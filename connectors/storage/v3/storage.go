@@ -345,7 +345,7 @@ func omitEmpty(opt string) bool {
 }
 
 func isEmptyValue(value reflect.Value) bool {
-	switch value.Kind() {
+	switch value.Kind() { //nolint:exhaustive // That's all we care about.
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return value.Len() == 0
 	case reflect.Bool:
