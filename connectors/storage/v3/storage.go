@@ -4,8 +4,10 @@ package storage
 
 import (
 	"context"
+	"encoding"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	stdlibtime "time"
 
@@ -58,13 +60,13 @@ func MustConnect(ctx context.Context, applicationYAMLKey string) DB { //nolint:f
 	return client
 }
 
-func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error { //nolint:dupl // .
+func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error {
 	if len(values) == 1 {
-		val := values[0]
-		if val == nil {
+		value := values[0]
+		if value == nil {
 			return nil
 		}
-		_, err := db.HSet(ctx, val.Key(), val).Result()
+		_, err := db.HSet(ctx, value.Key(), SerializeValue(value)...).Result()
 
 		return err //nolint:wrapcheck // Not needed.
 	}
@@ -73,40 +75,7 @@ func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error 
 			if value == nil {
 				continue
 			}
-			if err := pipeliner.HSet(ctx, value.Key(), value).Err(); err != nil {
-				return err //nolint:wrapcheck // Not needed.
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err //nolint:wrapcheck // Not needed.
-	}
-	errs := make([]error, 0, len(cmds))
-	for _, cmd := range cmds {
-		errs = append(errs, cmd.Err())
-	}
-
-	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
-}
-
-func AtomicSet(ctx context.Context, db DB, values ...interface{ Key() string }) error { //nolint:dupl // .
-	if len(values) == 1 {
-		val := values[0]
-		if val == nil {
-			return nil
-		}
-		_, err := db.HSet(ctx, val.Key(), val).Result()
-
-		return err //nolint:wrapcheck // Not needed.
-	}
-	cmds, err := db.TxPipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		for _, value := range values {
-			if value == nil {
-				continue
-			}
-			if err := pipeliner.HSet(ctx, value.Key(), value).Err(); err != nil {
+			if err := pipeliner.HSet(ctx, value.Key(), SerializeValue(value)...).Err(); err != nil {
 				return err //nolint:wrapcheck // Not needed.
 			}
 		}
@@ -126,10 +95,10 @@ func AtomicSet(ctx context.Context, db DB, values ...interface{ Key() string }) 
 
 func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //nolint:funlen,gocognit,gocyclo,revive,cyclop,varnamelen // .
 	if len(keys) == 1 { //nolint:nestif // Not that bad.
-		sliceResult := db.HMGet(ctx, keys[0], ProcessRedisFieldTags[T]()...)
+		sliceResult := db.HMGet(ctx, keys[0], processRedisFieldTags[T]()...)
 		var resp any = new(T)
-		if err := sliceResult.Scan(resp); err != nil {
-			return nil, err //nolint:wrapcheck // Not needed.
+		if err := DeserializeValue(resp, sliceResult.Scan); err != nil {
+			return nil, err
 		}
 		anyNonNil := false
 		for _, val := range sliceResult.Val() {
@@ -149,7 +118,7 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 
 		return nil, nil
 	}
-	redisFieldTags := ProcessRedisFieldTags[T]()
+	redisFieldTags := processRedisFieldTags[T]()
 	if cmdResults, err := db.Pipelined(ctx, func(pipeliner redis.Pipeliner) error { //nolint:nestif // .
 		for _, key := range keys {
 			if err := pipeliner.HMGet(ctx, key, redisFieldTags...).Err(); err != nil {
@@ -165,8 +134,8 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 		for _, cmdResult := range cmdResults {
 			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert // Scan checks it.
 			var resp any = new(T)
-			if sErr := sliceResult.Scan(resp); sErr != nil {
-				return nil, sErr //nolint:wrapcheck // We don't need to, no relevant extra info here.
+			if sErr := DeserializeValue(resp, sliceResult.Scan); sErr != nil {
+				return nil, sErr
 			}
 			anyNonNil := false
 			for _, val := range sliceResult.Val() {
@@ -188,7 +157,8 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 	}
 }
 
-func Bind[TT any](ctx context.Context, db DB, keys, fields []string, results *[]*TT) error { //nolint:funlen,gocognit,revive // .
+func Bind[TT any](ctx context.Context, db DB, keys []string, results *[]*TT) error { //nolint:funlen,gocognit,revive // .
+	fields := processRedisFieldTags[TT]()
 	if cmdResults, err := db.Pipelined(ctx, func(pipeliner redis.Pipeliner) error { //nolint:nestif // .
 		for _, key := range keys {
 			if err := pipeliner.HMGet(ctx, key, fields...).Err(); err != nil {
@@ -204,8 +174,8 @@ func Bind[TT any](ctx context.Context, db DB, keys, fields []string, results *[]
 		for _, cmdResult := range cmdResults {
 			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert // Scan checks it.
 			var resp any = new(TT)
-			if sErr := sliceResult.Scan(resp); sErr != nil {
-				return sErr //nolint:wrapcheck // We don't need to, no relevant extra info here.
+			if sErr := DeserializeValue(resp, sliceResult.Scan); sErr != nil {
+				return sErr
 			}
 			anyNonNil := false
 			for _, val := range sliceResult.Val() {
@@ -234,7 +204,7 @@ var (
 	typeCache = new(sync.Map)
 )
 
-func ProcessRedisFieldTags[TT any]() []string {
+func processRedisFieldTags[TT any]() []string {
 	fieldNames, found := typeCache.Load(*new(TT))
 	if !found {
 		val := new(TT)
@@ -260,9 +230,135 @@ func collectFields(elem reflect.Type) (fields []string) {
 			}
 			fields = append(fields, collectFields(embeddedElem)...)
 		} else if redisTag := field.Tag.Get("redis"); redisTag != "" && redisTag != "-" {
+			redisTag, _, _ = strings.Cut(redisTag, ",")
 			fields = append(fields, redisTag)
 		}
 	}
 
 	return fields
+}
+
+func DeserializeValue(value any, scan func(any) error) error { //nolint:gocognit,revive // .
+	if err := scan(value); err != nil {
+		return err
+	}
+	typ, val := reflect.TypeOf(value).Elem(), reflect.ValueOf(value).Elem()
+	for ix := 0; ix < typ.NumField(); ix++ {
+		typeField := typ.Field(ix)
+		if !typeField.Anonymous {
+			continue
+		}
+		valueField := val.Field(ix)
+		if valueField.Kind() == reflect.Ptr && valueField.IsNil() && valueField.CanSet() {
+			valueField.Set(reflect.New(typeField.Type.Elem()))
+		}
+		if valueField.Kind() == reflect.Struct && valueField.CanAddr() {
+			valueField = valueField.Addr()
+		}
+		if valueField.Kind() == reflect.Ptr && valueField.CanInterface() {
+			if err := DeserializeValue(valueField.Interface(), scan); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func SerializeValue(value any) []any {
+	reflVal := reflect.ValueOf(value)
+	if reflVal.Type().Kind() == reflect.Ptr {
+		if reflVal.IsNil() {
+			log.Panic(fmt.Sprintf("`%#v` is nil", value))
+		}
+		reflVal = reflVal.Elem()
+	}
+	if reflVal.Type().Kind() != reflect.Struct {
+		log.Panic(fmt.Sprintf("`%#v` is not a struct or a pointer to a struct", value))
+	}
+
+	return serializeStructFields(reflVal)
+}
+
+func serializeStructFields(value reflect.Value) (resp []any) { //nolint:funlen,gocognit,revive,cyclop // .
+	typ := value.Type()
+	for ix := 0; ix < typ.NumField(); ix++ {
+		typeField := typ.Field(ix)
+		if typeField.Anonymous {
+			field := value.Field(ix)
+			if typeField.Type.Kind() == reflect.Ptr {
+				if field.IsNil() {
+					continue
+				}
+				field = field.Elem()
+			}
+			if field.Type().Kind() == reflect.Struct {
+				resp = append(resp, serializeStructFields(field)...)
+			}
+
+			continue
+		}
+		tag := typeField.Tag.Get("redis")
+		if tag == "" || tag == "-" {
+			continue
+		}
+		name, opt, _ := strings.Cut(tag, ",")
+		if name == "" {
+			continue
+		}
+
+		field := value.Field(ix)
+
+		if omitEmpty(opt) && isEmptyValue(field) {
+			continue
+		}
+
+		if field.CanInterface() {
+			switch typedVal := field.Interface().(type) {
+			case encoding.BinaryMarshaler:
+				data, err := typedVal.MarshalBinary()
+				log.Panic(err)
+				resp = append(resp, name, string(data))
+			case stdlibtime.Duration:
+				resp = append(resp, name, fmt.Sprint(typedVal.Nanoseconds()))
+			case string:
+				resp = append(resp, name, typedVal)
+			default:
+				resp = append(resp, name, fmt.Sprint(typedVal))
+			}
+		}
+	}
+
+	return resp
+}
+
+func omitEmpty(opt string) bool {
+	for opt != "" {
+		var name string
+		name, opt, _ = strings.Cut(opt, ",") //nolint:revive // Not a problem here.
+		if name == "omitempty" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isEmptyValue(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return value.Len() == 0
+	case reflect.Bool:
+		return !value.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return value.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return value.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return value.IsNil()
+	default:
+		return value.IsZero()
+	}
 }

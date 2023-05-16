@@ -13,26 +13,30 @@ import (
 )
 
 type (
-	xKey struct {
-		A  string `redis:"-"`
-		ZZ int    `redis:"zz"`
+	XKey struct {
+		A  string  `redis:"-"`
+		ZZ float64 `redis:"zz"`
+	}
+	EmbeddedC struct {
+		C *time.Time `redis:"cc,omitempty"`
 	}
 	xx struct {
-		C *time.Time `redis:"cc"`
-		xKey
+		*EmbeddedC
+		XKey
 		B int `redis:"bb"`
 	}
 )
 
-func (x *xKey) Key() string {
+func (x *XKey) Key() string {
 	return x.A
 }
 
-func (x *xKey) SetKey(key string) {
+func (x *XKey) SetKey(key string) {
 	x.A = key
 }
 
-func TestStorage(t *testing.T) { //nolint:funlen // .
+//nolint:funlen,lll // .
+func TestStorage(t *testing.T) {
 	t.Parallel()
 	db := MustConnect(context.Background(), "self")
 	result, eerr := db.FlushAll(context.Background()).Result()
@@ -42,42 +46,80 @@ func TestStorage(t *testing.T) { //nolint:funlen // .
 	require.NoError(t, err)
 	require.EqualValues(t, 0, res)
 	now := time.Now()
-	require.NoError(t, Set(context.Background(), db, &xx{xKey: xKey{A: "x1"}, B: 111, C: now}, &xx{xKey: xKey{A: "x2"}, B: 222}))
-	require.NoError(t, Set(context.Background(), db, &xx{xKey: xKey{A: "x3"}, B: 333}))
-	require.NoError(t, AtomicSet(context.Background(), db, &xx{xKey: xKey{A: "x4"}, B: 444}, &xx{xKey: xKey{A: "x5"}, B: 555}))
-	require.NoError(t, AtomicSet(context.Background(), db, &xx{xKey: xKey{A: "x6"}, B: 666}))
+	require.NoError(t, Set(context.Background(), db, &xx{XKey: XKey{A: "x1", ZZ: 999.234}, B: 111, EmbeddedC: &EmbeddedC{C: now}}, &xx{XKey: XKey{A: "x2"}, B: 222}))
+	require.NoError(t, Set(context.Background(), db, &xx{XKey: XKey{A: "x3"}, B: 333}))
+	require.NoError(t, Set(context.Background(), db, &xx{XKey: XKey{A: "x4"}, B: 444}, &xx{XKey: XKey{A: "x5"}, B: 555}))
+	require.NoError(t, Set(context.Background(), db, &xx{XKey: XKey{A: "x6"}, B: 666}))
 	usr, err := Get[xx](context.Background(), db, "x1")
 	require.NoError(t, err)
-	require.EqualValues(t, []*xx{{xKey: xKey{A: "x1"}, B: 111, C: now}}, usr)
+	require.EqualValues(t, []*xx{{XKey: XKey{A: "x1", ZZ: 999.234}, B: 111, EmbeddedC: &EmbeddedC{C: now}}}, usr)
 	usr, err = Get[xx](context.Background(), db, "x7")
 	require.NoError(t, err)
 	require.Nil(t, usr)
 	usrs, err := Get[xx](context.Background(), db, "x1", "x2", "x3", "x4", "x5", "x7", "x6")
 	require.NoError(t, err)
 	require.EqualValues(t, []*xx{
-		{xKey: xKey{A: "x1"}, B: 111, C: now},
-		{xKey: xKey{A: "x2"}, B: 222, C: new(time.Time)},
-		{xKey: xKey{A: "x3"}, B: 333, C: new(time.Time)},
-		{xKey: xKey{A: "x4"}, B: 444, C: new(time.Time)},
-		{xKey: xKey{A: "x5"}, B: 555, C: new(time.Time)},
-		{xKey: xKey{A: "x6"}, B: 666, C: new(time.Time)},
+		{XKey: XKey{A: "x1", ZZ: 999.234}, B: 111, EmbeddedC: &EmbeddedC{C: now}},
+		{XKey: XKey{A: "x2"}, B: 222, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x3"}, B: 333, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x4"}, B: 444, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x5"}, B: 555, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x6"}, B: 666, EmbeddedC: &EmbeddedC{}},
 	}, usrs)
 	usrs = usrs[:0]
-	require.NoError(t, Bind[xx](context.Background(), db, []string{"x1", "x2", "x3", "x4", "x5", "x7", "x6"}, ProcessRedisFieldTags[xx](), &usrs))
+	require.NoError(t, Bind[xx](context.Background(), db, []string{"x1", "x2", "x3", "x4", "x5", "x7", "x6"}, &usrs))
 	require.EqualValues(t, []*xx{
-		{xKey: xKey{A: "x1"}, B: 111, C: now},
-		{xKey: xKey{A: "x2"}, B: 222, C: new(time.Time)},
-		{xKey: xKey{A: "x3"}, B: 333, C: new(time.Time)},
-		{xKey: xKey{A: "x4"}, B: 444, C: new(time.Time)},
-		{xKey: xKey{A: "x5"}, B: 555, C: new(time.Time)},
-		{xKey: xKey{A: "x6"}, B: 666, C: new(time.Time)},
+		{XKey: XKey{A: "x1", ZZ: 999.234}, B: 111, EmbeddedC: &EmbeddedC{C: now}},
+		{XKey: XKey{A: "x2"}, B: 222, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x3"}, B: 333, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x4"}, B: 444, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x5"}, B: 555, EmbeddedC: &EmbeddedC{}},
+		{XKey: XKey{A: "x6"}, B: 666, EmbeddedC: &EmbeddedC{}},
 	}, usrs)
-	require.NoError(t, Set(context.Background(), db, &xx{xKey: xKey{A: "x1"}, B: 111111}))
+	require.NoError(t, Set(context.Background(), db, &xx{XKey: XKey{A: "x1"}, B: 111111}))
 	usr, err = Get[xx](context.Background(), db, "x1")
 	require.NoError(t, err)
-	require.True(t, usr[0].C.IsNil())
-	require.True(t, usr[0].B == 111111)
+	require.EqualValues(t, []*xx{{XKey: XKey{A: "x1"}, B: 111111, EmbeddedC: &EmbeddedC{C: now}}}, usr)
 	res, err = db.Del(context.Background(), "x1", "x2", "x3", "x4", "x5", "x6").Result()
 	require.NoError(t, err)
 	require.EqualValues(t, 6, res)
+}
+
+func BenchmarkSerializeValue(b *testing.B) {
+	value := &xx{XKey: XKey{A: "x1", ZZ: 999.234}, B: 111, EmbeddedC: &EmbeddedC{C: time.Now()}}
+
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if resp := SerializeValue(value); len(resp) != 6 {
+				panic("it should return 6 elements")
+			}
+		}
+	})
+}
+
+func BenchmarkDeserializeValue(b *testing.B) {
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			type (
+				XXX struct {
+					*EmbeddedC
+					XKey
+					B int `redis:"bb"`
+				}
+			)
+			var xxx struct {
+				XXX
+			}
+			scans := 0
+			if err := DeserializeValue(&xxx, func(val any) error {
+				scans++
+
+				return nil
+			}); err != nil || scans != 4 {
+				panic(err)
+			}
+		}
+	})
 }

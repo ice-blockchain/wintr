@@ -3,7 +3,7 @@ module github.com/ice-blockchain/wintr
 go 1.20
 
 require (
-	cosmossdk.io/math v1.0.0
+	cosmossdk.io/math v1.0.1
 	firebase.google.com/go/v4 v4.11.0
 	github.com/GetStream/stream-go2/v7 v7.1.0
 	github.com/cenkalti/backoff/v4 v4.2.1
@@ -40,7 +40,7 @@ require (
 
 require (
 	cloud.google.com/go v0.110.2 // indirect
-	cloud.google.com/go/compute v1.19.2 // indirect
+	cloud.google.com/go/compute v1.19.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/firestore v1.9.0 // indirect
 	cloud.google.com/go/iam v1.0.1 // indirect
@@ -106,7 +106,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.9.4 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc3 // indirect
 	github.com/opencontainers/runc v1.1.7 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/quic-go/quic-go v0.34.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
-	github.com/spf13/cast v1.5.0 // indirect
+	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
@@ -131,7 +131,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
+	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
