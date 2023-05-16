@@ -345,7 +345,7 @@ func omitEmpty(opt string) bool {
 }
 
 func isEmptyValue(value reflect.Value) bool {
-	switch value.Kind() { //nolint:exhaustive // That's all we care about.
+	switch value.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return value.Len() == 0
 	case reflect.Bool:
@@ -358,6 +358,10 @@ func isEmptyValue(value reflect.Value) bool {
 		return value.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return value.IsNil()
+	case reflect.Struct:
+		return value.IsZero()
+	case reflect.Invalid, reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.UnsafePointer:
+		return false
 	default:
 		return value.IsZero()
 	}
