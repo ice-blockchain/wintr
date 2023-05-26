@@ -4,16 +4,21 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"os"
 	"strings"
 	"testing"
 	stdlibtime "time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/auth/fixture"
 	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/time"
 )
 
 const (
@@ -150,4 +155,281 @@ func TestDeleteUser_Success(t *testing.T) {
 	_, err = fixture.GetUser(ctx, uid)
 	require.NotNil(t, err)
 	require.True(t, strings.HasPrefix(err.Error(), "no user exists with the"))
+}
+
+func TestVerifyCustomToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest // .
+	cfg = config{
+		WintrAuth: struct {
+			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+		}{
+			JWTSecret:      "1337",
+			ExpirationTime: stdlibtime.Hour,
+		},
+	}
+	var (
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		role     = "app"
+		claims   = map[string]any{
+			"role": role,
+		}
+		expire = stdlibtime.Hour
+	)
+	refreshToken, accessToken, err := fixture.GenerateTokens(now, cfg.WintrAuth.JWTSecret, userID, email, hashCode, seq, expire, claims)
+	require.NoError(t, err)
+
+	verifiedAccessToken, err := verifyCustomToken(accessToken)
+	require.NoError(t, err)
+
+	assert.Equal(t, email, verifiedAccessToken.Email)
+	assert.Equal(t, role, verifiedAccessToken.Role)
+	assert.Equal(t, userID, verifiedAccessToken.UserID)
+	assert.Equal(t, email, verifiedAccessToken.Claims["email"])
+	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
+	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
+
+	verifiedRefreshToken, err := verifyCustomToken(refreshToken)
+	require.NoError(t, err)
+
+	assert.Equal(t, email, verifiedRefreshToken.Email)
+	assert.Equal(t, userID, verifiedRefreshToken.UserID)
+	assert.Equal(t, email, verifiedRefreshToken.Claims["email"])
+	assert.Equal(t, seq, verifiedRefreshToken.Claims["seq"])
+	assert.Equal(t, "", verifiedRefreshToken.Claims["role"])
+}
+
+func TestVerifyCustomToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest // .
+	cfg = config{
+		WintrAuth: struct {
+			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+		}{
+			JWTSecret:      "1337",
+			ExpirationTime: stdlibtime.Hour,
+		},
+	}
+	var (
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		claims   = map[string]any{
+			"role": "author",
+		}
+		jwtSecret = cfg.WintrAuth.JWTSecret
+		expire    = stdlibtime.Hour
+		now       = time.Now()
+	)
+	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	require.NoError(t, err)
+
+	cfg.WintrAuth.JWTSecret = "another_secret"
+	token, err := verifyCustomToken(accessToken)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, jwt.ErrSignatureInvalid)
+	assert.Nil(t, token)
+
+	token, err = verifyCustomToken(refreshToken)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, jwt.ErrSignatureInvalid)
+	assert.Nil(t, token)
+}
+
+func TestVerifyCustomToken_TokenExpired(t *testing.T) { //nolint:paralleltest // Config is loaded only once.
+	cfg = config{
+		WintrAuth: struct {
+			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+		}{
+			JWTSecret: "1337",
+		},
+	}
+	var (
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		claims   = map[string]any{
+			"role": "author",
+		}
+		jwtSecret = cfg.WintrAuth.JWTSecret
+		expire    = stdlibtime.Duration(0)
+	)
+	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	require.NoError(t, err)
+	token, err := verifyCustomToken(accessToken)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrExpiredToken)
+	assert.Nil(t, token)
+	token, err = verifyCustomToken(refreshToken)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrExpiredToken)
+	assert.Nil(t, token)
+}
+
+func TestVerifyCustomToken_WrongSigningMethod(t *testing.T) {
+	t.Parallel()
+	var (
+		now       = time.Now().In(stdlibtime.UTC)
+		jwtSecret = "123456789" //nolint:gosec // .
+		userID    = "bogus"
+		expire    = stdlibtime.Hour
+	)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+	})
+	tokenStr, err := token.SignedString([]byte(jwtSecret))
+	require.NoError(t, err)
+	customToken, err := verifyCustomToken(tokenStr)
+	require.Error(t, err)
+	assert.Nil(t, customToken)
+}
+
+func TestVerifyCustomToken_Parse(t *testing.T) {
+	t.Parallel()
+	var (
+		now       = time.Now()
+		seq       = int64(0)
+		hashCode  = int64(0)
+		userID    = "bogus"
+		email     = "bogus@bogus.com"
+		jwtSecret = "1337" //nolint:gosec // .
+		expire    = stdlibtime.Hour
+		claims    = map[string]any{
+			"role": "author",
+		}
+	)
+	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	require.NoError(t, err)
+	err = detectCustomToken(accessToken)
+	require.NoError(t, err)
+	err = detectCustomToken(refreshToken)
+	require.NoError(t, err)
+}
+
+func TestDetectCustomToken_WrongToken(t *testing.T) {
+	t.Parallel()
+	token := "dummy token" //nolint:gosec // .
+	err := detectCustomToken(token)
+	require.Error(t, err)
+}
+
+func TestDetectCustomToken_WrongIssuer(t *testing.T) { //nolint:funlen // Config is loaded only once.
+	t.Parallel()
+	var (
+		now       = time.Now()
+		seq       = int64(0)
+		hashCode  = int64(0)
+		userID    = "bogus"
+		role      = "author"
+		email     = "bogus@bogus.com"
+		jwtSecret = "1337" //nolint:gosec // .
+		expire    = stdlibtime.Hour
+		claims    = map[string]any{
+			"role": "author",
+		}
+	)
+	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    "wrong issue",
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
+		},
+		Email:    email,
+		HashCode: hashCode,
+		Role:     role,
+		Seq:      seq,
+		Custom:   &claims,
+	})
+	tokenStr, err := authToken.SignedString([]byte(jwtSecret))
+	require.NoError(t, err)
+	err = detectCustomToken(tokenStr)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidToken)
+}
+
+func TestDetectCustomToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen // .
+	t.Parallel()
+	var (
+		now      = time.Now()
+		bitSize  = 4096
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		role     = "author"
+		email    = "bogus@bogus.com"
+		expire   = stdlibtime.Hour
+		claims   = map[string]any{
+			"role": "author",
+		}
+	)
+	key, err := rsa.GenerateKey(rand.Reader, bitSize)
+	require.NoError(t, err)
+
+	authToken := jwt.NewWithClaims(jwt.SigningMethodRS256, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
+		},
+		Email:    email,
+		HashCode: hashCode,
+		Role:     role,
+		Seq:      seq,
+		Custom:   &claims,
+	})
+	tokenStr, err := authToken.SignedString(key)
+	require.NoError(t, err)
+	err = detectCustomToken(tokenStr)
+	require.Error(t, err)
+}
+
+func TestDetectCustomToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen // .
+	t.Parallel()
+	var (
+		seq       = int64(0)
+		hashCode  = int64(0)
+		userID    = "bogus"
+		role      = "author"
+		email     = "bogus@bogus.com"
+		jwtSecret = "1337" //nolint:gosec // .
+		expire    = stdlibtime.Hour
+		claims    = map[string]any{
+			"role": "author",
+		}
+	)
+	now := time.Now().In(stdlibtime.UTC)
+	authToken := jwt.NewWithClaims(jwt.SigningMethodHS384, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+		Email:    email,
+		HashCode: hashCode,
+		Role:     role,
+		Seq:      seq,
+		Custom:   &claims,
+	})
+	tokenStr, err := authToken.SignedString([]byte(jwtSecret))
+	require.NoError(t, err)
+	err = detectCustomToken(tokenStr)
+	require.Error(t, err)
 }

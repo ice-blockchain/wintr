@@ -16,17 +16,35 @@ import (
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
 	"github.com/goccy/go-json"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
 	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/time"
+)
+
+const (
+	jwtIssuer   = "ice.io"
+	defaultRole = "app"
 )
 
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
 	globalClient *firebaseAuth.Client
 	singleton    = new(sync.Once)
+)
+
+type (
+	CustomToken struct {
+		*jwt.RegisteredClaims
+		Custom   *map[string]any `json:"custom,omitempty"`
+		Role     string          `json:"role" example:"1"`
+		Email    string          `json:"email" example:"jdoe@example.com"`
+		HashCode int64           `json:"hashCode,omitempty" example:"12356789"`
+		Seq      int64           `json:"seq" example:"1"`
+	}
 )
 
 func client() *firebaseAuth.Client {
@@ -111,4 +129,61 @@ func postRequest(url string, req []byte) []byte {
 	log.Panic(err)
 
 	return bodyBytes
+}
+
+func generateRefreshToken(now *time.Time, secret, userID, email string, seq int64, expiresAt stdlibtime.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expiresAt)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
+		},
+		Email: email,
+		Seq:   seq,
+	})
+	refreshToken, err := token.SignedString([]byte(secret))
+
+	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v", userID, email)
+}
+
+func generateAccessToken(now *time.Time, refreshTokenSeq, hashCode int64, secret, userID, email string, expiresAt stdlibtime.Duration, claims map[string]any) (string, error) {
+	var customClaims *map[string]any
+	role := defaultRole
+	customClaimsData := map[string]any(claims)
+	if clRole, ok := customClaimsData["role"]; ok {
+		role = clRole.(string)
+		delete(customClaimsData, "role")
+	}
+	if len(customClaimsData) > 0 {
+		customClaims = &customClaimsData
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(expiresAt)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
+		},
+		Role:     role,
+		Email:    email,
+		HashCode: hashCode,
+		Seq:      refreshTokenSeq,
+		Custom:   customClaims,
+	})
+	tokenStr, err := token.SignedString([]byte(secret))
+
+	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v and email:%v", userID, email)
+}
+
+func GenerateTokens(now *time.Time, secret, userID, email string, hashCode, seq int64, expire stdlibtime.Duration, claims map[string]any) (refreshToken, accessToken string, err error) {
+	refreshToken, err = generateRefreshToken(now, secret, userID, email, seq, expire)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
+	}
+	accessToken, err = generateAccessToken(now, seq, hashCode, secret, userID, email, expire, claims)
+
+	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate accessToken for userID:%v", userID)
 }

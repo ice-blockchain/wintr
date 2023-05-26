@@ -4,8 +4,10 @@ package auth
 
 import (
 	"context"
+	stdlibtime "time"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 )
 
@@ -14,6 +16,9 @@ import (
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrConflict     = errors.New("change conflicts with another user")
+
+	ErrInvalidToken = errors.New("invalid token")
+	ErrExpiredToken = errors.New("expired token")
 )
 
 type (
@@ -30,12 +35,38 @@ type (
 		UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error
 		DeleteUser(ctx context.Context, userID string) error
 	}
+
+	CustomToken struct {
+		*jwt.RegisteredClaims
+		Custom   *map[string]any `json:"custom,omitempty"`
+		Role     string          `json:"role" example:"1"`
+		Email    string          `json:"email" example:"jdoe@example.com"`
+		HashCode int64           `json:"hashCode,omitempty" example:"12356789"`
+		Seq      int64           `json:"seq" example:"1"`
+	}
 )
 
 // Private API.
 
+const (
+	jwtIssuer = "ice.io"
+)
+
+// .
+var (
+	//nolint:gochecknoglobals // Because its loaded once, at runtime.
+	cfg config
+)
+
 type (
 	auth struct {
 		client *firebaseAuth.Client
+	}
+
+	config struct {
+		WintrAuth struct {
+			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+		} `yaml:"wintr/auth" mapstructure:"wintr/auth"` //nolint:tagliatelle // Nope.
 	}
 )
