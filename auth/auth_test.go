@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode) //nolint:gocritic // That's intended.
 }
 
-func TestVerifyToken_ValidToken(t *testing.T) {
+func TestVerifyFBToken_ValidToken(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
@@ -63,7 +63,7 @@ func TestVerifyToken_ValidToken(t *testing.T) {
 	require.NotEmpty(t, token.Claims)
 }
 
-func TestVerifyToken_InvalidToken(t *testing.T) {
+func TestVerifyFBToken_InvalidToken(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
@@ -157,17 +157,36 @@ func TestDeleteUser_Success(t *testing.T) {
 	require.True(t, strings.HasPrefix(err.Error(), "no user exists with the"))
 }
 
-func TestVerifyCustomToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest // .
+func TestVerifyToken_Valid_FB_Token(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+
+	uid, idToken := fixture.CreateUser("app")
+	defer fixture.DeleteUser(uid)
+
+	token, err := client.VerifyToken(ctx, idToken)
+	require.NoError(t, err)
+	require.NotNil(t, token)
+	require.NotEmpty(t, token.UserID)
+	require.Equal(t, uid, token.UserID)
+	require.NotEmpty(t, token.Email)
+	require.Equal(t, "app", token.Role)
+	require.NotEmpty(t, token.Claims)
+}
+
+func TestVerifyIceToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest // .
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
 	cfg = config{
 		WintrAuth: struct {
-			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 		}{
-			JWTSecret:      "1337",
-			ExpirationTime: stdlibtime.Hour,
+			JWTSecret: "1337",
 		},
 	}
 	var (
+		au       = auth{}
 		now      = time.Now()
 		seq      = int64(0)
 		hashCode = int64(0)
@@ -182,7 +201,7 @@ func TestVerifyCustomToken_ValidToken(t *testing.T) { //nolint:funlen,parallelte
 	refreshToken, accessToken, err := fixture.GenerateTokens(now, cfg.WintrAuth.JWTSecret, userID, email, hashCode, seq, expire, claims)
 	require.NoError(t, err)
 
-	verifiedAccessToken, err := verifyCustomToken(accessToken)
+	verifiedAccessToken, err := au.VerifyIceToken(ctx, accessToken)
 	require.NoError(t, err)
 
 	assert.Equal(t, email, verifiedAccessToken.Email)
@@ -192,7 +211,7 @@ func TestVerifyCustomToken_ValidToken(t *testing.T) { //nolint:funlen,parallelte
 	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
 	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
 
-	verifiedRefreshToken, err := verifyCustomToken(refreshToken)
+	verifiedRefreshToken, err := au.VerifyIceToken(ctx, refreshToken)
 	require.NoError(t, err)
 
 	assert.Equal(t, email, verifiedRefreshToken.Email)
@@ -202,17 +221,18 @@ func TestVerifyCustomToken_ValidToken(t *testing.T) { //nolint:funlen,parallelte
 	assert.Equal(t, "", verifiedRefreshToken.Claims["role"])
 }
 
-func TestVerifyCustomToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest // .
+func TestVerifyIceToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest // .
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
 	cfg = config{
 		WintrAuth: struct {
-			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 		}{
-			JWTSecret:      "1337",
-			ExpirationTime: stdlibtime.Hour,
+			JWTSecret: "1337",
 		},
 	}
 	var (
+		au       = auth{}
 		seq      = int64(0)
 		hashCode = int64(0)
 		userID   = "bogus"
@@ -228,27 +248,29 @@ func TestVerifyCustomToken_WrongSecret(t *testing.T) { //nolint:funlen,parallelt
 	require.NoError(t, err)
 
 	cfg.WintrAuth.JWTSecret = "another_secret"
-	token, err := verifyCustomToken(accessToken)
+	token, err := au.VerifyIceToken(ctx, accessToken)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, jwt.ErrSignatureInvalid)
 	assert.Nil(t, token)
 
-	token, err = verifyCustomToken(refreshToken)
+	token, err = au.VerifyIceToken(ctx, refreshToken)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, jwt.ErrSignatureInvalid)
 	assert.Nil(t, token)
 }
 
-func TestVerifyCustomToken_TokenExpired(t *testing.T) { //nolint:paralleltest // Config is loaded only once.
+func TestVerifyIceToken_TokenExpired(t *testing.T) { //nolint:paralleltest // Config is loaded only once.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
 	cfg = config{
 		WintrAuth: struct {
-			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 		}{
 			JWTSecret: "1337",
 		},
 	}
 	var (
+		au       = auth{}
 		now      = time.Now()
 		seq      = int64(0)
 		hashCode = int64(0)
@@ -262,25 +284,28 @@ func TestVerifyCustomToken_TokenExpired(t *testing.T) { //nolint:paralleltest //
 	)
 	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
 	require.NoError(t, err)
-	token, err := verifyCustomToken(accessToken)
+	token, err := au.VerifyIceToken(ctx, accessToken)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrExpiredToken)
 	assert.Nil(t, token)
-	token, err = verifyCustomToken(refreshToken)
+	token, err = au.VerifyIceToken(ctx, refreshToken)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrExpiredToken)
 	assert.Nil(t, token)
 }
 
-func TestVerifyCustomToken_WrongSigningMethod(t *testing.T) {
+func TestVerifyIceToken_WrongSigningMethod(t *testing.T) {
 	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
 	var (
+		au        = auth{}
 		now       = time.Now().In(stdlibtime.UTC)
 		jwtSecret = "123456789" //nolint:gosec // .
 		userID    = "bogus"
 		expire    = stdlibtime.Hour
 	)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, CustomToken{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
 			Subject:   userID,
@@ -291,12 +316,12 @@ func TestVerifyCustomToken_WrongSigningMethod(t *testing.T) {
 	})
 	tokenStr, err := token.SignedString([]byte(jwtSecret))
 	require.NoError(t, err)
-	customToken, err := verifyCustomToken(tokenStr)
+	iceToken, err := au.VerifyIceToken(ctx, tokenStr)
 	require.Error(t, err)
-	assert.Nil(t, customToken)
+	assert.Nil(t, iceToken)
 }
 
-func TestVerifyCustomToken_Parse(t *testing.T) {
+func TestVerifyIceToken_Parse(t *testing.T) {
 	t.Parallel()
 	var (
 		now       = time.Now()
@@ -312,20 +337,20 @@ func TestVerifyCustomToken_Parse(t *testing.T) {
 	)
 	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
 	require.NoError(t, err)
-	err = detectCustomToken(accessToken)
+	err = detectIceToken(accessToken)
 	require.NoError(t, err)
-	err = detectCustomToken(refreshToken)
+	err = detectIceToken(refreshToken)
 	require.NoError(t, err)
 }
 
-func TestDetectCustomToken_WrongToken(t *testing.T) {
+func TestDetectIceToken_WrongToken(t *testing.T) {
 	t.Parallel()
 	token := "dummy token" //nolint:gosec // .
-	err := detectCustomToken(token)
+	err := detectIceToken(token)
 	require.Error(t, err)
 }
 
-func TestDetectCustomToken_WrongIssuer(t *testing.T) { //nolint:funlen // Config is loaded only once.
+func TestDetectIceToken_WrongIssuer(t *testing.T) { //nolint:funlen // Config is loaded only once.
 	t.Parallel()
 	var (
 		now       = time.Now()
@@ -340,7 +365,7 @@ func TestDetectCustomToken_WrongIssuer(t *testing.T) { //nolint:funlen // Config
 			"role": "author",
 		}
 	)
-	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    "wrong issue",
 			Subject:   userID,
@@ -356,12 +381,12 @@ func TestDetectCustomToken_WrongIssuer(t *testing.T) { //nolint:funlen // Config
 	})
 	tokenStr, err := authToken.SignedString([]byte(jwtSecret))
 	require.NoError(t, err)
-	err = detectCustomToken(tokenStr)
+	err = detectIceToken(tokenStr)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidToken)
 }
 
-func TestDetectCustomToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen // .
+func TestDetectIceToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
 	var (
 		now      = time.Now()
@@ -379,7 +404,7 @@ func TestDetectCustomToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen 
 	key, err := rsa.GenerateKey(rand.Reader, bitSize)
 	require.NoError(t, err)
 
-	authToken := jwt.NewWithClaims(jwt.SigningMethodRS256, CustomToken{
+	authToken := jwt.NewWithClaims(jwt.SigningMethodRS256, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
 			Subject:   userID,
@@ -395,11 +420,11 @@ func TestDetectCustomToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen 
 	})
 	tokenStr, err := authToken.SignedString(key)
 	require.NoError(t, err)
-	err = detectCustomToken(tokenStr)
+	err = detectIceToken(tokenStr)
 	require.Error(t, err)
 }
 
-func TestDetectCustomToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen // .
+func TestDetectIceToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
 	var (
 		seq       = int64(0)
@@ -414,7 +439,7 @@ func TestDetectCustomToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen 
 		}
 	)
 	now := time.Now().In(stdlibtime.UTC)
-	authToken := jwt.NewWithClaims(jwt.SigningMethodHS384, CustomToken{
+	authToken := jwt.NewWithClaims(jwt.SigningMethodHS384, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
 			Subject:   userID,
@@ -430,6 +455,6 @@ func TestDetectCustomToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen 
 	})
 	tokenStr, err := authToken.SignedString([]byte(jwtSecret))
 	require.NoError(t, err)
-	err = detectCustomToken(tokenStr)
+	err = detectIceToken(tokenStr)
 	require.Error(t, err)
 }

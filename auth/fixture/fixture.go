@@ -37,7 +37,7 @@ var (
 )
 
 type (
-	CustomToken struct {
+	Token struct {
 		*jwt.RegisteredClaims
 		Custom   *map[string]any `json:"custom,omitempty"`
 		Role     string          `json:"role" example:"1"`
@@ -132,7 +132,7 @@ func postRequest(url string, req []byte) []byte {
 }
 
 func generateRefreshToken(now *time.Time, secret, userID, email string, seq int64, expiresAt stdlibtime.Duration) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
 			Subject:   userID,
@@ -151,7 +151,7 @@ func generateRefreshToken(now *time.Time, secret, userID, email string, seq int6
 func generateAccessToken(now *time.Time, refreshTokenSeq, hashCode int64, secret, userID, email string, expiresAt stdlibtime.Duration, claims map[string]any) (string, error) {
 	var customClaims *map[string]any
 	role := defaultRole
-	customClaimsData := map[string]any(claims)
+	customClaimsData := claims
 	if clRole, ok := customClaimsData["role"]; ok {
 		role = clRole.(string)
 		delete(customClaimsData, "role")
@@ -159,7 +159,7 @@ func generateAccessToken(now *time.Time, refreshTokenSeq, hashCode int64, secret
 	if len(customClaimsData) > 0 {
 		customClaims = &customClaimsData
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomToken{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
 			Subject:   userID,

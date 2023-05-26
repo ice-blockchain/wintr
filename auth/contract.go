@@ -4,7 +4,6 @@ package auth
 
 import (
 	"context"
-	stdlibtime "time"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
 	"github.com/golang-jwt/jwt/v5"
@@ -30,13 +29,15 @@ type (
 	}
 	Client interface {
 		VerifyToken(ctx context.Context, token string) (*Token, error)
+		VerifyFBToken(ctx context.Context, token string) (*Token, error)
+		VerifyIceToken(ctx context.Context, token string) (*Token, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		UpdateEmail(ctx context.Context, userID, email string) error
 		UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error
 		DeleteUser(ctx context.Context, userID string) error
 	}
 
-	CustomToken struct {
+	IceToken struct {
 		*jwt.RegisteredClaims
 		Custom   *map[string]any `json:"custom,omitempty"`
 		Role     string          `json:"role" example:"1"`
@@ -65,8 +66,7 @@ type (
 
 	config struct {
 		WintrAuth struct {
-			JWTSecret      string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-			ExpirationTime stdlibtime.Duration `yaml:"expirationTime" mapstructure:"expirationTime"`
+			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 		} `yaml:"wintr/auth" mapstructure:"wintr/auth"` //nolint:tagliatelle // Nope.
 	}
 )
