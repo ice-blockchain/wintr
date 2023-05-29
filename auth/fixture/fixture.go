@@ -131,6 +131,7 @@ func postRequest(url string, req []byte) []byte {
 	return bodyBytes
 }
 
+//nolint:revive // .
 func generateRefreshToken(now *time.Time, secret, userID, email string, seq int64, expiresAt stdlibtime.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
@@ -148,16 +149,22 @@ func generateRefreshToken(now *time.Time, secret, userID, email string, seq int6
 	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v", userID, email)
 }
 
-func generateAccessToken(now *time.Time, refreshTokenSeq, hashCode int64, secret, userID, email string, expiresAt stdlibtime.Duration, claims map[string]any) (string, error) {
+//nolint:funlen,revive // Fields.
+func generateAccessToken(
+	now *time.Time, refreshTokenSeq, hashCode int64,
+	secret, userID, email string, expiresAt stdlibtime.Duration,
+	claims map[string]any,
+) (string, error) {
 	var customClaims *map[string]any
 	role := defaultRole
-	customClaimsData := claims
-	if clRole, ok := customClaimsData["role"]; ok {
-		role = clRole.(string)
-		delete(customClaimsData, "role")
+	if clRole, ok := claims["role"]; ok {
+		if roleS, isStr := clRole.(string); isStr {
+			role = roleS
+			delete(claims, "role")
+		}
 	}
-	if len(customClaimsData) > 0 {
-		customClaims = &customClaimsData
+	if len(claims) > 0 {
+		customClaims = &claims
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
@@ -178,7 +185,16 @@ func generateAccessToken(now *time.Time, refreshTokenSeq, hashCode int64, secret
 	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v and email:%v", userID, email)
 }
 
-func GenerateTokens(now *time.Time, secret, userID, email string, hashCode, seq int64, expire stdlibtime.Duration, claims map[string]any) (refreshToken, accessToken string, err error) {
+//nolint:revive // .
+func GenerateTokens(
+	now *time.Time,
+	secret, userID,
+	email string,
+	hashCode,
+	seq int64,
+	expire stdlibtime.Duration,
+	claims map[string]any,
+) (refreshToken, accessToken string, err error) {
 	refreshToken, err = generateRefreshToken(now, secret, userID, email, seq, expire)
 	if err != nil {
 		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)

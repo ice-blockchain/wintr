@@ -12,7 +12,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (a *auth) VerifyFBToken(ctx context.Context, token string) (*Token, error) {
+func (a *authFirebase) VerifyToken(ctx context.Context, token string) (*Token, error) {
+	return a.verifyFBToken(ctx, token)
+}
+
+func (a *authFirebase) verifyFBToken(ctx context.Context, token string) (*Token, error) {
 	firebaseToken, vErr := a.client.VerifyIDToken(ctx, token)
 	if vErr != nil {
 		return nil, errors.Wrap(vErr, "error verifying firebase token")
@@ -28,14 +32,15 @@ func (a *auth) VerifyFBToken(ctx context.Context, token string) (*Token, error) 
 	}
 
 	return &Token{
-		UserID: firebaseToken.UID,
-		Claims: firebaseToken.Claims,
-		Email:  email,
-		Role:   role,
+		UserID:   firebaseToken.UID,
+		Claims:   firebaseToken.Claims,
+		Email:    email,
+		Role:     role,
+		provider: firebaseToken.Issuer,
 	}, nil
 }
 
-func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
+func (a *authFirebase) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
@@ -61,7 +66,7 @@ func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClai
 	return nil
 }
 
-func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
+func (a *authFirebase) UpdateEmail(ctx context.Context, userID, email string) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
@@ -79,7 +84,7 @@ func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 	return nil
 }
 
-func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error {
+func (a *authFirebase) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
@@ -97,7 +102,7 @@ func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string
 	return nil
 }
 
-func (a *auth) DeleteUser(ctx context.Context, userID string) error {
+func (a *authFirebase) DeleteUser(ctx context.Context, userID string) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
@@ -110,4 +115,10 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 	}
 
 	return nil
+}
+
+func (a *authFirebase) GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRecord, error) {
+	user, err := a.client.GetUser(ctx, userID)
+
+	return user, errors.Wrapf(err, "failed to get user from firebase")
 }

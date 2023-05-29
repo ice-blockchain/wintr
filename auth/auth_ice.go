@@ -9,11 +9,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (a *auth) VerifyIceToken(ctx context.Context, token string) (*Token, error) {
+func (a *authIce) VerifyToken(_ context.Context, token string) (*Token, error) {
+	return a.verifyIceToken(token)
+}
+
+func (*authIce) UpdateCustomClaims(_ context.Context, _ string, _ map[string]any) error {
+	return nil
+}
+
+func (a *authIce) verifyIceToken(token string) (*Token, error) {
 	var iceToken IceToken
-	err := VerifyJWTCommonFields(token, cfg.WintrAuth.JWTSecret, &iceToken)
+	err := VerifyJWTCommonFields(token, a.cfg.WintrAuth.JWTSecret, &iceToken)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid email token:%v", token)
+	}
+	if iceToken.Role == "" {
+		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token")
 	}
 
 	return &Token{
@@ -23,9 +34,10 @@ func (a *auth) VerifyIceToken(ctx context.Context, token string) (*Token, error)
 			"seq":      iceToken.Seq,
 			"hashCode": iceToken.HashCode,
 		},
-		UserID: iceToken.Subject,
-		Email:  iceToken.Email,
-		Role:   iceToken.Role,
+		UserID:   iceToken.Subject,
+		Email:    iceToken.Email,
+		Role:     iceToken.Role,
+		provider: jwtIssuer,
 	}, nil
 }
 
@@ -43,5 +55,17 @@ func detectIceToken(jwtToken string) error {
 		return errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 	}
 
+	return nil
+}
+
+func (*authIce) UpdateEmail(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (*authIce) UpdatePhoneNumber(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (*authIce) DeleteUser(_ context.Context, _ string) error {
 	return nil
 }
