@@ -21,7 +21,7 @@ import (
 )
 
 //nolint:gomnd // Configs.
-func MustConnect(ctx context.Context, applicationYAMLKey string) DB { //nolint:funlen // .
+func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrStorage.ConnectionsPerCore == 0 {
@@ -48,6 +48,9 @@ func MustConnect(ctx context.Context, applicationYAMLKey string) DB { //nolint:f
 	opts.ContextTimeoutEnabled = true
 	opts.PoolFIFO = true
 	opts.PoolSize = cfg.WintrStorage.ConnectionsPerCore * runtime.GOMAXPROCS(-1)
+	if len(overriddenPoolSize) == 1 {
+		opts.PoolSize = overriddenPoolSize[0]
+	}
 	opts.MinIdleConns = 1
 	opts.MaxIdleConns = 1
 	client := redis.NewClient(opts)
