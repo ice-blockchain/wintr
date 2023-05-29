@@ -13,10 +13,12 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/auth/fixture"
+	"github.com/ice-blockchain/wintr/auth/internal"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
@@ -30,6 +32,38 @@ var (
 	//nolint:gochecknoglobals // It's a stateless singleton for tests.
 	client Client
 )
+
+type (
+	mockIceConfiguration struct {
+		JWTSecret string
+		Expire    stdlibtime.Duration
+	}
+)
+
+func (m mockIceConfiguration) SignedString(token *jwt.Token) (string, error) {
+	return token.SignedString([]byte(m.JWTSecret)) //nolint:wrapcheck // .
+}
+
+func (m mockIceConfiguration) AccessDuration() stdlibtime.Duration {
+	return m.Expire
+}
+
+func (m mockIceConfiguration) RefreshDuration() stdlibtime.Duration {
+	return m.Expire
+}
+
+func (m mockIceConfiguration) Verify() func(token *jwt.Token) (any, error) {
+	return func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
+			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		if iss, err := token.Claims.GetIssuer(); err != nil || iss != JwtIssuer {
+			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
+		}
+
+		return []byte(m.JWTSecret), nil
+	}
+}
 
 func TestMain(m *testing.M) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*stdlibtime.Second)
@@ -175,18 +209,12 @@ func TestVerifyToken_Valid_FB_Token(t *testing.T) {
 	require.NotEmpty(t, token.Claims)
 }
 
-func TestVerifyIceToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest // .
+func TestVerifyIceToken_ValidToken(t *testing.T) { //nolint:paralleltest // .
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	cfg := config{
-		WintrAuth: struct {
-			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-		}{
-			JWTSecret: "1337",
-		},
-	}
+	mockedSecret := &mockIceConfiguration{JWTSecret: "1337", Expire: stdlibtime.Hour}
 	var (
-		au       = auth{}
+		au       = auth{ice: &authIce{secret: mockedSecret}}
 		now      = time.Now()
 		seq      = int64(0)
 		hashCode = int64(0)
@@ -196,9 +224,8 @@ func TestVerifyIceToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest 
 		claims   = map[string]any{
 			"role": role,
 		}
-		expire = stdlibtime.Hour
 	)
-	refreshToken, accessToken, err := fixture.GenerateTokens(now, cfg.WintrAuth.JWTSecret, userID, email, hashCode, seq, expire, claims)
+	refreshToken, accessToken, err := internal.GenerateTokens(mockedSecret, now, userID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 
 	verifiedAccessToken, err := au.VerifyToken(ctx, accessToken)
@@ -211,28 +238,16 @@ func TestVerifyIceToken_ValidToken(t *testing.T) { //nolint:funlen,paralleltest 
 	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
 	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
 
-	verifiedRefreshToken, err := au.VerifyToken(ctx, refreshToken)
-	require.NoError(t, err)
-
-	assert.Equal(t, email, verifiedRefreshToken.Email)
-	assert.Equal(t, userID, verifiedRefreshToken.UserID)
-	assert.Equal(t, email, verifiedRefreshToken.Claims["email"])
-	assert.Equal(t, seq, verifiedRefreshToken.Claims["seq"])
-	assert.Equal(t, "", verifiedRefreshToken.Claims["role"])
+	_, err = au.VerifyToken(ctx, refreshToken)
+	require.Error(t, err, ErrWrongTypeToken)
 }
 
-func TestVerifyIceToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest // .
+func TestVerifyIceToken_WrongSecret(t *testing.T) { //nolint:paralleltest // .
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	cfg := config{
-		WintrAuth: struct {
-			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-		}{
-			JWTSecret: "1337",
-		},
-	}
+	mockedSecret := &mockIceConfiguration{JWTSecret: "1337", Expire: stdlibtime.Hour}
 	var (
-		au       = auth{}
+		au       = auth{ice: &authIce{secret: mockedSecret}}
 		seq      = int64(0)
 		hashCode = int64(0)
 		userID   = "bogus"
@@ -240,14 +255,12 @@ func TestVerifyIceToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest
 		claims   = map[string]any{
 			"role": "author",
 		}
-		jwtSecret = cfg.WintrAuth.JWTSecret
-		expire    = stdlibtime.Hour
-		now       = time.Now()
+		now = time.Now()
 	)
-	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	refreshToken, accessToken, err := internal.GenerateTokens(mockedSecret, now, userID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 
-	cfg.WintrAuth.JWTSecret = "another_secret"
+	mockedSecret.JWTSecret = "another_secret"
 	token, err := au.VerifyToken(ctx, accessToken)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, jwt.ErrSignatureInvalid)
@@ -262,25 +275,17 @@ func TestVerifyIceToken_WrongSecret(t *testing.T) { //nolint:funlen,paralleltest
 func TestVerifyIceToken_TokenExpired(t *testing.T) { //nolint:paralleltest // config is loaded only once.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	cfg := config{
-		WintrAuth: struct {
-			JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-		}{
-			JWTSecret: "1337",
-		},
-	}
+	mockedSecret := &mockIceConfiguration{JWTSecret: "1337", Expire: stdlibtime.Duration(0)}
 	var (
-		au        = auth{ice: &authIce{cfg: cfg}}
-		now       = time.Now()
-		seq       = int64(0)
-		hashCode  = int64(0)
-		userID    = "bogus"
-		email     = "bogus@bogus.com"
-		claims    = map[string]any{"role": "author"}
-		jwtSecret = cfg.WintrAuth.JWTSecret
-		expire    = stdlibtime.Duration(0)
+		au       = auth{ice: &authIce{secret: mockedSecret}}
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		claims   = map[string]any{"role": "author"}
 	)
-	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	refreshToken, accessToken, err := internal.GenerateTokens(mockedSecret, now, userID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 	token, err := au.VerifyToken(ctx, accessToken)
 	require.Error(t, err)
@@ -296,8 +301,9 @@ func TestVerifyIceToken_WrongSigningMethod(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
+	m := &mockIceConfiguration{JWTSecret: "123456789", Expire: stdlibtime.Hour}
 	var (
-		au        = auth{ice: &authIce{cfg: config{}}}
+		au        = auth{ice: &authIce{secret: m}, fb: client}
 		now       = time.Now().In(stdlibtime.UTC)
 		jwtSecret = "123456789" //nolint:gosec // .
 		userID    = "bogus"
@@ -305,7 +311,7 @@ func TestVerifyIceToken_WrongSigningMethod(t *testing.T) {
 	)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
+			Issuer:    JwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
 			NotBefore: jwt.NewNumericDate(now),
@@ -321,19 +327,18 @@ func TestVerifyIceToken_WrongSigningMethod(t *testing.T) {
 
 func TestVerifyIceToken_Parse(t *testing.T) {
 	t.Parallel()
+	mockedSecret := &mockIceConfiguration{JWTSecret: "1337", Expire: stdlibtime.Duration(0)}
 	var (
-		now       = time.Now()
-		seq       = int64(0)
-		hashCode  = int64(0)
-		userID    = "bogus"
-		email     = "bogus@bogus.com"
-		jwtSecret = "1337" //nolint:gosec // .
-		expire    = stdlibtime.Hour
-		claims    = map[string]any{
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		claims   = map[string]any{
 			"role": "author",
 		}
 	)
-	refreshToken, accessToken, err := fixture.GenerateTokens(now, jwtSecret, userID, email, hashCode, seq, expire, claims)
+	refreshToken, accessToken, err := internal.GenerateTokens(mockedSecret, now, userID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 	err = detectIceToken(accessToken)
 	require.NoError(t, err)
@@ -404,7 +409,7 @@ func TestDetectIceToken_WrongAlgorithmMethod(t *testing.T) { //nolint:funlen // 
 
 	authToken := jwt.NewWithClaims(jwt.SigningMethodRS256, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
+			Issuer:    JwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
 			NotBefore: jwt.NewNumericDate(*now.Time),
@@ -439,7 +444,7 @@ func TestDetectIceToken_WrongAlgorithmLength(t *testing.T) { //nolint:funlen // 
 	now := time.Now().In(stdlibtime.UTC)
 	authToken := jwt.NewWithClaims(jwt.SigningMethodHS384, IceToken{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
+			Issuer:    JwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(expire)),
 			NotBefore: jwt.NewNumericDate(now),

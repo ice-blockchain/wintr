@@ -6,8 +6,9 @@ import (
 	"context"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
+
+	"github.com/ice-blockchain/wintr/auth/internal"
 )
 
 // Public API.
@@ -16,10 +17,12 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrConflict     = errors.New("change conflicts with another user")
 
-	ErrInvalidToken = errors.New("invalid token")
+	ErrInvalidToken = internal.ErrInvalidToken
 	ErrExpiredToken = errors.New("expired token")
 
 	ErrWrongTypeToken = errors.New("refresh token")
+	//nolint:gochecknoglobals // Stores configuration.
+	Secret internal.Secret
 )
 
 type (
@@ -38,24 +41,14 @@ type (
 		DeleteUser(ctx context.Context, userID string) error
 	}
 
-	IceToken struct {
-		*jwt.RegisteredClaims
-		Custom   *map[string]any `json:"custom,omitempty"`
-		Role     string          `json:"role" example:"1"`
-		Email    string          `json:"email" example:"jdoe@example.com"`
-		HashCode int64           `json:"hashCode,omitempty" example:"12356789"`
-		Seq      int64           `json:"seq" example:"1"`
-	}
-
-	WintrAuth struct {
-		JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-	}
+	IceToken      = internal.Token
+	TokenVerifier = internal.TokenVerifier
 )
 
 // Private API.
 
 const (
-	jwtIssuer = "ice.io"
+	JwtIssuer = internal.JwtIssuer
 )
 
 type (
@@ -63,14 +56,11 @@ type (
 		client *firebaseAuth.Client
 	}
 	authIce struct {
-		cfg config
+		secret internal.Secret
 	}
 
 	auth struct {
 		ice Client
 		fb  Client
-	}
-	config struct {
-		WintrAuth `yaml:"wintr/auth" mapstructure:"wintr/auth"` //nolint:tagliatelle // Nope.
 	}
 )

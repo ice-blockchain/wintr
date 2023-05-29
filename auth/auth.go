@@ -4,32 +4,19 @@ package auth
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
-	appCfg "github.com/ice-blockchain/wintr/config"
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
-	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
-
-	if cfg.WintrAuth.JWTSecret == "" {
-		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrAuth.JWTSecret = os.Getenv(fmt.Sprintf("%s_JWT_SECRET", module))
-		if cfg.WintrAuth.JWTSecret == "" {
-			cfg.WintrAuth.JWTSecret = os.Getenv("JWT_SECRET")
-		}
-	}
+	Secret = internal.NewICE(ctx, applicationYAMLKey)
 
 	return &auth{
-		fb:  &authFirebase{client: internal.New(ctx, applicationYAMLKey)},
-		ice: &authIce{cfg: cfg},
+		fb:  &authFirebase{client: internal.NewFirebase(ctx, applicationYAMLKey)},
+		ice: &authIce{secret: Secret},
 	}
 }
 
@@ -85,17 +72,8 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 	return errors.Wrapf(a.ice.DeleteUser(ctx, userID), "failed to delete user using ice")
 }
 
-func VerifyJWTCommonFields(jwtToken, secret string, res jwt.Claims) error {
-	if _, err := jwt.ParseWithClaims(jwtToken, res, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
-			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		if iss, err := token.Claims.GetIssuer(); err != nil || iss != jwtIssuer {
-			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
-		}
-
-		return []byte(secret), nil
-	}); err != nil {
+func VerifyJWTCommonFields(jwtToken string, verifier TokenVerifier, res jwt.Claims) error {
+	if _, err := jwt.ParseWithClaims(jwtToken, res, verifier.Verify()); err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
 			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token:%v", jwtToken)
 		}
@@ -107,5 +85,5 @@ func VerifyJWTCommonFields(jwtToken, secret string, res jwt.Claims) error {
 }
 
 func (tok *Token) IsICEToken() bool {
-	return tok.provider == jwtIssuer
+	return tok.provider == JwtIssuer
 }

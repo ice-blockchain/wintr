@@ -25,31 +25,15 @@ import (
 	"github.com/ice-blockchain/wintr/time"
 )
 
-const (
-	jwtIssuer   = "ice.io"
-	defaultRole = "app"
-)
-
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
 	globalClient *firebaseAuth.Client
 	singleton    = new(sync.Once)
 )
 
-type (
-	Token struct {
-		*jwt.RegisteredClaims
-		Custom   *map[string]any `json:"custom,omitempty"`
-		Role     string          `json:"role" example:"1"`
-		Email    string          `json:"email" example:"jdoe@example.com"`
-		HashCode int64           `json:"hashCode,omitempty" example:"12356789"`
-		Seq      int64           `json:"seq" example:"1"`
-	}
-)
-
 func client() *firebaseAuth.Client {
 	singleton.Do(func() {
-		globalClient = internal.New(context.Background(), "_")
+		globalClient = internal.NewFirebase(context.Background(), "_")
 	})
 
 	return globalClient
@@ -131,75 +115,31 @@ func postRequest(url string, req []byte) []byte {
 	return bodyBytes
 }
 
-//nolint:revive // .
-func generateRefreshToken(now *time.Time, secret, userID, email string, seq int64, expiresAt stdlibtime.Duration) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
-		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
-			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(expiresAt)),
-			NotBefore: jwt.NewNumericDate(*now.Time),
-			IssuedAt:  jwt.NewNumericDate(*now.Time),
+func GenerateTokens(userID, role string) (refresh, access string, err error) {
+	//nolint:wrapcheck // .
+	return internal.GenerateTokens(
+		&testSecret{},
+		time.Now(),
+		userID,
+		uuid.NewString()+"@testuser.com",
+		0,
+		0,
+		map[string]any{
+			"role": role,
 		},
-		Email: email,
-		Seq:   seq,
-	})
-	refreshToken, err := token.SignedString([]byte(secret))
-
-	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v", userID, email)
+	)
 }
 
-//nolint:funlen,revive // Fields.
-func generateAccessToken(
-	now *time.Time, refreshTokenSeq, hashCode int64,
-	secret, userID, email string, expiresAt stdlibtime.Duration,
-	claims map[string]any,
-) (string, error) {
-	var customClaims *map[string]any
-	role := defaultRole
-	if clRole, ok := claims["role"]; ok {
-		if roleS, isStr := clRole.(string); isStr {
-			role = roleS
-			delete(claims, "role")
-		}
-	}
-	if len(claims) > 0 {
-		customClaims = &claims
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
-		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
-			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(expiresAt)),
-			NotBefore: jwt.NewNumericDate(*now.Time),
-			IssuedAt:  jwt.NewNumericDate(*now.Time),
-		},
-		Role:     role,
-		Email:    email,
-		HashCode: hashCode,
-		Seq:      refreshTokenSeq,
-		Custom:   customClaims,
-	})
-	tokenStr, err := token.SignedString([]byte(secret))
+func (*testSecret) SignedString(token *jwt.Token) (string, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
 
-	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v and email:%v", userID, email)
+	return token.SignedString([]byte(jwtSecret)) //nolint:wrapcheck // .
 }
 
-//nolint:revive // .
-func GenerateTokens(
-	now *time.Time,
-	secret, userID,
-	email string,
-	hashCode,
-	seq int64,
-	expire stdlibtime.Duration,
-	claims map[string]any,
-) (refreshToken, accessToken string, err error) {
-	refreshToken, err = generateRefreshToken(now, secret, userID, email, seq, expire)
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
-	}
-	accessToken, err = generateAccessToken(now, seq, hashCode, secret, userID, email, expire, claims)
+func (*testSecret) AccessDuration() stdlibtime.Duration {
+	return 12 * stdlibtime.Hour //nolint:gomnd // .
+}
 
-	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate accessToken for userID:%v", userID)
+func (*testSecret) RefreshDuration() stdlibtime.Duration {
+	return 12 * stdlibtime.Hour //nolint:gomnd // .
 }

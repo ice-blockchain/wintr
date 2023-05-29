@@ -11,6 +11,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	firebaseAuth "firebase.google.com/go/v4/auth"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 	firebaseoption "google.golang.org/api/option"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func New(ctx context.Context, applicationYAMLKey string) *firebaseAuth.Client {
+func NewFirebase(ctx context.Context, applicationYAMLKey string) *firebaseAuth.Client {
 	cfg := new(config)
 	appCfg.MustLoadFromKey(applicationYAMLKey, cfg)
 	cfg.setWintrServerAuthCredentialsFileContent(applicationYAMLKey)
@@ -76,4 +77,47 @@ func (cfg *config) setWintrServerAuthCredentialsFilePath(applicationYAMLKey stri
 			}
 		}
 	}
+}
+
+func (cfg *config) loadSecretForJWT(applicationYAMLKey string) {
+	if cfg.WintrServerAuth.JWTSecret == "" {
+		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
+		cfg.WintrServerAuth.JWTSecret = os.Getenv(fmt.Sprintf("%s_JWT_SECRET", module))
+		if cfg.WintrServerAuth.JWTSecret == "" {
+			cfg.WintrServerAuth.JWTSecret = os.Getenv("JWT_SECRET")
+		}
+	}
+}
+
+func NewICE(_ context.Context, applicationYAMLKey string) Secret {
+	var cfg config
+	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	cfg.loadSecretForJWT(applicationYAMLKey)
+
+	return &iceClient{cfg: cfg}
+}
+
+func (i *iceClient) SignedString(token *jwt.Token) (string, error) {
+	return token.SignedString([]byte(i.cfg.WintrServerAuth.JWTSecret)) //nolint:wrapcheck // .
+}
+
+func (i *iceClient) Verify() func(token *jwt.Token) (any, error) {
+	return func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
+			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		if iss, err := token.Claims.GetIssuer(); err != nil || iss != JwtIssuer {
+			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
+		}
+
+		return []byte(i.cfg.WintrServerAuth.JWTSecret), nil
+	}
+}
+
+func (i *iceClient) RefreshDuration() stdlibtime.Duration {
+	return i.cfg.WintrServerAuth.RefreshExpirationTime
+}
+
+func (i *iceClient) AccessDuration() stdlibtime.Duration {
+	return i.cfg.WintrServerAuth.AccessExpirationTime
 }
