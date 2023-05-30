@@ -56,7 +56,7 @@ type (
 			AccessExpirationTime  stdlibtime.Duration `yaml:"accessExpirationTime" mapstructure:"accessExpirationTime"`
 		} `yaml:"wintr/server/auth" mapstructure:"wintr/server/auth"` //nolint:tagliatelle // Nope.
 	}
-	iceClient struct {
+	iceAuthSecrets struct {
 		cfg config
 	}
 )

@@ -89,19 +89,19 @@ func (cfg *config) loadSecretForJWT(applicationYAMLKey string) {
 	}
 }
 
-func NewICE(_ context.Context, applicationYAMLKey string) Secret {
+func NewICEAuthSecret(_ context.Context, applicationYAMLKey string) Secret {
 	var cfg config
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	cfg.loadSecretForJWT(applicationYAMLKey)
 
-	return &iceClient{cfg: cfg}
+	return &iceAuthSecrets{cfg: cfg}
 }
 
-func (i *iceClient) SignedString(token *jwt.Token) (string, error) {
+func (i *iceAuthSecrets) SignedString(token *jwt.Token) (string, error) {
 	return token.SignedString([]byte(i.cfg.WintrServerAuth.JWTSecret)) //nolint:wrapcheck // .
 }
 
-func (i *iceClient) Verify() func(token *jwt.Token) (any, error) {
+func (i *iceAuthSecrets) Verify() func(token *jwt.Token) (any, error) {
 	return func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -114,10 +114,10 @@ func (i *iceClient) Verify() func(token *jwt.Token) (any, error) {
 	}
 }
 
-func (i *iceClient) RefreshDuration() stdlibtime.Duration {
+func (i *iceAuthSecrets) RefreshDuration() stdlibtime.Duration {
 	return i.cfg.WintrServerAuth.RefreshExpirationTime
 }
 
-func (i *iceClient) AccessDuration() stdlibtime.Duration {
+func (i *iceAuthSecrets) AccessDuration() stdlibtime.Duration {
 	return i.cfg.WintrServerAuth.AccessExpirationTime
 }

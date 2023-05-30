@@ -12,7 +12,7 @@ import (
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
-	Secret = internal.NewICE(ctx, applicationYAMLKey)
+	Secret = internal.NewICEAuthSecret(ctx, applicationYAMLKey)
 
 	return &auth{
 		fb:  &authFirebase{client: internal.NewFirebase(ctx, applicationYAMLKey)},
