@@ -125,7 +125,9 @@ func TestUpdateEmail_Success(t *testing.T) {
 	require.False(t, user.EmailVerified)
 	require.NoError(t, client.UpdateEmail(ctx, uid, "foo1@bar.com"))
 	require.ErrorIs(t, client.UpdateEmail(ctx, uid, user2.Email), ErrConflict)
-	require.ErrorIs(t, client.UpdateEmail(ctx, uuid.NewString(), "foo1@bar.com"), ErrUserNotFound)
+	require.ErrorIs(t, client.(*auth).fb.UpdateEmail(ctx, uuid.NewString(), "foo1@bar.com"), ErrUserNotFound) //nolint:forcetypeassert // .
+	// Ice no-op is called when user does not exist in firebase.
+	require.NoError(t, client.UpdateEmail(ctx, uuid.NewString(), "foo1@bar.com"))
 	user, err = fixture.GetUser(ctx, uid)
 	require.NoError(t, err)
 	require.Equal(t, "foo1@bar.com", user.Email)
@@ -149,7 +151,9 @@ func TestUpdatePhoneNumber_Success(t *testing.T) {
 	require.NotEqual(t, "+12345678900", user.PhoneNumber)
 	require.NoError(t, client.UpdatePhoneNumber(ctx, uid, "+12345678900"))
 	require.ErrorIs(t, client.UpdatePhoneNumber(ctx, uid, user2.PhoneNumber), ErrConflict)
-	require.ErrorIs(t, client.UpdatePhoneNumber(ctx, uuid.NewString(), "+12345678901"), ErrUserNotFound)
+	require.ErrorIs(t, client.(*auth).fb.UpdatePhoneNumber(ctx, uuid.NewString(), "+12345678901"), ErrUserNotFound) //nolint:forcetypeassert // .
+	// Ice no-op is called when user does not exist in firebase.
+	require.NoError(t, client.UpdatePhoneNumber(ctx, uuid.NewString(), "+12345678901"))
 	user, err = fixture.GetUser(ctx, uid)
 	require.NoError(t, err)
 	require.Equal(t, "+12345678900", user.PhoneNumber)
@@ -168,7 +172,9 @@ func TestUpdateCustomClaims_Success(t *testing.T) {
 	require.EqualValues(t, map[string]any{"role": "app"}, user.CustomClaims)
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"a": 1, "b": map[string]any{"c": "x"}}))
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"b": map[string]any{"d": "y"}}))
-	require.ErrorIs(t, client.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}), ErrUserNotFound)
+	require.ErrorIs(t, client.(*auth).fb.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}), ErrUserNotFound) //nolint:forcetypeassert // .
+	// Ice no-op is called when user does not exist in firebase.
+	require.NoError(t, client.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}))
 	user, err = fixture.GetUser(ctx, uid)
 	require.NoError(t, err)
 	require.EqualValues(t, map[string]any{"a": 1.0, "b": map[string]any{"c": "x", "d": "y"}, "role": "app"}, user.CustomClaims)
