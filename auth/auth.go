@@ -33,7 +33,7 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 }
 
 func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
-	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
+	u, err := a.fb.GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
 		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
@@ -43,7 +43,7 @@ func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClai
 }
 
 func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
-	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
+	u, err := a.fb.GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
 		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v using firebase auth", userID)
@@ -53,7 +53,7 @@ func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 }
 
 func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error {
-	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
+	u, err := a.fb.GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
 		return errors.Wrapf(a.fb.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number for user:%v using firebase auth", userID)
@@ -63,7 +63,7 @@ func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string
 }
 
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
-	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
+	u, err := a.fb.GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
 		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)

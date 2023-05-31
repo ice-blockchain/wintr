@@ -60,7 +60,7 @@ type (
 	}
 
 	auth struct {
-		ice Client
-		fb  Client
+		ice *authIce
+		fb  *authFirebase
 	}
 )

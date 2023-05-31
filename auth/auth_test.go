@@ -303,7 +303,7 @@ func TestVerifyIceToken_WrongSigningMethod(t *testing.T) {
 	defer cancel()
 	m := &mockIceConfiguration{JWTSecret: "123456789", Expire: stdlibtime.Hour}
 	var (
-		au        = auth{ice: &authIce{secret: m}, fb: client}
+		au        = auth{ice: &authIce{secret: m}, fb: client.(*auth).fb} //nolint:forcetypeassert // .
 		now       = time.Now().In(stdlibtime.UTC)
 		jwtSecret = "123456789" //nolint:gosec // .
 		userID    = "bogus"
