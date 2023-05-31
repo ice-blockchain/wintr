@@ -13,6 +13,10 @@ import (
 
 // Public API.
 
+const (
+	JwtIssuer = internal.JwtIssuer
+)
+
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrConflict     = errors.New("change conflicts with another user")
@@ -20,12 +24,15 @@ var (
 	ErrInvalidToken = internal.ErrInvalidToken
 	ErrExpiredToken = errors.New("expired token")
 
-	ErrWrongTypeToken = errors.New("refresh token")
+	ErrWrongTypeToken = errors.New("wrong type token")
 	//nolint:gochecknoglobals // Stores configuration.
 	Secret internal.Secret
 )
 
 type (
+	IceToken      = internal.Token
+	TokenVerifier = internal.TokenVerifier
+
 	Token struct {
 		Claims   map[string]any
 		UserID   string `json:"userId,omitempty"`
@@ -40,16 +47,9 @@ type (
 		UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error
 		DeleteUser(ctx context.Context, userID string) error
 	}
-
-	IceToken      = internal.Token
-	TokenVerifier = internal.TokenVerifier
 )
 
 // Private API.
-
-const (
-	JwtIssuer = internal.JwtIssuer
-)
 
 type (
 	authFirebase struct {

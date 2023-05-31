@@ -36,40 +36,40 @@ func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClai
 	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update phone number using firebase")
+		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
 	}
 
-	return errors.Wrapf(a.ice.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims using ice")
+	return errors.Wrapf(a.ice.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using ice auth", userID)
 }
 
 func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email using firebase")
+		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v using firebase auth", userID)
 	}
 
-	return errors.Wrapf(a.ice.UpdateEmail(ctx, userID, email), "failed to update email using ice")
+	return errors.Wrapf(a.ice.UpdateEmail(ctx, userID, email), "failed to update email for user:%v using ice auth", userID)
 }
 
 func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error {
 	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number using firebase")
+		return errors.Wrapf(a.fb.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number for user:%v using firebase auth", userID)
 	}
 
-	return errors.Wrapf(a.ice.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number using ice")
+	return errors.Wrapf(a.ice.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number for user:%v using ice auth", userID)
 }
 
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 	u, err := a.fb.(*authFirebase).GetUser(ctx, userID)
 	isFirebaseUser := err == nil && u != nil
 	if isFirebaseUser {
-		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user using firebase")
+		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
 	}
 
-	return errors.Wrapf(a.ice.DeleteUser(ctx, userID), "failed to delete user using ice")
+	return errors.Wrapf(a.ice.DeleteUser(ctx, userID), "failed to delete user:%v using ice auth", userID)
 }
 
 func VerifyJWTCommonFields(jwtToken string, verifier TokenVerifier, res jwt.Claims) error {

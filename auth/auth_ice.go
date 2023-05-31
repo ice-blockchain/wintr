@@ -27,7 +27,7 @@ func (a *authIce) verifyIceToken(token string) (*Token, error) {
 		return nil, errors.Wrapf(err, "invalid email token:%v", token)
 	}
 	if iceToken.Role == "" {
-		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token")
+		return nil, errors.Wrap(ErrWrongTypeToken, "access to endpoint with refresh token")
 	}
 
 	return &Token{

@@ -65,18 +65,18 @@ func generateAccessToken(
 
 //nolint:revive // .
 func GenerateTokens(
-	secret TokenCreator,
+	creator TokenCreator,
 	now *time.Time,
 	userID, email string,
 	hashCode,
 	seq int64,
 	claims map[string]any,
 ) (refreshToken, accessToken string, err error) {
-	refreshToken, err = generateRefreshToken(secret, now, userID, email, seq)
+	refreshToken, err = generateRefreshToken(creator, now, userID, email, seq)
 	if err != nil {
 		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
 	}
-	accessToken, err = generateAccessToken(secret, now, seq, hashCode, userID, email, claims)
+	accessToken, err = generateAccessToken(creator, now, seq, hashCode, userID, email, claims)
 
-	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate accessToken for userID:%v", userID)
+	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate jwt accessToken for userID:%v", userID)
 }

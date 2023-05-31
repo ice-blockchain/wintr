@@ -9,6 +9,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Public API.
+
+const (
+	JwtIssuer = "ice.io"
+)
+
+// .
+var (
+	ErrInvalidToken = errors.New("invalid token")
+)
+
 type (
 	Token struct {
 		*jwt.RegisteredClaims
@@ -32,14 +43,8 @@ type (
 	}
 )
 
-//nolint:grouper // Only one.
-var ErrInvalidToken = errors.New("invalid token")
-
-const (
-	JwtIssuer = "ice.io"
-)
-
 // Private API.
+
 const (
 	defaultRole = "app"
 )
