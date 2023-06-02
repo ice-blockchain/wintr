@@ -522,6 +522,7 @@ linters:
     - ireturn
     - gomodguard
     - depguard
+    - tagalign
     # The following might be usable in some scenarios.
     - wsl
     - testpackage
