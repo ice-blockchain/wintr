@@ -7,3 +7,6 @@ logger:
 self:
   wintr/auth/firebase:
   wintr/auth/ice:
+    jwtSecret: bogus
+    refreshExpirationTime: 1h
+    accessExpirationTime: 1h
