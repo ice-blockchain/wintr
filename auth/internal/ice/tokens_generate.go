@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package internal
+package iceauth
 
 import (
 	"github.com/golang-jwt/jwt/v5"
@@ -9,26 +9,42 @@ import (
 	"github.com/ice-blockchain/wintr/time"
 )
 
-func generateRefreshToken(cr TokenCreator, now *time.Time, userID, email string, seq int64) (string, error) {
+//nolint:revive // .
+func (a *auth) GenerateTokens(
+	now *time.Time,
+	userID, email string,
+	hashCode,
+	seq int64,
+	claims map[string]any,
+) (refreshToken, accessToken string, err error) {
+	refreshToken, err = a.generateRefreshToken(now, userID, email, seq)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
+	}
+	accessToken, err = a.generateAccessToken(now, seq, hashCode, userID, email, claims)
+
+	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate jwt accessToken for userID:%v", userID)
+}
+
+func (a *auth) generateRefreshToken(now *time.Time, userID, email string, seq int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    JwtIssuer,
 			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(cr.RefreshDuration())),
+			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.RefreshExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),
 			IssuedAt:  jwt.NewNumericDate(*now.Time),
 		},
 		Email: email,
 		Seq:   seq,
 	})
-	refreshToken, err := cr.SignedString(token)
+	refreshToken, err := a.signedString(token)
 
 	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v", userID, email)
 }
 
 //nolint:funlen,revive // Fields.
-func generateAccessToken(
-	cr TokenCreator,
+func (a *auth) generateAccessToken(
 	now *time.Time, refreshTokenSeq, hashCode int64,
 	userID, email string,
 	claims map[string]any,
@@ -48,7 +64,7 @@ func generateAccessToken(
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    JwtIssuer,
 			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(cr.AccessDuration())),
+			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.AccessExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),
 			IssuedAt:  jwt.NewNumericDate(*now.Time),
 		},
@@ -58,25 +74,11 @@ func generateAccessToken(
 		Seq:      refreshTokenSeq,
 		Custom:   customClaims,
 	})
-	tokenStr, err := cr.SignedString(token)
+	tokenStr, err := a.signedString(token)
 
 	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v and email:%v", userID, email)
 }
 
-//nolint:revive // .
-func GenerateTokens(
-	creator TokenCreator,
-	now *time.Time,
-	userID, email string,
-	hashCode,
-	seq int64,
-	claims map[string]any,
-) (refreshToken, accessToken string, err error) {
-	refreshToken, err = generateRefreshToken(creator, now, userID, email, seq)
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
-	}
-	accessToken, err = generateAccessToken(creator, now, seq, hashCode, userID, email, claims)
-
-	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate jwt accessToken for userID:%v", userID)
+func (a *auth) signedString(token *jwt.Token) (string, error) {
+	return token.SignedString([]byte(a.cfg.WintrAuthIce.JWTSecret)) //nolint:wrapcheck // .
 }

@@ -14,29 +14,30 @@ import (
 	"sync"
 	stdlibtime "time"
 
+	firebase "firebase.google.com/go/v4"
 	firebaseAuth "firebase.google.com/go/v4/auth"
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	firebaseoption "google.golang.org/api/option"
 
-	"github.com/ice-blockchain/wintr/auth/internal"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
 
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
-	globalClient *firebaseAuth.Client
-	singleton    = new(sync.Once)
+	globalFirebaseClient *firebaseAuth.Client
+	singleton            = new(sync.Once)
 )
 
 func client() *firebaseAuth.Client {
 	singleton.Do(func() {
-		globalClient = internal.NewFirebase(context.Background(), "_")
+		globalFirebaseClient = newFirebaseClient()
 	})
 
-	return globalClient
+	return globalFirebaseClient
 }
 
 func CreateUser(role string) (uid, token string) {
@@ -74,6 +75,34 @@ func GetUser(ctx context.Context, uid string) (*firebaseAuth.UserRecord, error) 
 	return client().GetUser(ctx, uid) //nolint:wrapcheck // It's a proxy.
 }
 
+func SetCustomUserClaims(ctx context.Context, uid string, claims map[string]any) error {
+	err := client().SetCustomUserClaims(ctx, uid, claims)
+	log.Panic(err, "can't set custom user claims")
+
+	return err //nolint:wrapcheck // .
+}
+
+func GenerateIceTokens(userID, role string) (refreshToken, accessToken string, err error) {
+	var (
+		client = fixtureIceAuth{
+			RefreshExpirationTime: 12 * stdlibtime.Hour, //nolint:gomnd // It's just hours.
+			AccessExpirationTime:  12 * stdlibtime.Hour, //nolint:gomnd // It's just hours.
+		}
+		now      = time.Now()
+		email    = uuid.NewString() + "@testuser.com"
+		seq      = int64(0)
+		hashCode = int64(0)
+		claims   = map[string]any{"role": role}
+	)
+	refreshToken, err = client.generateIceRefreshToken(now, userID, email, seq)
+	if err != nil {
+		return "", "", err
+	}
+	accessToken, err = client.generateIceAccessToken(now, seq, hashCode, userID, email, claims)
+
+	return refreshToken, accessToken, err
+}
+
 func generateUser(ctx context.Context, role string) (uid, email, password string) {
 	const (
 		phoneNumberMin = 1_000_000_000
@@ -91,12 +120,11 @@ func generateUser(ctx context.Context, role string) (uid, email, password string
 		UID(uuid.NewString()).
 		DisplayName("test user")
 
-	createdUser, err := client().CreateUser(ctx, user)
-	log.Panic(err)
+	usr, err := client().CreateUser(ctx, user)
+	log.Panic(err, "can't create user")
+	log.Panic(SetCustomUserClaims(ctx, usr.UID, map[string]any{"role": role}))
 
-	log.Panic(client().SetCustomUserClaims(ctx, createdUser.UID, map[string]any{"role": role}))
-
-	return createdUser.UID, createdUser.Email, password
+	return usr.UID, usr.Email, password
 }
 
 func postRequest(url string, req []byte) []byte {
@@ -115,31 +143,78 @@ func postRequest(url string, req []byte) []byte {
 	return bodyBytes
 }
 
-func GenerateTokens(userID, role string) (refresh, access string, err error) {
-	//nolint:wrapcheck // .
-	return internal.GenerateTokens(
-		&testSecret{},
-		time.Now(),
-		userID,
-		uuid.NewString()+"@testuser.com",
-		0,
-		0,
-		map[string]any{
-			"role": role,
+func (f *fixtureIceAuth) generateIceRefreshToken(now *time.Time, userID, email string, seq int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, IceToken{
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(f.RefreshExpirationTime)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
 		},
-	)
+		Email: email,
+		Seq:   seq,
+	})
+
+	return signedString(token)
 }
 
-func (*testSecret) SignedString(token *jwt.Token) (string, error) {
+//nolint:revive // Fields.
+func (f *fixtureIceAuth) generateIceAccessToken(
+	now *time.Time, refreshTokenSeq, hashCode int64,
+	userID, email string,
+	claims map[string]any,
+) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, IceToken{ //nolint:forcetypeassert // .
+		RegisteredClaims: &jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(now.Add(f.AccessExpirationTime)),
+			NotBefore: jwt.NewNumericDate(*now.Time),
+			IssuedAt:  jwt.NewNumericDate(*now.Time),
+		},
+		Role:     claims["role"].(string),
+		Email:    email,
+		HashCode: hashCode,
+		Seq:      refreshTokenSeq,
+		Custom:   &claims,
+	})
+
+	return signedString(token)
+}
+
+func signedString(token *jwt.Token) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" { //nolint:gosec // .
+		log.Panic("jwt secret not provided")
+	}
 
 	return token.SignedString([]byte(jwtSecret)) //nolint:wrapcheck // .
 }
 
-func (*testSecret) AccessDuration() stdlibtime.Duration {
-	return 12 * stdlibtime.Hour //nolint:gomnd // .
-}
+func newFirebaseClient() *firebaseAuth.Client {
+	ctx := context.Background()
+	fileContent := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	filePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	var credentialsOption firebaseoption.ClientOption
+	if fileContent != "" { //nolint:gocritic // Wrong.
+		credentialsOption = firebaseoption.WithCredentialsJSON([]byte(fileContent))
+	} else if filePath != "" {
+		credentialsOption = firebaseoption.WithCredentialsFile(filePath)
+	} else {
+		log.Panic("can't find credentials")
+	}
+	firebaseApp, err := firebase.NewApp(ctx, nil, credentialsOption)
+	log.Panic(errors.Wrap(err, "[%v] failed to build Firebase app ")) //nolint:revive // That's intended.
+	client, err := firebaseApp.Auth(ctx)
+	log.Panic(errors.Wrap(err, "[%v] failed to build Firebase Auth client"))
 
-func (*testSecret) RefreshDuration() stdlibtime.Duration {
-	return 12 * stdlibtime.Hour //nolint:gomnd // .
+	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 5*stdlibtime.Second) //nolint:gomnd // It's a one time call.
+	defer cancelEagerLoad()
+	t, err := client.VerifyIDTokenAndCheckRevoked(eagerLoadCtx, "invalid token")
+	if t != nil || !firebaseAuth.IsIDTokenInvalid(err) {
+		log.Panic(errors.New("unexpected success"))
+	}
+
+	return client
 }

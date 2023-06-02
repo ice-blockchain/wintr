@@ -5,4 +5,5 @@ logger:
   encoder: console
   level: debug
 self:
-  wintr/server/auth:
+  wintr/auth/firebase:
+  wintr/auth/ice:

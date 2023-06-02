@@ -8,82 +8,47 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
-	"github.com/ice-blockchain/wintr/auth/internal"
+	firebaseAuth "github.com/ice-blockchain/wintr/auth/internal/firebase"
+	iceAuth "github.com/ice-blockchain/wintr/auth/internal/ice"
+	"github.com/ice-blockchain/wintr/time"
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
-	Secret = internal.NewICEAuthSecret(ctx, applicationYAMLKey)
-
 	return &auth{
-		fb:  &authFirebase{client: internal.NewFirebase(ctx, applicationYAMLKey)},
-		ice: &authIce{secret: Secret},
+		fb:  firebaseAuth.New(ctx, applicationYAMLKey),
+		ice: iceAuth.New(applicationYAMLKey),
 	}
 }
 
 func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 	var authToken *Token
-	if err := detectIceToken(token); err != nil {
+	if err := iceAuth.DetectIceToken(token); err != nil {
 		authToken, err = a.fb.VerifyToken(ctx, token)
 
 		return authToken, errors.Wrapf(err, "can't verify fb token:%v", token)
 	}
-	authToken, err := a.ice.VerifyToken(ctx, token)
+	authToken, err := a.ice.VerifyToken(token)
 
 	return authToken, errors.Wrapf(err, "can't verify ice token:%v", token)
 }
 
 func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
-	u, err := a.fb.GetUser(ctx, userID)
-	isFirebaseUser := err == nil && u != nil
-	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
-	}
-
-	return errors.Wrapf(a.ice.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using ice auth", userID)
-}
-
-func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
-	u, err := a.fb.GetUser(ctx, userID)
-	isFirebaseUser := err == nil && u != nil
-	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v using firebase auth", userID)
-	}
-
-	return errors.Wrapf(a.ice.UpdateEmail(ctx, userID, email), "failed to update email for user:%v using ice auth", userID)
-}
-
-func (a *auth) UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error {
-	u, err := a.fb.GetUser(ctx, userID)
-	isFirebaseUser := err == nil && u != nil
-	if isFirebaseUser {
-		return errors.Wrapf(a.fb.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number for user:%v using firebase auth", userID)
-	}
-
-	return errors.Wrapf(a.ice.UpdatePhoneNumber(ctx, userID, phoneNumber), "failed to update phone number for user:%v using ice auth", userID)
+	return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
 }
 
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
-	u, err := a.fb.GetUser(ctx, userID)
-	isFirebaseUser := err == nil && u != nil
-	if isFirebaseUser {
-		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
-	}
-
-	return errors.Wrapf(a.ice.DeleteUser(ctx, userID), "failed to delete user:%v using ice auth", userID)
+	return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
 }
 
-func VerifyJWTCommonFields(jwtToken string, verifier TokenVerifier, res jwt.Claims) error {
-	if _, err := jwt.ParseWithClaims(jwtToken, res, verifier.Verify()); err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token:%v", jwtToken)
-		}
+func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
+	now *time.Time, userID, email string, hashCode, seq int64, claims map[string]any,
+) (accessToken, refreshToken string, err error) {
+	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, email, hashCode, seq, claims)
+	err = errors.Wrapf(err, "can't generate tokens for userID:%v, email:%v", userID, email)
 
-		return errors.Wrapf(err, "invalid token:%v", jwtToken)
-	}
-
-	return nil
+	return
 }
 
-func (tok *Token) IsICEToken() bool {
-	return tok.provider == JwtIssuer
+func (a *auth) ParseToken(jwtToken string, res jwt.Claims) error {
+	return errors.Wrapf(a.ice.VerifyTokenFields(jwtToken, res), "can't verify jwt common fields for:%v", jwtToken)
 }
