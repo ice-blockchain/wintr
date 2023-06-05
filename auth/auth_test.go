@@ -214,8 +214,8 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
 
-	var accessRes IceToken
-	require.NoError(t, client.ParseToken(accessToken, &accessRes))
+	accessRes, err := client.ParseToken(accessToken)
+	require.NoError(t, err)
 	issuer, err := accessRes.GetIssuer()
 	require.NoError(t, err)
 	assert.Equal(t, "ice.io", issuer)
@@ -228,9 +228,10 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	assert.Equal(t, hashCode, accessRes.HashCode)
 	assert.Equal(t, seq, accessRes.Seq)
 
-	var refreshRes IceToken
-	require.NoError(t, client.ParseToken(refreshToken, &refreshRes))
-	require.NoError(t, client.ParseToken(accessToken, &accessRes))
+	refreshRes, err := client.ParseToken(refreshToken)
+	require.NoError(t, err)
+	accessRes, err = client.ParseToken(accessToken)
+	require.NoError(t, err)
 	issuer, err = refreshRes.GetIssuer()
 	require.NoError(t, err)
 	assert.Equal(t, "ice.io", issuer)
