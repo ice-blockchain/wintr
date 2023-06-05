@@ -5,8 +5,6 @@ package auth
 import (
 	"context"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/ice-blockchain/wintr/auth/internal"
 	firebaseauth "github.com/ice-blockchain/wintr/auth/internal/firebase"
 	iceauth "github.com/ice-blockchain/wintr/auth/internal/ice"
@@ -33,7 +31,7 @@ type (
 	IceToken = iceauth.Token
 	Client   interface {
 		VerifyToken(ctx context.Context, token string) (*Token, error)
-		ParseToken(jwtToken string, res jwt.Claims) error
+		ParseToken(token string) (*IceToken, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
 		GenerateTokens(now *time.Time, userID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)

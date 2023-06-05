@@ -17,11 +17,11 @@ import (
 	firebase "firebase.google.com/go/v4"
 	firebaseAuth "firebase.google.com/go/v4/auth"
 	"github.com/goccy/go-json"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	firebaseoption "google.golang.org/api/option"
 
+	iceauth "github.com/ice-blockchain/wintr/auth/internal/ice"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
@@ -29,15 +29,24 @@ import (
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
 	globalFirebaseClient *firebaseAuth.Client
+	globalIceClient      iceauth.Client
 	singleton            = new(sync.Once)
 )
 
-func client() *firebaseAuth.Client {
+func clientFirebase() *firebaseAuth.Client {
 	singleton.Do(func() {
 		globalFirebaseClient = newFirebaseClient()
 	})
 
 	return globalFirebaseClient
+}
+
+func clientIce() iceauth.Client {
+	singleton.Do(func() {
+		globalIceClient = iceauth.New(applicationYAMLKey)
+	})
+
+	return globalIceClient
 }
 
 func CreateUser(role string) (uid, token string) {
@@ -68,15 +77,15 @@ func DeleteUser(uid string) {
 	delCtx, cancelDeleteUser := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:gomnd // Not an issue here.
 	defer cancelDeleteUser()
 
-	log.Panic(client().DeleteUser(delCtx, uid))
+	log.Panic(clientFirebase().DeleteUser(delCtx, uid))
 }
 
 func GetUser(ctx context.Context, uid string) (*firebaseAuth.UserRecord, error) {
-	return client().GetUser(ctx, uid) //nolint:wrapcheck // It's a proxy.
+	return clientFirebase().GetUser(ctx, uid) //nolint:wrapcheck // It's a proxy.
 }
 
 func SetCustomUserClaims(ctx context.Context, uid string, claims map[string]any) error {
-	err := client().SetCustomUserClaims(ctx, uid, claims)
+	err := clientFirebase().SetCustomUserClaims(ctx, uid, claims)
 	log.Panic(err, "can't set custom user claims")
 
 	return err //nolint:wrapcheck // .
@@ -84,23 +93,15 @@ func SetCustomUserClaims(ctx context.Context, uid string, claims map[string]any)
 
 func GenerateIceTokens(userID, role string) (refreshToken, accessToken string, err error) {
 	var (
-		client = fixtureIceAuth{
-			RefreshExpirationTime: 12 * stdlibtime.Hour, //nolint:gomnd // It's just hours.
-			AccessExpirationTime:  12 * stdlibtime.Hour, //nolint:gomnd // It's just hours.
-		}
 		now      = time.Now()
 		email    = uuid.NewString() + "@testuser.com"
 		seq      = int64(0)
 		hashCode = int64(0)
 		claims   = map[string]any{"role": role}
 	)
-	refreshToken, err = client.generateIceRefreshToken(now, userID, email, seq)
-	if err != nil {
-		return "", "", err
-	}
-	accessToken, err = client.generateIceAccessToken(now, seq, hashCode, userID, email, claims)
+	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, email, hashCode, seq, claims)
 
-	return refreshToken, accessToken, err
+	return
 }
 
 func generateUser(ctx context.Context, role string) (uid, email, password string) {
@@ -120,7 +121,7 @@ func generateUser(ctx context.Context, role string) (uid, email, password string
 		UID(uuid.NewString()).
 		DisplayName("test user")
 
-	usr, err := client().CreateUser(ctx, user)
+	usr, err := clientFirebase().CreateUser(ctx, user)
 	log.Panic(err, "can't create user")
 	log.Panic(SetCustomUserClaims(ctx, usr.UID, map[string]any{"role": role}))
 
@@ -141,55 +142,6 @@ func postRequest(url string, req []byte) []byte {
 	log.Panic(err)
 
 	return bodyBytes
-}
-
-func (f *fixtureIceAuth) generateIceRefreshToken(now *time.Time, userID, email string, seq int64) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, IceToken{
-		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
-			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(f.RefreshExpirationTime)),
-			NotBefore: jwt.NewNumericDate(*now.Time),
-			IssuedAt:  jwt.NewNumericDate(*now.Time),
-		},
-		Email: email,
-		Seq:   seq,
-	})
-
-	return signedString(token)
-}
-
-//nolint:revive // Fields.
-func (f *fixtureIceAuth) generateIceAccessToken(
-	now *time.Time, refreshTokenSeq, hashCode int64,
-	userID, email string,
-	claims map[string]any,
-) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, IceToken{ //nolint:forcetypeassert // .
-		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
-			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(now.Add(f.AccessExpirationTime)),
-			NotBefore: jwt.NewNumericDate(*now.Time),
-			IssuedAt:  jwt.NewNumericDate(*now.Time),
-		},
-		Role:     claims["role"].(string),
-		Email:    email,
-		HashCode: hashCode,
-		Seq:      refreshTokenSeq,
-		Custom:   &claims,
-	})
-
-	return signedString(token)
-}
-
-func signedString(token *jwt.Token) (string, error) {
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" { //nolint:gosec // .
-		log.Panic("jwt secret not provided")
-	}
-
-	return token.SignedString([]byte(jwtSecret)) //nolint:wrapcheck // .
 }
 
 func newFirebaseClient() *firebaseAuth.Client {

@@ -5,7 +5,6 @@ package auth
 import (
 	"context"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
 	firebaseAuth "github.com/ice-blockchain/wintr/auth/internal/firebase"
@@ -33,11 +32,19 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 }
 
 func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
-	return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
+	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
+		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
+	}
+
+	return nil
 }
 
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
-	return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
+	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
+		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
+	}
+
+	return nil
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
@@ -49,6 +56,9 @@ func (a *auth) GenerateTokens( //nolint:revive // We need to have these paramete
 	return
 }
 
-func (a *auth) ParseToken(jwtToken string, res jwt.Claims) error {
-	return errors.Wrapf(a.ice.VerifyTokenFields(jwtToken, res), "can't verify jwt common fields for:%v", jwtToken)
+func (a *auth) ParseToken(token string) (*IceToken, error) {
+	res := new(IceToken)
+	err := a.ice.VerifyTokenFields(token, res)
+
+	return res, errors.Wrapf(err, "can't verify jwt common fields for:%v", token)
 }
