@@ -21,6 +21,9 @@ func New(applicationYAMLKey string) Client {
 
 	return &auth{
 		cfg: &cfg,
+		signToken: func(token *jwt.Token) (string, error) {
+			return token.SignedString([]byte(cfg.WintrAuthIce.JWTSecret)) //nolint:wrapcheck // .
+		},
 	}
 }
 

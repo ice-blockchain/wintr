@@ -38,7 +38,7 @@ func (a *auth) generateRefreshToken(now *time.Time, userID, email string, seq in
 		Email: email,
 		Seq:   seq,
 	})
-	refreshToken, err := a.signedString(token)
+	refreshToken, err := a.signToken(token)
 
 	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v", userID, email)
 }
@@ -74,11 +74,7 @@ func (a *auth) generateAccessToken(
 		Seq:      refreshTokenSeq,
 		Custom:   customClaims,
 	})
-	tokenStr, err := a.signedString(token)
+	tokenStr, err := a.signToken(token)
 
 	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v and email:%v", userID, email)
-}
-
-func (a *auth) signedString(token *jwt.Token) (string, error) {
-	return token.SignedString([]byte(a.cfg.WintrAuthIce.JWTSecret)) //nolint:wrapcheck // .
 }

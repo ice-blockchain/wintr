@@ -49,7 +49,8 @@ const (
 
 type (
 	auth struct {
-		cfg *config
+		cfg       *config
+		signToken func(token *jwt.Token) (string, error)
 	}
 
 	config struct {
