@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -198,7 +199,7 @@ func (*httpTestClient) WrapJSONBody(jsonData string) (reqBody io.Reader, content
 		return nil, jsonContentType
 	}
 
-	return bytes.NewBuffer([]byte(jsonData)), jsonContentType
+	return strings.NewReader(jsonData), jsonContentType
 }
 
 func (*httpTestClient) WrapMultipartBody(tb testing.TB, values map[string]any) (reqBody io.Reader, contentType string) {

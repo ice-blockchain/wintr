@@ -91,8 +91,8 @@ type (
 		mx                     *sync.Mutex
 		consumers              *sync.Map // Is a map[Topic]map[Partition]*partitionConsumer.
 		processors             map[Topic]Processor
-		consumerTopicConfigs   map[Topic]*ConsumerTopicConfig
-		partitionCountPerTopic *sync.Map // Is a map[Topic]PartitionCount.
+		consumerTopicConfigs   map[Topic]*ConsumerTopicConfig //nolint:structcheck // Wrong.
+		partitionCountPerTopic *sync.Map                      // Is a map[Topic]PartitionCount.
 		cancel                 context.CancelFunc
 		done                   bool
 	}

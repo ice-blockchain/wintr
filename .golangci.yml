@@ -510,6 +510,7 @@ linters-settings:
 
 linters:
   disable:
+    - tagalign
     # TODO: remove this asap after we fix the https://github.com/testcontainers/testcontainers-go dependency issue.
     - gomoddirectives
     # The following we don't need at all, ever, in any scenario.

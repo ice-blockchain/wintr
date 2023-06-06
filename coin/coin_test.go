@@ -355,7 +355,7 @@ func TestICEFlakeJSONSerialization(t *testing.T) {
 
 type (
 	tmpStruct struct {
-		//nolint:unused,revive,tagliatelle,nosnakecase // It is used by db to marshall/unmarshall.
+		//nolint:unused,revive,tagliatelle,nosnakecase,structcheck // It is used by db to marshall/unmarshall.
 		_msgpack struct{} `msgpack:",asArray"`
 		*Coin
 	}
@@ -392,7 +392,7 @@ func TestICEFlakeMsgPackSerialization(t *testing.T) {
 
 type (
 	tmpStruct2 struct {
-		//nolint:unused,revive,tagliatelle,nosnakecase // It is used by db to marshall/unmarshall.
+		//nolint:unused,revive,tagliatelle,nosnakecase,structcheck // It is used by db to marshall/unmarshall.
 		_msgpack struct{} `msgpack:",asArray"`
 		Amount   *ICE
 		AmountWords

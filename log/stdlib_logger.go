@@ -17,6 +17,7 @@ import (
 const (
 	debug = "debug"
 	info  = "info"
+	warn  = "warn"
 )
 
 // .
@@ -64,7 +65,7 @@ func Debug(msg string, fields ...any) {
 }
 
 func Info(msg string, fields ...any) {
-	if strings.EqualFold(appCfg.Level, debug) {
+	if !strings.EqualFold(appCfg.Level, debug) && !strings.EqualFold(appCfg.Level, info) {
 		return
 	}
 	vars := make([]string, 0, len(fields))
@@ -80,6 +81,9 @@ func Info(msg string, fields ...any) {
 }
 
 func Warn(msg string, fields ...any) {
+	if !strings.EqualFold(appCfg.Level, debug) && !strings.EqualFold(appCfg.Level, info) && !strings.EqualFold(appCfg.Level, warn) {
+		return
+	}
 	if lvl := strings.ToLower(appCfg.Level); lvl == debug || lvl == info {
 		return
 	}

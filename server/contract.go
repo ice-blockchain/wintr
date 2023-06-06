@@ -34,15 +34,15 @@ type (
 		CheckHealth(context.Context) error
 	}
 	Request[REQ any, RESP any] struct {
-		Data                         *REQ `json:"data,omitempty"`
-		ginCtx                       *gin.Context
-		AuthenticatedUser            AuthenticatedUser `json:"authenticatedUser,omitempty"`
-		ClientIP                     net.IP            `json:"clientIp,omitempty"`
-		bindings                     map[requestBinding]struct{}
-		requiredFields               []string
-		allowUnauthorized            bool
-		allowForbiddenGet            bool
-		allowForbiddenWriteOperation bool
+		Data                         *REQ                        `json:"data,omitempty"`
+		ginCtx                       *gin.Context                //nolint:structcheck // Wrong.
+		AuthenticatedUser            AuthenticatedUser           `json:"authenticatedUser,omitempty"`
+		ClientIP                     net.IP                      `json:"clientIp,omitempty"`
+		bindings                     map[requestBinding]struct{} //nolint:structcheck // Wrong.
+		requiredFields               []string                    //nolint:structcheck // Wrong.
+		allowUnauthorized            bool                        //nolint:structcheck // Wrong.
+		allowForbiddenGet            bool                        //nolint:structcheck // Wrong.
+		allowForbiddenWriteOperation bool                        //nolint:structcheck // Wrong.
 	}
 	Response[RESP any] struct {
 		Data    *RESP
