@@ -93,13 +93,14 @@ func SetCustomUserClaims(ctx context.Context, uid string, claims map[string]any)
 
 func GenerateIceTokens(userID, role string) (refreshToken, accessToken string, err error) {
 	var (
-		now      = time.Now()
-		email    = uuid.NewString() + "@testuser.com"
-		seq      = int64(0)
-		hashCode = int64(0)
-		claims   = map[string]any{"role": role}
+		now            = time.Now()
+		email          = uuid.NewString() + "@testuser.com"
+		deviceUniqueID = uuid.NewString()
+		seq            = int64(0)
+		hashCode       = int64(0)
+		claims         = map[string]any{"role": role}
 	)
-	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, email, hashCode, seq, claims)
+	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, claims)
 
 	return
 }

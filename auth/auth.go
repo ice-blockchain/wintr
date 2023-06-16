@@ -48,9 +48,9 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
-	now *time.Time, userID, email string, hashCode, seq int64, claims map[string]any,
+	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any,
 ) (accessToken, refreshToken string, err error) {
-	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, email, hashCode, seq, claims)
+	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, claims)
 	err = errors.Wrapf(err, "can't generate tokens for userID:%v, email:%v", userID, email)
 
 	return
@@ -60,5 +60,5 @@ func (a *auth) ParseToken(token string) (*IceToken, error) {
 	res := new(IceToken)
 	err := a.ice.VerifyTokenFields(token, res)
 
-	return res, errors.Wrapf(err, "can't verify jwt common fields for:%v", token)
+	return res, errors.Wrapf(err, "can't verify token fields for:%v", token)
 }
