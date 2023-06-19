@@ -31,6 +31,8 @@ func New(state State, cfgKey, swaggerRoot string) Server {
 }
 
 func (s *srv) ListenAndServe(ctx context.Context, cancel context.CancelFunc) {
+	authClient := auth.New(ctx, s.applicationYAMLKey)
+	ctx = context.WithValue(ctx, authClientCtxValueKey, authClient) //nolint:staticcheck,revive // .
 	s.Init(ctx, cancel)
 	s.setupRouter() //nolint:contextcheck // Nope, we don't need it.
 	s.setupServer(ctx)
@@ -86,13 +88,11 @@ func (s *srv) setupSwaggerRoutes() {
 }
 
 func (s *srv) setupServer(ctx context.Context) {
-	authClient := auth.New(ctx, s.applicationYAMLKey)
-
 	s.server = &http.Server{ //nolint:gosec // Not an issue, each request has a deadline set by the handler; and we're behind a proxy.
 		Addr:    fmt.Sprintf(":%v", cfg.HTTPServer.Port),
 		Handler: s.router,
 		BaseContext: func(_ net.Listener) context.Context {
-			return context.WithValue(ctx, authClientCtxValueKey, authClient) //nolint:staticcheck,revive // .
+			return ctx
 		},
 	}
 }

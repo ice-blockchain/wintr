@@ -153,12 +153,11 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 		hashCode = int64(0)
 		userID   = "bogus"
 		email    = "bogus@bogus.com"
+		deviceID = "00000000-0000-0000-0000-000000000001"
 		role     = "author"
-		claims   = map[string]any{
-			"role": role,
-		}
+		claims   = map[string]any{"role": role}
 	)
-	refreshToken, accessToken, err := client.GenerateTokens(now, userID, email, hashCode, seq, claims)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
@@ -207,9 +206,10 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 		userID   = "bogus"
 		email    = "bogus@bogus.com"
 		role     = "author"
+		deviceID = "00000000-0000-0000-0000-000000000001"
 		claims   = map[string]any{"role": role}
 	)
-	refreshToken, accessToken, err := client.GenerateTokens(now, userID, email, hashCode, seq, claims)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
@@ -225,6 +225,7 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	require.NoError(t, err)
 	assert.Equal(t, role, accessRes.Role)
 	assert.Equal(t, email, accessRes.Email)
+	assert.Equal(t, deviceID, accessRes.DeviceUniqueID)
 	assert.Equal(t, hashCode, accessRes.HashCode)
 	assert.Equal(t, seq, accessRes.Seq)
 
@@ -241,6 +242,7 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	require.NoError(t, err)
 	assert.Equal(t, role, accessRes.Role)
 	assert.Equal(t, email, accessRes.Email)
+	assert.Equal(t, deviceID, accessRes.DeviceUniqueID)
 	assert.Equal(t, hashCode, accessRes.HashCode)
 	assert.Equal(t, seq, accessRes.Seq)
 }
