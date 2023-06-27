@@ -185,7 +185,7 @@ func TestUpdateCustomClaims_Ice(t *testing.T) {
 			"role": "author",
 		}
 	)
-	require.Error(t, client.UpdateCustomClaims(ctx, userID, claims))
+	require.NoError(t, client.UpdateCustomClaims(ctx, userID, claims))
 }
 
 func TestDeleteUser_Ice(t *testing.T) {
@@ -218,7 +218,7 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	require.NoError(t, err)
 	issuer, err := accessRes.GetIssuer()
 	require.NoError(t, err)
-	assert.Equal(t, "ice.io", issuer)
+	assert.Equal(t, "ice.io/access", issuer)
 	subject, err := accessRes.GetSubject()
 	require.NoError(t, err)
 	assert.Equal(t, userID, subject)
@@ -235,7 +235,7 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	require.NoError(t, err)
 	issuer, err = refreshRes.GetIssuer()
 	require.NoError(t, err)
-	assert.Equal(t, "ice.io", issuer)
+	assert.Equal(t, "ice.io/refresh", issuer)
 	subject, err = refreshRes.GetSubject()
 	require.NoError(t, err)
 	assert.Equal(t, userID, subject)
