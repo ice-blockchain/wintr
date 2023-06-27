@@ -5,4 +5,8 @@ logger:
   encoder: console
   level: debug
 self:
-  wintr/server/auth:
+  wintr/auth/firebase:
+  wintr/auth/ice:
+    jwtSecret: bogus
+    refreshExpirationTime: 1h
+    accessExpirationTime: 1h

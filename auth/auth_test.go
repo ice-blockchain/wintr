@@ -4,16 +4,18 @@ package auth
 
 import (
 	"context"
+	"log"
 	"os"
 	"strings"
 	"testing"
 	stdlibtime "time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/auth/fixture"
-	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/time"
 )
 
 const (
@@ -40,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode) //nolint:gocritic // That's intended.
 }
 
-func TestVerifyToken_ValidToken(t *testing.T) {
+func TestVerifyFBToken_ValidToken(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
@@ -58,7 +60,7 @@ func TestVerifyToken_ValidToken(t *testing.T) {
 	require.NotEmpty(t, token.Claims)
 }
 
-func TestVerifyToken_InvalidToken(t *testing.T) {
+func TestVerifyFBToken_InvalidToken(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
@@ -66,54 +68,6 @@ func TestVerifyToken_InvalidToken(t *testing.T) {
 	token, err := client.VerifyToken(ctx, "invalid token")
 	require.Error(t, err)
 	require.Nil(t, token)
-}
-
-func TestUpdateEmail_Success(t *testing.T) {
-	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
-	defer cancel()
-
-	uid, _ := fixture.CreateUser("app")
-	uid2, _ := fixture.CreateUser("app")
-	defer fixture.DeleteUser(uid)
-	defer fixture.DeleteUser(uid2)
-
-	user, err := fixture.GetUser(ctx, uid)
-	require.NoError(t, err)
-	user2, err := fixture.GetUser(ctx, uid2)
-	require.NoError(t, err)
-	require.NotEqual(t, "foo1@bar.com", user.Email)
-	require.False(t, user.EmailVerified)
-	require.NoError(t, client.UpdateEmail(ctx, uid, "foo1@bar.com"))
-	require.ErrorIs(t, client.UpdateEmail(ctx, uid, user2.Email), ErrConflict)
-	require.ErrorIs(t, client.UpdateEmail(ctx, uuid.NewString(), "foo1@bar.com"), ErrUserNotFound)
-	user, err = fixture.GetUser(ctx, uid)
-	require.NoError(t, err)
-	require.Equal(t, "foo1@bar.com", user.Email)
-	require.True(t, user.EmailVerified)
-}
-
-func TestUpdatePhoneNumber_Success(t *testing.T) {
-	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
-	defer cancel()
-
-	uid, _ := fixture.CreateUser("app")
-	uid2, _ := fixture.CreateUser("app")
-	defer fixture.DeleteUser(uid)
-	defer fixture.DeleteUser(uid2)
-
-	user, err := fixture.GetUser(ctx, uid)
-	require.NoError(t, err)
-	user2, err := fixture.GetUser(ctx, uid2)
-	require.NoError(t, err)
-	require.NotEqual(t, "+12345678900", user.PhoneNumber)
-	require.NoError(t, client.UpdatePhoneNumber(ctx, uid, "+12345678900"))
-	require.ErrorIs(t, client.UpdatePhoneNumber(ctx, uid, user2.PhoneNumber), ErrConflict)
-	require.ErrorIs(t, client.UpdatePhoneNumber(ctx, uuid.NewString(), "+12345678901"), ErrUserNotFound)
-	user, err = fixture.GetUser(ctx, uid)
-	require.NoError(t, err)
-	require.Equal(t, "+12345678900", user.PhoneNumber)
 }
 
 func TestUpdateCustomClaims_Success(t *testing.T) {
@@ -129,7 +83,9 @@ func TestUpdateCustomClaims_Success(t *testing.T) {
 	require.EqualValues(t, map[string]any{"role": "app"}, user.CustomClaims)
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"a": 1, "b": map[string]any{"c": "x"}}))
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"b": map[string]any{"d": "y"}}))
-	require.ErrorIs(t, client.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}), ErrUserNotFound)
+	require.ErrorIs(t, client.(*auth).fb.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}), ErrUserNotFound) //nolint:forcetypeassert // .
+	// Ice no-op is called when user does not exist in firebase.
+	require.NoError(t, client.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}))
 	user, err = fixture.GetUser(ctx, uid)
 	require.NoError(t, err)
 	require.EqualValues(t, map[string]any{"a": 1.0, "b": map[string]any{"c": "x", "d": "y"}, "role": "app"}, user.CustomClaims)
@@ -150,4 +106,143 @@ func TestDeleteUser_Success(t *testing.T) {
 	_, err = fixture.GetUser(ctx, uid)
 	require.NotNil(t, err)
 	require.True(t, strings.HasPrefix(err.Error(), "no user exists with the"))
+}
+
+func TestVerifyIceToken_ValidToken(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	var (
+		seq    = int64(0)
+		userID = "bogus"
+		email  = "bogus@bogus.com"
+		role   = "author"
+	)
+	refreshToken, accessToken, err := fixture.GenerateIceTokens(userID, role)
+	require.NoError(t, err)
+
+	verifiedAccessToken, err := client.VerifyToken(ctx, accessToken)
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, email, verifiedAccessToken.Email)
+	assert.Equal(t, role, verifiedAccessToken.Role)
+	assert.Equal(t, userID, verifiedAccessToken.UserID)
+	assert.NotEmpty(t, email, verifiedAccessToken.Claims["email"])
+	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
+	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
+
+	_, err = client.VerifyToken(ctx, refreshToken)
+	require.Error(t, err, ErrWrongTypeToken)
+}
+
+func TestVerifyIceToken_InvalidToken(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	_, err := client.VerifyToken(ctx, "wrong")
+	require.Error(t, err)
+}
+
+func TestGenerateIceTokens_Valid(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	var (
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		deviceID = "00000000-0000-0000-0000-000000000001"
+		role     = "author"
+		claims   = map[string]any{"role": role}
+	)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
+	require.NoError(t, err)
+	assert.NotEmpty(t, refreshToken)
+	assert.NotEmpty(t, accessToken)
+
+	verifiedAccessToken, err := client.VerifyToken(ctx, accessToken)
+	require.NoError(t, err)
+	assert.NotEmpty(t, email, verifiedAccessToken.Email)
+	assert.Equal(t, role, verifiedAccessToken.Role)
+	assert.Equal(t, userID, verifiedAccessToken.UserID)
+	assert.NotEmpty(t, email, verifiedAccessToken.Claims["email"])
+	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
+	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
+
+	_, err = client.VerifyToken(ctx, refreshToken)
+	require.Error(t, err, ErrWrongTypeToken)
+}
+
+func TestUpdateCustomClaims_Ice(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	var (
+		userID = "ice"
+		claims = map[string]any{
+			"role": "author",
+		}
+	)
+	require.NoError(t, client.UpdateCustomClaims(ctx, userID, claims))
+}
+
+func TestDeleteUser_Ice(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	userID := "ice"
+
+	assert.Nil(t, client.DeleteUser(ctx, userID))
+}
+
+func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
+	t.Parallel()
+	var (
+		now      = time.Now()
+		seq      = int64(0)
+		hashCode = int64(0)
+		userID   = "bogus"
+		email    = "bogus@bogus.com"
+		role     = "author"
+		deviceID = "00000000-0000-0000-0000-000000000001"
+		claims   = map[string]any{"role": role}
+	)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
+	require.NoError(t, err)
+	assert.NotEmpty(t, refreshToken)
+	assert.NotEmpty(t, accessToken)
+
+	accessRes, err := client.ParseToken(accessToken)
+	require.NoError(t, err)
+	issuer, err := accessRes.GetIssuer()
+	require.NoError(t, err)
+	assert.Equal(t, "ice.io/access", issuer)
+	subject, err := accessRes.GetSubject()
+	require.NoError(t, err)
+	assert.Equal(t, userID, subject)
+	require.NoError(t, err)
+	assert.Equal(t, role, accessRes.Role)
+	assert.Equal(t, email, accessRes.Email)
+	assert.Equal(t, deviceID, accessRes.DeviceUniqueID)
+	assert.Equal(t, hashCode, accessRes.HashCode)
+	assert.Equal(t, seq, accessRes.Seq)
+
+	refreshRes, err := client.ParseToken(refreshToken)
+	require.NoError(t, err)
+	accessRes, err = client.ParseToken(accessToken)
+	require.NoError(t, err)
+	issuer, err = refreshRes.GetIssuer()
+	require.NoError(t, err)
+	assert.Equal(t, "ice.io/refresh", issuer)
+	subject, err = refreshRes.GetSubject()
+	require.NoError(t, err)
+	assert.Equal(t, userID, subject)
+	require.NoError(t, err)
+	assert.Equal(t, role, accessRes.Role)
+	assert.Equal(t, email, accessRes.Email)
+	assert.Equal(t, deviceID, accessRes.DeviceUniqueID)
+	assert.Equal(t, hashCode, accessRes.HashCode)
+	assert.Equal(t, seq, accessRes.Seq)
 }

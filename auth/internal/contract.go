@@ -2,15 +2,14 @@
 
 package internal
 
-// Private API.
+// Public API.
 
 type (
-	config struct {
-		WintrServerAuth struct {
-			Credentials struct {
-				FilePath    string `yaml:"filePath"`
-				FileContent string `yaml:"fileContent"`
-			} `yaml:"credentials" mapstructure:"credentials"`
-		} `yaml:"wintr/server/auth" mapstructure:"wintr/server/auth"` //nolint:tagliatelle // Nope.
+	Token struct {
+		Claims   map[string]any
+		UserID   string `json:"userId,omitempty"`
+		Role     string `json:"role,omitempty"`
+		Email    string `json:"email,omitempty"`
+		Provider string
 	}
 )

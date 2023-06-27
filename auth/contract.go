@@ -5,30 +5,32 @@ package auth
 import (
 	"context"
 
-	firebaseAuth "firebase.google.com/go/v4/auth"
-	"github.com/pkg/errors"
+	"github.com/ice-blockchain/wintr/auth/internal"
+	firebaseauth "github.com/ice-blockchain/wintr/auth/internal/firebase"
+	iceauth "github.com/ice-blockchain/wintr/auth/internal/ice"
+	"github.com/ice-blockchain/wintr/time"
 )
 
 // Public API.
 
 var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrConflict     = errors.New("change conflicts with another user")
+	ErrUserNotFound = firebaseauth.ErrUserNotFound
+	ErrConflict     = firebaseauth.ErrConflict
+
+	ErrInvalidToken   = iceauth.ErrInvalidToken
+	ErrExpiredToken   = iceauth.ErrExpiredToken
+	ErrWrongTypeToken = iceauth.ErrWrongTypeToken
 )
 
 type (
-	Token struct {
-		Claims map[string]any
-		UserID string `json:"userId,omitempty"`
-		Role   string `json:"role,omitempty"`
-		Email  string `json:"email,omitempty"`
-	}
-	Client interface {
+	Token    = internal.Token
+	IceToken = iceauth.Token
+	Client   interface {
 		VerifyToken(ctx context.Context, token string) (*Token, error)
+		ParseToken(token string) (*IceToken, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
-		UpdateEmail(ctx context.Context, userID, email string) error
-		UpdatePhoneNumber(ctx context.Context, userID, phoneNumber string) error
 		DeleteUser(ctx context.Context, userID string) error
+		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
 	}
 )
 
@@ -36,6 +38,7 @@ type (
 
 type (
 	auth struct {
-		client *firebaseAuth.Client
+		ice iceauth.Client
+		fb  firebaseauth.Client
 	}
 )

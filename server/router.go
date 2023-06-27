@@ -166,7 +166,7 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 	userID := strings.Trim(req.ginCtx.Param("userId"), " ")
 	if req.allowUnauthorized {
 		defer func() {
-			if (req.ginCtx.Request.Method == http.MethodGet && userID == "") || userID == "-" {
+			if ((req.ginCtx.Request.Method == http.MethodGet || req.ginCtx.Request.Method == http.MethodPost) && userID == "") || userID == "-" {
 				errResp = nil
 			}
 		}()
