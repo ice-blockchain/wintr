@@ -33,22 +33,29 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid email token:%v", token)
 	}
-	if iceToken.Issuer == RefreshJwtIssuer {
-		return nil, errors.Wrap(ErrWrongTypeToken, "access to endpoint with refresh token")
+	if iceToken.Issuer != AccessJwtIssuer {
+		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
 	}
-
-	return &internal.Token{
+	tok := &internal.Token{
 		Claims: map[string]any{
-			"email":    iceToken.Email,
-			"role":     iceToken.Role,
-			"seq":      iceToken.Seq,
-			"hashCode": iceToken.HashCode,
+			"email":          iceToken.Email,
+			"role":           iceToken.Role,
+			"seq":            iceToken.Seq,
+			"hashCode":       iceToken.HashCode,
+			"deviceUniqueID": iceToken.DeviceUniqueID,
 		},
 		UserID:   iceToken.Subject,
 		Email:    iceToken.Email,
 		Role:     iceToken.Role,
 		Provider: AccessJwtIssuer,
-	}, nil
+	}
+	if iceToken.Custom != nil {
+		for claimKey, claimValue := range *iceToken.Custom {
+			tok.Claims[claimKey] = claimValue
+		}
+	}
+
+	return tok, nil
 }
 
 func (a *auth) VerifyTokenFields(jwtToken string, res jwt.Claims) error {
