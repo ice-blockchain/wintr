@@ -30,11 +30,12 @@ import (
 var (
 	globalFirebaseClient *firebaseAuth.Client
 	globalIceClient      iceauth.Client
-	singleton            = new(sync.Once)
+	singletonIce         = new(sync.Once)
+	singletonFirebase    = new(sync.Once)
 )
 
 func clientFirebase() *firebaseAuth.Client {
-	singleton.Do(func() {
+	singletonFirebase.Do(func() {
 		globalFirebaseClient = newFirebaseClient()
 	})
 
@@ -42,7 +43,7 @@ func clientFirebase() *firebaseAuth.Client {
 }
 
 func clientIce() iceauth.Client {
-	singleton.Do(func() {
+	singletonIce.Do(func() {
 		globalIceClient = iceauth.New(applicationYAMLKey)
 	})
 

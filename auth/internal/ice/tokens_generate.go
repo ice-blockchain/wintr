@@ -29,7 +29,7 @@ func (a *auth) GenerateTokens(
 func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, email string, seq int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    JwtIssuer,
+			Issuer:    RefreshJwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.RefreshExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),
@@ -51,7 +51,7 @@ func (a *auth) generateAccessToken(
 	claims map[string]any,
 ) (string, error) {
 	var customClaims *map[string]any
-	role := defaultRole
+	role := ""
 	if clRole, ok := claims["role"]; ok {
 		if roleS, isStr := clRole.(string); isStr {
 			role = roleS
@@ -63,7 +63,7 @@ func (a *auth) generateAccessToken(
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    JwtIssuer,
+			Issuer:    AccessJwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.AccessExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),

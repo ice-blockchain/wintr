@@ -33,7 +33,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid email token:%v", token)
 	}
-	if iceToken.Role == "" {
+	if iceToken.Issuer == RefreshJwtIssuer {
 		return nil, errors.Wrap(ErrWrongTypeToken, "access to endpoint with refresh token")
 	}
 
@@ -47,7 +47,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		UserID:   iceToken.Subject,
 		Email:    iceToken.Email,
 		Role:     iceToken.Role,
-		Provider: JwtIssuer,
+		Provider: AccessJwtIssuer,
 	}, nil
 }
 
@@ -73,7 +73,7 @@ func DetectIceToken(jwtToken string) error {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
 		return errors.Errorf("unexpected signing method:%v", token.Header["alg"])
 	}
-	if iss, iErr := token.Claims.GetIssuer(); iErr != nil || iss != JwtIssuer {
+	if iss, iErr := token.Claims.GetIssuer(); iErr != nil || (iss != AccessJwtIssuer && iss != RefreshJwtIssuer) {
 		return errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 	}
 
@@ -85,7 +85,7 @@ func (a *auth) verify() func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		if iss, err := token.Claims.GetIssuer(); err != nil || iss != JwtIssuer {
+		if iss, err := token.Claims.GetIssuer(); err != nil || (iss != AccessJwtIssuer && iss != RefreshJwtIssuer) {
 			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 		}
 

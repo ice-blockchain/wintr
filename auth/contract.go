@@ -13,10 +13,6 @@ import (
 
 // Public API.
 
-const (
-	JwtIssuer = iceauth.JwtIssuer
-)
-
 var (
 	ErrUserNotFound = firebaseauth.ErrUserNotFound
 	ErrConflict     = firebaseauth.ErrConflict

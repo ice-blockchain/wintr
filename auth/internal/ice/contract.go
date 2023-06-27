@@ -15,7 +15,8 @@ import (
 // Public API.
 
 const (
-	JwtIssuer = "ice.io"
+	RefreshJwtIssuer = "ice.io/refresh"
+	AccessJwtIssuer  = "ice.io/access"
 )
 
 var (
@@ -43,10 +44,6 @@ type (
 )
 
 // Private API.
-
-const (
-	defaultRole = "app"
-)
 
 type (
 	auth struct {
