@@ -42,7 +42,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		claims := *iceToken.Custom
 		if registeredWithProviderInterface, found := claims[internal.RegisteredWithProviderClaim]; found {
 			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
-			if registeredWithProvider == ProviderFirebase {
+			if registeredWithProvider == internal.ProviderFirebase {
 				if firebaseIDInterface, ok := claims[FirebaseIDClaim]; ok {
 					userID, _ = firebaseIDInterface.(string) //nolint:errcheck // Not needed.
 				}
@@ -61,7 +61,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		UserID:   userID,
 		Email:    iceToken.Email,
 		Role:     iceToken.Role,
-		Provider: internal.AccessJwtIssuer,
+		Provider: internal.ProviderIce,
 	}
 	if iceToken.Custom != nil {
 		for claimKey, claimValue := range *iceToken.Custom {

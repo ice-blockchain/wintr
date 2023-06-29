@@ -15,9 +15,9 @@ import (
 
 const (
 	IceIDClaim                  = firebaseauth.IceIDClaim
-	ProviderIce                 = firebaseauth.ProviderIce
 	FirebaseIDClaim             = iceauth.FirebaseIDClaim
-	ProviderFirebase            = iceauth.ProviderFirebase
+	ProviderIce                 = internal.ProviderIce
+	ProviderFirebase            = internal.ProviderFirebase
 	RegisteredWithProviderClaim = internal.RegisteredWithProviderClaim
 )
 

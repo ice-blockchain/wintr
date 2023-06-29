@@ -15,8 +15,7 @@ import (
 // Public API.
 
 const (
-	ProviderFirebase = "firebase"
-	FirebaseIDClaim  = "firebaseId"
+	FirebaseIDClaim = "firebaseId"
 )
 
 var (

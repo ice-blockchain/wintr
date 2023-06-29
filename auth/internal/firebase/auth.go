@@ -66,7 +66,7 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 		}
 		if registeredWithProviderInterface, found := firebaseToken.Claims[internal.RegisteredWithProviderClaim]; found {
 			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
-			if registeredWithProvider == ProviderIce {
+			if registeredWithProvider == internal.ProviderIce {
 				if iceIDInterface, ok := firebaseToken.Claims[IceIDClaim]; ok {
 					userID, _ = iceIDInterface.(string) //nolint:errcheck // Not needed.
 				}
@@ -79,7 +79,7 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 		Claims:   firebaseToken.Claims,
 		Email:    email,
 		Role:     role,
-		Provider: firebaseToken.Issuer,
+		Provider: internal.ProviderFirebase,
 	}, nil
 }
 

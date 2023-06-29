@@ -14,8 +14,7 @@ import (
 // Public API.
 
 const (
-	IceIDClaim  = "iceId"
-	ProviderIce = "ice"
+	IceIDClaim = "iceId"
 )
 
 var (
