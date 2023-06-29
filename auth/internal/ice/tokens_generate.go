@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
+	"github.com/ice-blockchain/wintr/auth/internal"
 	"github.com/ice-blockchain/wintr/time"
 )
 
@@ -29,7 +30,7 @@ func (a *auth) GenerateTokens(
 func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, email string, seq int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    RefreshJwtIssuer,
+			Issuer:    internal.RefreshJwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.RefreshExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),
@@ -63,7 +64,7 @@ func (a *auth) generateAccessToken(
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
-			Issuer:    AccessJwtIssuer,
+			Issuer:    internal.AccessJwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(a.cfg.WintrAuthIce.AccessExpirationTime)),
 			NotBefore: jwt.NewNumericDate(*now.Time),

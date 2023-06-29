@@ -15,8 +15,8 @@ import (
 // Public API.
 
 const (
-	RefreshJwtIssuer = "ice.io/refresh"
-	AccessJwtIssuer  = "ice.io/access"
+	ProviderFirebase = "firebase"
+	FirebaseIDClaim  = "firebaseId"
 )
 
 var (

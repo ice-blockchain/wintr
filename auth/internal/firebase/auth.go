@@ -56,17 +56,26 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 		return nil, errors.Wrap(vErr, "error verifying firebase token")
 	}
 	var email, role string
-	if len(firebaseToken.Claims) > 0 {
+	userID := firebaseToken.UID
+	if len(firebaseToken.Claims) > 0 { //nolint:nestif // .
 		if emailInterface, found := firebaseToken.Claims["email"]; found {
 			email, _ = emailInterface.(string) //nolint:errcheck // Not needed.
 		}
 		if roleInterface, found := firebaseToken.Claims["role"]; found {
 			role, _ = roleInterface.(string) //nolint:errcheck // Not needed.
 		}
+		if registeredWithProviderInterface, found := firebaseToken.Claims[internal.RegisteredWithProviderClaim]; found {
+			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
+			if registeredWithProvider == ProviderIce {
+				if iceIDInterface, ok := firebaseToken.Claims[IceIDClaim]; ok {
+					userID, _ = iceIDInterface.(string) //nolint:errcheck // Not needed.
+				}
+			}
+		}
 	}
 
 	return &internal.Token{
-		UserID:   firebaseToken.UID,
+		UserID:   userID,
 		Claims:   firebaseToken.Claims,
 		Email:    email,
 		Role:     role,

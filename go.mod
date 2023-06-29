@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ice-blockchain/go-tarantool-client v0.0.0-20230327200757-4fc71fa3f7bb
 	github.com/imdario/mergo v0.3.16
-	github.com/imroc/req/v3 v3.37.1
+	github.com/imroc/req/v3 v3.37.2
 	github.com/jackc/pgx/v5 v5.4.1
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
@@ -30,13 +30,13 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
-	github.com/testcontainers/testcontainers-go v0.20.1
-	github.com/twilio/twilio-go v1.8.0
+	github.com/testcontainers/testcontainers-go v0.21.0
+	github.com/twilio/twilio-go v1.9.0
 	github.com/twmb/franz-go v1.13.6
 	github.com/twmb/franz-go/pkg/kadm v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	golang.org/x/net v0.11.0
-	google.golang.org/api v0.128.0
+	google.golang.org/api v0.129.0
 )
 
 require (
@@ -46,7 +46,7 @@ require (
 	cloud.google.com/go/firestore v1.11.0 // indirect
 	cloud.google.com/go/iam v1.1.1 // indirect
 	cloud.google.com/go/longrunning v0.5.1 // indirect
-	cloud.google.com/go/storage v1.30.1 // indirect
+	cloud.google.com/go/storage v1.31.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
@@ -148,9 +148,9 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/appengine/v2 v2.0.3 // indirect
-	google.golang.org/genproto v0.0.0-20230626202813-9b080da550b3 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230626202813-9b080da550b3 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230626202813-9b080da550b3 // indirect
+	google.golang.org/genproto v0.0.0-20230628200519-e449d1ea0e82 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20230628200519-e449d1ea0e82 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230628200519-e449d1ea0e82 // indirect
 	google.golang.org/grpc v1.56.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

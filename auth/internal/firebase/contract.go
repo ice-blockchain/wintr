@@ -13,6 +13,11 @@ import (
 
 // Public API.
 
+const (
+	IceIDClaim  = "iceId"
+	ProviderIce = "ice"
+)
+
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrConflict     = errors.New("change conflicts with another user")
