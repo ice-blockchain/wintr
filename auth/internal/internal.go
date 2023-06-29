@@ -2,14 +2,10 @@
 
 package internal
 
-import (
-	"strings"
-)
-
 func (t *Token) IsIce() bool {
-	return t.Provider == AccessJwtIssuer || t.Provider == RefreshJwtIssuer
+	return t.Provider == ProviderIce
 }
 
 func (t *Token) IsFirebase() bool {
-	return strings.HasPrefix(t.Provider, "https://securetoken.google.com")
+	return t.Provider == ProviderFirebase
 }
