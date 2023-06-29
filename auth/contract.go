@@ -13,6 +13,14 @@ import (
 
 // Public API.
 
+const (
+	IceIDClaim                  = firebaseauth.IceIDClaim
+	FirebaseIDClaim             = iceauth.FirebaseIDClaim
+	ProviderIce                 = internal.ProviderIce
+	ProviderFirebase            = internal.ProviderFirebase
+	RegisteredWithProviderClaim = internal.RegisteredWithProviderClaim
+)
+
 var (
 	ErrUserNotFound = firebaseauth.ErrUserNotFound
 	ErrConflict     = firebaseauth.ErrConflict

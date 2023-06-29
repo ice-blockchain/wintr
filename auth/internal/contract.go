@@ -4,6 +4,14 @@ package internal
 
 // Public API.
 
+const (
+	RefreshJwtIssuer            = "ice.io/refresh"
+	AccessJwtIssuer             = "ice.io/access"
+	RegisteredWithProviderClaim = "registeredWithProvider"
+	ProviderFirebase            = "firebase"
+	ProviderIce                 = "ice"
+)
+
 type (
 	Token struct {
 		Claims   map[string]any
