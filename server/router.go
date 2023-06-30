@@ -178,7 +178,7 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 		return Unauthorized(err)
 	}
 	req.AuthenticatedUser.Token = *token
-
+	req.AuthenticatedUser.Language = req.ginCtx.GetHeader(languageHeader)
 	if userID != "" &&
 		userID != "-" &&
 		req.AuthenticatedUser.UserID != userID &&

@@ -25,6 +25,7 @@ type (
 	// AuthenticatedUser is the payload structure extracted from the Authorization header, after a successful authentication.
 	AuthenticatedUser struct {
 		auth.Token
+		Language string
 	}
 	// State is the actual custom behaviour that has to be implemented by users of this package to customize their http server`s lifecycle.
 	State interface {
@@ -74,6 +75,8 @@ const (
 	query
 	header
 	formMultipart
+
+	languageHeader = "X-Language"
 )
 
 const (
