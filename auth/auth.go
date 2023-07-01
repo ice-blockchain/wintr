@@ -56,6 +56,12 @@ func (a *auth) GenerateTokens( //nolint:revive // We need to have these paramete
 	return
 }
 
+func (a *auth) GenerateMetadata(
+	now *time.Time, userID string, metadata map[string]any,
+) (string, error) {
+	return a.ice.GenerateMetadata(now, userID, metadata)
+}
+
 func (a *auth) ParseToken(token string) (*IceToken, error) {
 	res := new(IceToken)
 	err := a.ice.VerifyTokenFields(token, res)

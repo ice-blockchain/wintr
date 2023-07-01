@@ -39,6 +39,7 @@ type (
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
 		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
+		GenerateMetadata(now *time.Time, userID string, md map[string]any) (string, error)
 	}
 )
 
