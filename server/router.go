@@ -162,6 +162,7 @@ func (req *Request[REQ, RESP]) validate() *Response[ErrorResponse] {
 	return UnprocessableEntity(errors.Errorf("properties `%v` are required", strings.Join(requiredFields, ",")), "MISSING_PROPERTIES")
 }
 
+//nolint:gocyclo,revive,cyclop // .
 func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response[ErrorResponse]) { //nolint:gocognit // .
 	userID := strings.Trim(req.ginCtx.Param("userId"), " ")
 	if req.allowUnauthorized {
@@ -173,8 +174,12 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 	}
 
 	authToken := strings.TrimPrefix(req.ginCtx.GetHeader("Authorization"), "Bearer ")
-	token, err := ctx.Value(authClientCtxValueKey).(auth.Client).VerifyToken(ctx, authToken)
+	token, err := Auth(ctx).VerifyToken(ctx, authToken)
 	if err != nil {
+		return Unauthorized(err)
+	}
+	metadataHeader := req.ginCtx.GetHeader("X-Account-Metadata")
+	if err = Auth(ctx).ModifyTokenWithMetadata(token, metadataHeader); err != nil {
 		return Unauthorized(err)
 	}
 	req.AuthenticatedUser.Token = *token

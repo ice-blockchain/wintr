@@ -27,7 +27,6 @@ func New(applicationYAMLKey string) Client {
 	}
 }
 
-//nolint:funlen // Claims.
 func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	var iceToken Token
 	err := a.VerifyTokenFields(token, &iceToken)
@@ -38,17 +37,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
 	}
 	userID := iceToken.Subject
-	if iceToken.Custom != nil { //nolint:nestif // .
-		claims := *iceToken.Custom
-		if registeredWithProviderInterface, found := claims[internal.RegisteredWithProviderClaim]; found {
-			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
-			if registeredWithProvider == internal.ProviderFirebase {
-				if firebaseIDInterface, ok := claims[FirebaseIDClaim]; ok {
-					userID, _ = firebaseIDInterface.(string) //nolint:errcheck // Not needed.
-				}
-			}
-		}
-	}
 
 	tok := &internal.Token{
 		Claims: map[string]any{
@@ -106,7 +94,9 @@ func (a *auth) verify() func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		if iss, err := token.Claims.GetIssuer(); err != nil || (iss != internal.AccessJwtIssuer && iss != internal.RefreshJwtIssuer) {
+		iss, err := token.Claims.GetIssuer()
+		invalidIssuer := (iss != internal.AccessJwtIssuer && iss != internal.RefreshJwtIssuer && iss != internal.MetadataIssuer)
+		if err != nil || invalidIssuer {
 			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 		}
 

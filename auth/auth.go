@@ -5,8 +5,10 @@ package auth
 import (
 	"context"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
+	"github.com/ice-blockchain/wintr/auth/internal"
 	firebaseAuth "github.com/ice-blockchain/wintr/auth/internal/firebase"
 	iceAuth "github.com/ice-blockchain/wintr/auth/internal/ice"
 	"github.com/ice-blockchain/wintr/time"
@@ -29,6 +31,46 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 	authToken, err := a.ice.VerifyToken(token)
 
 	return authToken, errors.Wrapf(err, "can't verify ice token:%v", token)
+}
+
+func (a *auth) ModifyTokenWithMetadata(token *Token, metadataStr string) error {
+	if metadataStr == "" {
+		return nil
+	}
+	var metadata jwt.MapClaims
+	if err := a.ice.VerifyTokenFields(metadataStr, &metadata); err != nil {
+		return errors.Wrapf(err, "invalid metadata token:%v", token)
+	}
+	if metadata["iss"] != internal.MetadataIssuer {
+		return errors.Wrapf(ErrWrongTypeToken, "non-metadata token: %v", metadata["iss"])
+	}
+	if token.UserID != metadata["sub"] {
+		return errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", token.UserID, metadata)
+	}
+	if userID := a.firstRegisteredUserID(metadata); userID != "" {
+		token.UserID = userID
+	}
+
+	return nil
+}
+
+func (*auth) firstRegisteredUserID(metadata map[string]any) string {
+	var userID string
+	if registeredWithProviderInterface, found := metadata[internal.RegisteredWithProviderClaim]; found {
+		registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
+		switch registeredWithProvider {
+		case internal.ProviderFirebase:
+			if firebaseIDInterface, ok := metadata[internal.FirebaseIDClaim]; ok {
+				userID, _ = firebaseIDInterface.(string) //nolint:errcheck // Not needed.
+			}
+		case internal.ProviderIce:
+			if iceIDInterface, ok := metadata[internal.IceIDClaim]; ok {
+				userID, _ = iceIDInterface.(string) //nolint:errcheck // Not needed.
+			}
+		}
+	}
+
+	return userID
 }
 
 func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
@@ -57,9 +99,11 @@ func (a *auth) GenerateTokens( //nolint:revive // We need to have these paramete
 }
 
 func (a *auth) GenerateMetadata(
-	now *time.Time, userID string, metadata map[string]any,
+	now *time.Time, tokenID string, metadata map[string]any,
 ) (string, error) {
-	return a.ice.GenerateMetadata(now, userID, metadata)
+	md, err := a.ice.GenerateMetadata(now, tokenID, metadata)
+
+	return md, errors.Wrapf(err, "failed to generate metadata token for token %v", tokenID)
 }
 
 func (a *auth) ParseToken(token string) (*IceToken, error) {

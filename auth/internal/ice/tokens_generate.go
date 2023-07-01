@@ -82,12 +82,12 @@ func (a *auth) generateAccessToken(
 	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v, email:%v, deviceUniqueId:%v", userID, email, deviceUniqueID)
 }
 
-func (a *auth) GenerateMetadata(now *time.Time, userID string, metadata map[string]any) (string, error) {
-	metadata["sub"] = userID
-	metadata["iss"] = metadataIssuer
+func (a *auth) GenerateMetadata(now *time.Time, tokenID string, metadata map[string]any) (string, error) {
+	metadata["sub"] = tokenID
+	metadata["iss"] = internal.MetadataIssuer
 	metadata["iat"] = jwt.NewNumericDate(*now.Time)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(metadata))
 	tokenStr, err := a.signToken(token)
 
-	return tokenStr, errors.Wrapf(err, "failed to generate metadata token for payload userID:%v, metadata:%#v", userID, metadata)
+	return tokenStr, errors.Wrapf(err, "failed to generate metadata token for payload tokenID:%v, metadata:%#v", tokenID, metadata)
 }
