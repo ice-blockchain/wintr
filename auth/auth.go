@@ -103,7 +103,7 @@ func (a *auth) GenerateMetadata(
 ) (string, error) {
 	md, err := a.ice.GenerateMetadata(now, tokenID, metadata)
 
-	return md, errors.Wrapf(err, "failed to generate metadata token for token %v", tokenID)
+	return md, errors.Wrapf(err, "failed to generate metadata token for tokenID:%v", tokenID)
 }
 
 func (a *auth) ParseToken(token string) (*IceToken, error) {

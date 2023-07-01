@@ -25,7 +25,6 @@ type (
 		VerifyToken(token string) (*internal.Token, error)
 		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
 		VerifyTokenFields(token string, res jwt.Claims) error
-
 		GenerateMetadata(now *time.Time, tokenID string, metadata map[string]any) (string, error)
 	}
 
