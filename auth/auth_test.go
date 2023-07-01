@@ -270,6 +270,10 @@ func TestMetadata_Empty(t *testing.T) {
 	assert.Equal(t, decodedMetadata["sub"], userID)
 	assert.Equal(t, decodedMetadata["iss"], internal.MetadataIssuer)
 	assert.Equal(t, int64(decodedMetadata["iat"].(float64)), now.Unix()) //nolint:forcetypeassert // .
+
+	err = client.ModifyTokenWithMetadata(tok, "")
+	require.NoError(t, err)
+	assert.Equal(t, tok.UserID, userID)
 }
 
 func TestMetadata_RegisteredBy(t *testing.T) { //nolint:funlen // .
