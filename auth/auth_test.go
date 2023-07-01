@@ -10,11 +10,13 @@ import (
 	"testing"
 	stdlibtime "time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/auth/fixture"
+	"github.com/ice-blockchain/wintr/auth/internal"
 	"github.com/ice-blockchain/wintr/time"
 )
 
@@ -246,4 +248,90 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	assert.Equal(t, deviceID, accessRes.DeviceUniqueID)
 	assert.Equal(t, hashCode, accessRes.HashCode)
 	assert.Equal(t, seq, accessRes.Seq)
+}
+
+func TestMetadata_Empty(t *testing.T) {
+	t.Parallel()
+	var (
+		now    = time.Now()
+		userID = uuid.NewString()
+	)
+	metadataToken, err := client.GenerateMetadata(now, userID, map[string]any{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, metadataToken)
+
+	tok := &Token{UserID: userID}
+	err = client.ModifyTokenWithMetadata(tok, metadataToken)
+	require.NoError(t, err)
+	assert.Equal(t, tok.UserID, userID)
+	var decodedMetadata jwt.MapClaims
+	err = client.(*auth).ice.VerifyTokenFields(metadataToken, &decodedMetadata) //nolint:forcetypeassert // .
+	require.NoError(t, err)
+	assert.Equal(t, decodedMetadata["sub"], userID)
+	assert.Equal(t, decodedMetadata["iss"], internal.MetadataIssuer)
+	assert.Equal(t, int64(decodedMetadata["iat"].(float64)), now.Unix()) //nolint:forcetypeassert // .
+}
+
+func TestMetadata_RegisteredBy(t *testing.T) { //nolint:funlen // .
+	t.Parallel()
+	testfunc := func(t *testing.T, provider, iceID, firebaseID, result string) {
+		t.Helper()
+		var (
+			now    = time.Now()
+			userID = uuid.NewString()
+		)
+		metadataToken, err := client.GenerateMetadata(now, userID, map[string]any{
+			IceIDClaim:                  iceID,
+			RegisteredWithProviderClaim: provider,
+			FirebaseIDClaim:             firebaseID,
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, metadataToken)
+
+		tok := &Token{UserID: userID}
+		err = client.ModifyTokenWithMetadata(tok, metadataToken)
+		require.NoError(t, err)
+		assert.Equal(t, tok.UserID, result)
+		var decodedMetadata jwt.MapClaims
+		err = client.(*auth).ice.VerifyTokenFields(metadataToken, &decodedMetadata) //nolint:forcetypeassert // .
+		require.NoError(t, err)
+		assert.Equal(t, decodedMetadata["sub"], userID)
+		assert.Equal(t, decodedMetadata["iss"], internal.MetadataIssuer)
+		assert.Equal(t, int64(decodedMetadata["iat"].(float64)), now.Unix()) //nolint:forcetypeassert // .
+		assert.Equal(t, decodedMetadata[IceIDClaim], iceID)
+		assert.Equal(t, decodedMetadata[FirebaseIDClaim], firebaseID)
+		assert.Equal(t, decodedMetadata[RegisteredWithProviderClaim], provider)
+	}
+	t.Run("firebase", func(tt *testing.T) {
+		tt.Parallel()
+		fbID := uuid.NewString()
+		iceID := uuid.NewString()
+		testfunc(tt, ProviderFirebase, iceID, fbID, fbID)
+	})
+	t.Run("ice", func(tt *testing.T) {
+		tt.Parallel()
+		fbID := uuid.NewString()
+		iceID := uuid.NewString()
+		testfunc(tt, ProviderIce, iceID, fbID, iceID)
+	})
+}
+
+func TestMetadataMetadataNotOwnedByToken(t *testing.T) {
+	t.Parallel()
+	var (
+		now    = time.Now()
+		userID = uuid.NewString()
+	)
+
+	metadataToken, err := client.GenerateMetadata(now, userID, map[string]any{
+		IceIDClaim:                  uuid.NewString(),
+		RegisteredWithProviderClaim: ProviderFirebase,
+		FirebaseIDClaim:             uuid.NewString(),
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, metadataToken)
+
+	tok := &Token{UserID: uuid.NewString()} // Metadata was issued for token "userID", not random one.
+	err = client.ModifyTokenWithMetadata(tok, metadataToken)
+	require.Error(t, err, ErrInvalidToken)
 }
