@@ -23,6 +23,7 @@ type (
 		VerifyToken(ctx context.Context, token string) (*internal.Token, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
+		UpdateEmail(ctx context.Context, userID, email string) error
 		GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRecord, error)
 	}
 )

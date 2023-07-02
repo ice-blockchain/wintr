@@ -101,6 +101,24 @@ func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClai
 	return nil
 }
 
+func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
+	if ctx.Err() != nil {
+		return errors.Wrap(ctx.Err(), "context failed")
+	}
+	if _, err := a.client.UpdateUser(ctx, userID, new(firebaseAuth.UserToUpdate).Email(email).EmailVerified(true)); err != nil {
+		if strings.HasSuffix(err.Error(), "user with the provided email already exists") {
+			return ErrConflict
+		}
+		if strings.HasSuffix(err.Error(), "no user record found for the given identifier") {
+			return ErrUserNotFound
+		}
+
+		return errors.Wrapf(err, "failed to update email to `%v`, for userID:`%v`", email, userID)
+	}
+
+	return nil
+}
+
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
