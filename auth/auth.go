@@ -33,25 +33,25 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 	return authToken, errors.Wrapf(err, "can't verify ice token:%v", token)
 }
 
-func (a *auth) ModifyTokenWithMetadata(token *Token, metadataStr string) error {
+func (a *auth) ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token, error) {
 	if metadataStr == "" {
-		return nil
+		return token, nil
 	}
 	var metadata jwt.MapClaims
 	if err := a.ice.VerifyTokenFields(metadataStr, &metadata); err != nil {
-		return errors.Wrapf(err, "invalid metadata token:%v", token)
+		return nil, errors.Wrapf(err, "invalid metadata token:%v", token)
 	}
 	if metadata["iss"] != internal.MetadataIssuer {
-		return errors.Wrapf(ErrWrongTypeToken, "non-metadata token: %v", metadata["iss"])
+		return nil, errors.Wrapf(ErrWrongTypeToken, "non-metadata token: %v", metadata["iss"])
 	}
 	if token.UserID != metadata["sub"] {
-		return errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", token.UserID, metadata)
+		return nil, errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", token.UserID, metadata)
 	}
 	if userID := a.firstRegisteredUserID(metadata); userID != "" {
 		token.UserID = userID
 	}
 
-	return nil
+	return token, nil
 }
 
 func (*auth) firstRegisteredUserID(metadata map[string]any) string {
@@ -90,9 +90,9 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
-	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any,
+	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string,
 ) (accessToken, refreshToken string, err error) {
-	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, claims)
+	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role)
 	err = errors.Wrapf(err, "can't generate tokens for userID:%v, email:%v", userID, email)
 
 	return

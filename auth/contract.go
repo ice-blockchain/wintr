@@ -38,9 +38,9 @@ type (
 		ParseToken(token string) (*IceToken, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
-		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
+		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (string, string, error)
 		GenerateMetadata(now *time.Time, userID string, md map[string]any) (string, error)
-		ModifyTokenWithMetadata(token *Token, metadataStr string) error
+		ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token, error)
 	}
 )
 

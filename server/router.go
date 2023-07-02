@@ -179,7 +179,7 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 		return Unauthorized(err)
 	}
 	metadataHeader := req.ginCtx.GetHeader("X-Account-Metadata")
-	if err = Auth(ctx).ModifyTokenWithMetadata(token, metadataHeader); err != nil {
+	if token, err = Auth(ctx).ModifyTokenWithMetadata(token, metadataHeader); err != nil {
 		return Unauthorized(err)
 	}
 	req.AuthenticatedUser.Token = *token

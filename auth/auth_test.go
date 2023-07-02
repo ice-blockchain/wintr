@@ -157,9 +157,8 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 		email    = "bogus@bogus.com"
 		deviceID = "00000000-0000-0000-0000-000000000001"
 		role     = "author"
-		claims   = map[string]any{"role": role, "reallyCustomClaim": "claimData"}
 	)
-	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, role)
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
@@ -173,7 +172,6 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
 	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
 	assert.Equal(t, deviceID, verifiedAccessToken.Claims["deviceUniqueID"])
-	assert.Equal(t, "claimData", verifiedAccessToken.Claims["reallyCustomClaim"])
 	_, err = client.VerifyToken(ctx, refreshToken)
 	require.Error(t, err, ErrWrongTypeToken)
 }
@@ -210,9 +208,8 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 		email    = "bogus@bogus.com"
 		role     = "author"
 		deviceID = "00000000-0000-0000-0000-000000000001"
-		claims   = map[string]any{"role": role}
 	)
-	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, claims)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, role)
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
@@ -267,20 +264,17 @@ func TestMetadata_Empty(t *testing.T) {
 	assert.Equal(t, userID, decodedMetadata["sub"])
 	assert.Equal(t, internal.MetadataIssuer, decodedMetadata["iss"])
 	assert.Equal(t, now.Unix(), int64(decodedMetadata["iat"].(float64))) //nolint:forcetypeassert // .
-
 	tok := &Token{UserID: userID}
-	err = client.ModifyTokenWithMetadata(tok, metadataToken)
+	tok, err = client.ModifyTokenWithMetadata(tok, metadataToken)
 	require.NoError(t, err)
 	assert.Equal(t, userID, tok.UserID)
-
 	err = client.(*auth).ice.VerifyTokenFields(metadataToken, &decodedMetadata) //nolint:forcetypeassert // .
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(decodedMetadata))
 	assert.Equal(t, userID, decodedMetadata["sub"])
 	assert.Equal(t, internal.MetadataIssuer, decodedMetadata["iss"])
 	assert.Equal(t, now.Unix(), int64(decodedMetadata["iat"].(float64))) //nolint:forcetypeassert // .
-
-	err = client.ModifyTokenWithMetadata(tok, "")
+	tok, err = client.ModifyTokenWithMetadata(tok, "")
 	require.NoError(t, err)
 	assert.Equal(t, tok.UserID, userID)
 }
@@ -313,7 +307,7 @@ func TestMetadata_RegisteredBy(t *testing.T) { //nolint:funlen // .
 		assert.Equal(t, provider, decodedMetadata[RegisteredWithProviderClaim])
 
 		tok := &Token{UserID: userID}
-		err = client.ModifyTokenWithMetadata(tok, metadataToken)
+		tok, err = client.ModifyTokenWithMetadata(tok, metadataToken)
 		require.NoError(t, err)
 		assert.Equal(t, tok.UserID, result)
 
@@ -357,6 +351,6 @@ func TestMetadata_MetadataNotOwnedByToken(t *testing.T) {
 	assert.NotEmpty(t, metadataToken)
 
 	tok := &Token{UserID: uuid.NewString()} // Metadata was issued for token "userID", not random one.
-	err = client.ModifyTokenWithMetadata(tok, metadataToken)
+	_, err = client.ModifyTokenWithMetadata(tok, metadataToken)
 	require.Error(t, err, ErrInvalidToken)
 }

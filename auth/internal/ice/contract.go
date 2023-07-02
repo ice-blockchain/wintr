@@ -23,19 +23,18 @@ var (
 type (
 	Client interface {
 		VerifyToken(token string) (*internal.Token, error)
-		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
+		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (string, string, error)
 		VerifyTokenFields(token string, res jwt.Claims) error
 		GenerateMetadata(now *time.Time, tokenID string, metadata map[string]any) (string, error)
 	}
 
 	Token struct {
 		*jwt.RegisteredClaims
-		Custom         *map[string]any `json:"custom,omitempty"`
-		Role           string          `json:"role" example:"1"`
-		Email          string          `json:"email" example:"jdoe@example.com"`
-		DeviceUniqueID string          `json:"deviceUniqueId" example:"6FB988F3-36F4-433D-9C7C-555887E57EB2"`
-		HashCode       int64           `json:"hashCode,omitempty" example:"12356789"`
-		Seq            int64           `json:"seq" example:"1"`
+		Role           string `json:"role" example:"1"`
+		Email          string `json:"email" example:"jdoe@example.com"`
+		DeviceUniqueID string `json:"deviceUniqueId" example:"6FB988F3-36F4-433D-9C7C-555887E57EB2"`
+		HashCode       int64  `json:"hashCode,omitempty" example:"12356789"`
+		Seq            int64  `json:"seq" example:"1"`
 	}
 )
 

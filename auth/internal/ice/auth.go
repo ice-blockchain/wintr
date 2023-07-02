@@ -31,7 +31,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	var iceToken Token
 	err := a.VerifyTokenFields(token, &iceToken)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid email token:%v", token)
+		return nil, errors.Wrapf(err, "invalid token")
 	}
 	if iceToken.Issuer != internal.AccessJwtIssuer {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
@@ -51,11 +51,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		Role:     iceToken.Role,
 		Provider: internal.ProviderIce,
 	}
-	if iceToken.Custom != nil {
-		for claimKey, claimValue := range *iceToken.Custom {
-			tok.Claims[claimKey] = claimValue
-		}
-	}
 
 	return tok, nil
 }
@@ -63,7 +58,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 func (a *auth) VerifyTokenFields(jwtToken string, res jwt.Claims) error {
 	if _, err := jwt.ParseWithClaims(jwtToken, res, a.verify()); err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token:%v", jwtToken)
+			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token")
 		}
 
 		return errors.Wrapf(err, "invalid token:%v", jwtToken)
