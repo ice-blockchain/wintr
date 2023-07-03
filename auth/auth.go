@@ -88,6 +88,7 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 
 	return nil
 }
+
 func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
 		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v to %v using firebase auth", userID, email)
