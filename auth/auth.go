@@ -74,27 +74,15 @@ func (*auth) firstRegisteredUserID(metadata map[string]any) string {
 }
 
 func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error {
-	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
-		return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
-	}
-
-	return nil
+	return errors.Wrapf(a.fb.UpdateCustomClaims(ctx, userID, customClaims), "failed to update custom claims for user:%v using firebase auth", userID)
 }
 
 func (a *auth) DeleteUser(ctx context.Context, userID string) error {
-	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
-		return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
-	}
-
-	return nil
+	return errors.Wrapf(a.fb.DeleteUser(ctx, userID), "failed to delete user:%v using firebase auth", userID)
 }
 
 func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
-	if usr, err := a.fb.GetUser(ctx, userID); err == nil && usr != nil {
-		return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v to %v using firebase auth", userID, email)
-	}
-
-	return nil
+	return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v to %v using firebase auth", userID, email)
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.

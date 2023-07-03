@@ -86,8 +86,6 @@ func TestUpdateCustomClaims_Success(t *testing.T) {
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"a": 1, "b": map[string]any{"c": "x"}}))
 	require.NoError(t, client.UpdateCustomClaims(ctx, uid, map[string]any{"b": map[string]any{"d": "y"}}))
 	require.ErrorIs(t, client.(*auth).fb.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}), ErrUserNotFound) //nolint:forcetypeassert // .
-	// Ice no-op is called when user does not exist in firebase.
-	require.NoError(t, client.UpdateCustomClaims(ctx, uuid.NewString(), map[string]any{"a": 1}))
 	user, err = fixture.GetUser(ctx, uid)
 	require.NoError(t, err)
 	require.EqualValues(t, map[string]any{"a": 1.0, "b": map[string]any{"c": "x", "d": "y"}, "role": "app"}, user.CustomClaims)
@@ -186,7 +184,7 @@ func TestUpdateCustomClaims_Ice(t *testing.T) {
 			"role": "author",
 		}
 	)
-	require.NoError(t, client.UpdateCustomClaims(ctx, userID, claims))
+	require.Error(t, client.UpdateCustomClaims(ctx, userID, claims), ErrUserNotFound)
 }
 
 func TestDeleteUser_Ice(t *testing.T) {

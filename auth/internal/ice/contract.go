@@ -23,7 +23,7 @@ var (
 type (
 	Client interface {
 		VerifyToken(token string) (*internal.Token, error)
-		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (string, string, error)
+		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (accessToken, refreshToken string, err error)
 		VerifyTokenFields(token string, res jwt.Claims) error
 		GenerateMetadata(now *time.Time, tokenID string, metadata map[string]any) (string, error)
 	}
