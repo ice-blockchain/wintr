@@ -14,8 +14,8 @@ import (
 // Public API.
 
 const (
-	IceIDClaim                  = firebaseauth.IceIDClaim
-	FirebaseIDClaim             = iceauth.FirebaseIDClaim
+	IceIDClaim                  = internal.IceIDClaim
+	FirebaseIDClaim             = internal.FirebaseIDClaim
 	ProviderIce                 = internal.ProviderIce
 	ProviderFirebase            = internal.ProviderFirebase
 	RegisteredWithProviderClaim = internal.RegisteredWithProviderClaim
@@ -38,7 +38,10 @@ type (
 		ParseToken(token string) (*IceToken, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
-		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, claims map[string]any) (string, string, error)
+		UpdateEmail(ctx context.Context, userID, email string) error
+		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (accessToken, refreshToken string, err error)
+		GenerateMetadata(now *time.Time, userID string, md map[string]any) (string, error)
+		ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token, error)
 	}
 )
 

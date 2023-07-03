@@ -27,28 +27,16 @@ func New(applicationYAMLKey string) Client {
 	}
 }
 
-//nolint:funlen // Claims.
 func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	var iceToken Token
 	err := a.VerifyTokenFields(token, &iceToken)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid email token:%v", token)
+		return nil, errors.Wrapf(err, "invalid token")
 	}
 	if iceToken.Issuer != internal.AccessJwtIssuer {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
 	}
 	userID := iceToken.Subject
-	if iceToken.Custom != nil { //nolint:nestif // .
-		claims := *iceToken.Custom
-		if registeredWithProviderInterface, found := claims[internal.RegisteredWithProviderClaim]; found {
-			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
-			if registeredWithProvider == internal.ProviderFirebase {
-				if firebaseIDInterface, ok := claims[FirebaseIDClaim]; ok {
-					userID, _ = firebaseIDInterface.(string) //nolint:errcheck // Not needed.
-				}
-			}
-		}
-	}
 
 	tok := &internal.Token{
 		Claims: map[string]any{
@@ -63,11 +51,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		Role:     iceToken.Role,
 		Provider: internal.ProviderIce,
 	}
-	if iceToken.Custom != nil {
-		for claimKey, claimValue := range *iceToken.Custom {
-			tok.Claims[claimKey] = claimValue
-		}
-	}
 
 	return tok, nil
 }
@@ -75,7 +58,7 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 func (a *auth) VerifyTokenFields(jwtToken string, res jwt.Claims) error {
 	if _, err := jwt.ParseWithClaims(jwtToken, res, a.verify()); err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token:%v", jwtToken)
+			return errors.Wrapf(ErrExpiredToken, "expired or not valid yet token")
 		}
 
 		return errors.Wrapf(err, "invalid token:%v", jwtToken)
@@ -106,7 +89,9 @@ func (a *auth) verify() func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
 			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		if iss, err := token.Claims.GetIssuer(); err != nil || (iss != internal.AccessJwtIssuer && iss != internal.RefreshJwtIssuer) {
+		iss, err := token.Claims.GetIssuer()
+		invalidIssuer := (iss != internal.AccessJwtIssuer && iss != internal.RefreshJwtIssuer && iss != internal.MetadataIssuer)
+		if err != nil || invalidIssuer {
 			return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 		}
 

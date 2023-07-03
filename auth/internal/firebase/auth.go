@@ -57,20 +57,12 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 	}
 	var email, role string
 	userID := firebaseToken.UID
-	if len(firebaseToken.Claims) > 0 { //nolint:nestif // .
+	if len(firebaseToken.Claims) > 0 {
 		if emailInterface, found := firebaseToken.Claims["email"]; found {
 			email, _ = emailInterface.(string) //nolint:errcheck // Not needed.
 		}
 		if roleInterface, found := firebaseToken.Claims["role"]; found {
 			role, _ = roleInterface.(string) //nolint:errcheck // Not needed.
-		}
-		if registeredWithProviderInterface, found := firebaseToken.Claims[internal.RegisteredWithProviderClaim]; found {
-			registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
-			if registeredWithProvider == internal.ProviderIce {
-				if iceIDInterface, ok := firebaseToken.Claims[IceIDClaim]; ok {
-					userID, _ = iceIDInterface.(string) //nolint:errcheck // Not needed.
-				}
-			}
 		}
 	}
 
@@ -104,6 +96,24 @@ func (a *auth) UpdateCustomClaims(ctx context.Context, userID string, customClai
 		}
 
 		return errors.Wrapf(err, "failed to update custom claims to `%#v`, for userID:`%v`", customClaims, userID)
+	}
+
+	return nil
+}
+
+func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
+	if ctx.Err() != nil {
+		return errors.Wrap(ctx.Err(), "context failed")
+	}
+	if _, err := a.client.UpdateUser(ctx, userID, new(firebaseAuth.UserToUpdate).Email(email).EmailVerified(true)); err != nil {
+		if strings.HasSuffix(err.Error(), "user with the provided email already exists") {
+			return ErrConflict
+		}
+		if strings.HasSuffix(err.Error(), "no user record found for the given identifier") {
+			return ErrUserNotFound
+		}
+
+		return errors.Wrapf(err, "failed to update email to `%v`, for userID:`%v`", email, userID)
 	}
 
 	return nil

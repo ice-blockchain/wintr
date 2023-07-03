@@ -7,9 +7,12 @@ package internal
 const (
 	RefreshJwtIssuer            = "ice.io/refresh"
 	AccessJwtIssuer             = "ice.io/access"
+	MetadataIssuer              = "ice.io/metadata"
 	RegisteredWithProviderClaim = "registeredWithProvider"
 	ProviderFirebase            = "firebase"
 	ProviderIce                 = "ice"
+	FirebaseIDClaim             = "firebaseId"
+	IceIDClaim                  = "iceId"
 )
 
 type (

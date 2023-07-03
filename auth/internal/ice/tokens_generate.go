@@ -16,13 +16,13 @@ func (a *auth) GenerateTokens(
 	userID, deviceUniqueID, email string,
 	hashCode,
 	seq int64,
-	claims map[string]any,
+	role string,
 ) (refreshToken, accessToken string, err error) {
 	refreshToken, err = a.generateRefreshToken(now, userID, deviceUniqueID, email, seq)
 	if err != nil {
 		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
 	}
-	accessToken, err = a.generateAccessToken(now, seq, hashCode, userID, deviceUniqueID, email, claims)
+	accessToken, err = a.generateAccessToken(now, seq, hashCode, userID, deviceUniqueID, email, role)
 
 	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate jwt accessToken for userID:%v", userID)
 }
@@ -45,23 +45,12 @@ func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, emai
 	return refreshToken, errors.Wrapf(err, "failed to generate refresh token for userID:%v, email:%v, deviceUniqueId:%v", userID, email, deviceUniqueID)
 }
 
-//nolint:funlen,revive // Fields.
+//nolint:revive // Fields.
 func (a *auth) generateAccessToken(
 	now *time.Time, refreshTokenSeq, hashCode int64,
 	userID, deviceUniqueID, email string,
-	claims map[string]any,
+	role string,
 ) (string, error) {
-	var customClaims *map[string]any
-	role := ""
-	if clRole, ok := claims["role"]; ok {
-		if roleS, isStr := clRole.(string); isStr {
-			role = roleS
-			delete(claims, "role")
-		}
-	}
-	if len(claims) > 0 {
-		customClaims = &claims
-	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    internal.AccessJwtIssuer,
@@ -75,9 +64,18 @@ func (a *auth) generateAccessToken(
 		DeviceUniqueID: deviceUniqueID,
 		HashCode:       hashCode,
 		Seq:            refreshTokenSeq,
-		Custom:         customClaims,
 	})
 	tokenStr, err := a.signToken(token)
 
 	return tokenStr, errors.Wrapf(err, "failed to generate access token for userID:%v, email:%v, deviceUniqueId:%v", userID, email, deviceUniqueID)
+}
+
+func (a *auth) GenerateMetadata(now *time.Time, tokenID string, metadata map[string]any) (string, error) {
+	metadata["sub"] = tokenID
+	metadata["iss"] = internal.MetadataIssuer
+	metadata["iat"] = jwt.NewNumericDate(*now.Time)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(metadata))
+	tokenStr, err := a.signToken(token)
+
+	return tokenStr, errors.Wrapf(err, "failed to generate metadata token for payload tokenID:%v, metadata:%#v", tokenID, metadata)
 }
