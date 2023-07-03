@@ -40,6 +40,8 @@ type (
 		MessageBroker struct {
 			ConsumerGroup      string                 `yaml:"consumerGroup"`
 			CertPath           string                 `yaml:"certPath"`
+			AccessKeyPath      string                 `yaml:"accessKeyPath"`
+			AccessCertPath     string                 `yaml:"accessCertPath"`
 			URLs               []string               `yaml:"urls"` //nolint:tagliatelle // Nope.
 			ConsumingTopics    []*ConsumerTopicConfig `yaml:"consumingTopics"`
 			ProducingTopics    []*ProducerTopicConfig `yaml:"producingTopics"`

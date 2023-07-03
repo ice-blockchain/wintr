@@ -138,11 +138,23 @@ func (mb *messageBroker) buildMessageBrokerTLS() (*tls.Config, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "reading message broker TLS certificate %v", mb.cfg.MessageBroker.CertPath)
 	}
-	caCertPool.AppendCertsFromPEM(caCert)
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		log.Panic(errors.New("failed to AppendCertsFromPEM file"))
+	}
+	var accessCerts []tls.Certificate
+	if mb.cfg.MessageBroker.AccessKeyPath != "" && mb.cfg.MessageBroker.AccessCertPath != "" {
+		keypair, loadErr := tls.LoadX509KeyPair(mb.cfg.MessageBroker.AccessCertPath, mb.cfg.MessageBroker.AccessKeyPath)
+		if loadErr != nil {
+			log.Panic(errors.Wrapf(loadErr, "failed to load access (key,cert) pair at (`%v`,`%v`)",
+				mb.cfg.MessageBroker.AccessKeyPath, mb.cfg.MessageBroker.AccessCertPath))
+		}
+		accessCerts = []tls.Certificate{keypair}
+	}
 
 	return &tls.Config{
-		MinVersion: tls.VersionTLS13,
-		RootCAs:    caCertPool,
+		MinVersion:   tls.VersionTLS13,
+		Certificates: accessCerts,
+		RootCAs:      caCertPool,
 	}, nil
 }
 
