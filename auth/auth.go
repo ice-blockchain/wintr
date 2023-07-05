@@ -44,7 +44,7 @@ func (a *auth) ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token
 	if metadata["iss"] != internal.MetadataIssuer {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "non-metadata token: %v", metadata["iss"])
 	}
-	if token.UserID != metadata["sub"] {
+	if err := a.checkMetadataOwnership(token.UserID, metadata); err != nil {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", token.UserID, metadata)
 	}
 	if userID := a.firstRegisteredUserID(metadata); userID != "" {
@@ -52,6 +52,17 @@ func (a *auth) ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token
 	}
 
 	return token, nil
+}
+
+func (*auth) checkMetadataOwnership(userID string, metadata jwt.MapClaims) error {
+	subMatch := metadata["sub"] != "" && userID == metadata["sub"]
+	fbMatch := metadata[FirebaseIDClaim] != "" && userID == metadata[FirebaseIDClaim]
+	iceMatch := metadata[IceIDClaim] != "" && userID == metadata[IceIDClaim]
+	if userID != "" && !(subMatch || fbMatch || iceMatch) {
+		return errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", userID, metadata)
+	}
+
+	return nil
 }
 
 func (*auth) firstRegisteredUserID(metadata map[string]any) string {
