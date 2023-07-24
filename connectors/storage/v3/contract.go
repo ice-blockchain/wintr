@@ -22,14 +22,19 @@ type (
 // Private API.
 
 type (
+	lb struct {
+		instances    []*redis.Client
+		currentIndex uint64
+	}
 	config struct {
 		WintrStorage struct {
 			Credentials struct {
 				User     string `yaml:"user"`
 				Password string `yaml:"password"`
 			} `yaml:"credentials" mapstructure:"credentials"`
-			URL                string `yaml:"url" mapstructure:"url"`
-			ConnectionsPerCore int    `yaml:"connectionsPerCore" mapstructure:"connectionsPerCore"`
+			URL                string   `yaml:"url" mapstructure:"url"`
+			URLs               []string `yaml:"urls" mapstructure:"urls"` //nolint:tagliatelle // .
+			ConnectionsPerCore int      `yaml:"connectionsPerCore" mapstructure:"connectionsPerCore"`
 		} `yaml:"wintr/connectors/storage/v3" mapstructure:"wintr/connectors/storage/v3"` //nolint:tagliatelle // Nope.
 	}
 )

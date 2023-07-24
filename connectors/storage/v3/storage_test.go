@@ -39,6 +39,9 @@ func (x *XKey) SetKey(key string) {
 func TestStorage(t *testing.T) {
 	t.Parallel()
 	db := MustConnect(context.Background(), "self")
+	result, err := db.Ping(context.Background()).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "PONG", result)
 	result, eerr := db.FlushAll(context.Background()).Result()
 	assert.NoError(t, eerr)
 	assert.Equal(t, "OK", result)
@@ -83,6 +86,7 @@ func TestStorage(t *testing.T) {
 	res, err = db.Del(context.Background(), "x1", "x2", "x3", "x4", "x5", "x6").Result()
 	require.NoError(t, err)
 	require.EqualValues(t, 6, res)
+	require.NoError(t, db.Close())
 }
 
 func BenchmarkSerializeValue(b *testing.B) {

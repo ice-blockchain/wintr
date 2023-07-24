@@ -20,47 +20,63 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//nolint:gomnd // Configs.
+//nolint:gomnd,gocognit,revive // Configs.
 func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrStorage.ConnectionsPerCore == 0 {
 		cfg.WintrStorage.ConnectionsPerCore = 10
 	}
+	if cfg.WintrStorage.URL != "" && len(cfg.WintrStorage.URLs) == 0 {
+		cfg.WintrStorage.URLs = append(make([]string, 0, 1), cfg.WintrStorage.URL)
+	}
+	if len(cfg.WintrStorage.URLs) == 0 {
+		log.Panic(errors.New("at least one url is required"))
+	}
+	clients := make([]*redis.Client, 0, len(cfg.WintrStorage.URLs))
+	for _, url := range cfg.WintrStorage.URLs {
+		opts, err := redis.ParseURL(url)
+		log.Panic(err) //nolint:revive // That's intended.
+		if opts.Username == "" {
+			opts.Username = cfg.WintrStorage.Credentials.User
+		}
+		if opts.Password == "" {
+			opts.Password = cfg.WintrStorage.Credentials.Password
+		}
+		opts.ClientName = applicationYAMLKey
 
-	opts, err := redis.ParseURL(cfg.WintrStorage.URL)
-	log.Panic(err) //nolint:revive // That's intended.
-	if opts.Username == "" {
-		opts.Username = cfg.WintrStorage.Credentials.User
+		opts.MaxRetries = 25
+		opts.MinRetryBackoff = 10 * stdlibtime.Millisecond
+		opts.MaxRetryBackoff = 1 * stdlibtime.Second
+		opts.DialTimeout = 30 * stdlibtime.Second
+		opts.ReadTimeout = 30 * stdlibtime.Second
+		opts.WriteTimeout = 30 * stdlibtime.Second
+		opts.ConnMaxIdleTime = 60 * stdlibtime.Second
+		opts.ContextTimeoutEnabled = true
+		opts.PoolFIFO = true
+		opts.PoolSize = cfg.WintrStorage.ConnectionsPerCore * runtime.GOMAXPROCS(-1)
+		if len(overriddenPoolSize) == 1 {
+			opts.PoolSize = overriddenPoolSize[0]
+		}
+		opts.PoolSize /= len(cfg.WintrStorage.URLs)
+		if opts.PoolSize == 0 {
+			opts.PoolSize = 1
+		}
+		opts.MinIdleConns = 1
+		opts.MaxIdleConns = 1
+		client := redis.NewClient(opts)
+		result, err := client.Ping(ctx).Result()
+		log.Panic(err)
+		if result != "PONG" {
+			log.Panic(errors.Errorf("unexpected ping response: %v", result))
+		}
+		clients = append(clients, client)
 	}
-	if opts.Password == "" {
-		opts.Password = cfg.WintrStorage.Credentials.Password
+	if len(clients) == 1 {
+		return clients[0]
 	}
-	opts.ClientName = applicationYAMLKey
 
-	opts.MaxRetries = 25
-	opts.MinRetryBackoff = 10 * stdlibtime.Millisecond
-	opts.MaxRetryBackoff = 1 * stdlibtime.Second
-	opts.DialTimeout = 30 * stdlibtime.Second
-	opts.ReadTimeout = 30 * stdlibtime.Second
-	opts.WriteTimeout = 30 * stdlibtime.Second
-	opts.ConnMaxIdleTime = 60 * stdlibtime.Second
-	opts.ContextTimeoutEnabled = true
-	opts.PoolFIFO = true
-	opts.PoolSize = cfg.WintrStorage.ConnectionsPerCore * runtime.GOMAXPROCS(-1)
-	if len(overriddenPoolSize) == 1 {
-		opts.PoolSize = overriddenPoolSize[0]
-	}
-	opts.MinIdleConns = 1
-	opts.MaxIdleConns = 1
-	client := redis.NewClient(opts)
-	result, err := client.Ping(ctx).Result()
-	log.Panic(err)
-	if result != "PONG" {
-		log.Panic(errors.Errorf("unexpected ping response: %v", result))
-	}
-
-	return client
+	return &lb{instances: clients}
 }
 
 func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error {
