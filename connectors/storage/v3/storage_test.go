@@ -42,6 +42,7 @@ func TestStorage(t *testing.T) {
 	result, err := db.Ping(context.Background()).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "PONG", result)
+	assert.True(t, db.IsRW(context.Background()))
 	result, eerr := db.FlushAll(context.Background()).Result()
 	assert.NoError(t, eerr)
 	assert.Equal(t, "OK", result)

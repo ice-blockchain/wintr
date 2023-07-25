@@ -9,9 +9,13 @@ import (
 	"sync/atomic"
 	stdlibtime "time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/time"
 )
 
 func (l *lb) Pipeline() redis.Pipeliner {
@@ -1351,7 +1355,7 @@ func (l *lb) Close() error {
 	for ix, instance := range l.instances {
 		go func(ixx int, client *redis.Client) {
 			defer wg.Done()
-			errs <- errors.Wrapf(client.Close(), "failed to close instance %v", ixx)
+			errs <- errors.Wrapf(client.Close(), "failed to close instance %v", l.urls[ixx])
 		}(ix, instance)
 	}
 	wg.Wait()
@@ -1372,7 +1376,7 @@ func (l *lb) Ping(ctx context.Context) *redis.StatusCmd { //nolint:funlen // Not
 		go func(ixx int, client *redis.Client) {
 			defer wg.Done()
 			res := client.Ping(ctx)
-			res.SetVal(fmt.Sprintf("[%v]%v", l.instances[ixx], res.Val()))
+			res.SetVal(fmt.Sprintf("[%v]%v", l.urls[ixx], res.Val()))
 			responses <- res
 		}(ix, instance)
 	}
@@ -1396,6 +1400,49 @@ func (l *lb) Ping(ctx context.Context) *redis.StatusCmd { //nolint:funlen // Not
 	succeededOne.SetVal("PONG")
 
 	return succeededOne
+}
+
+//nolint:funlen,gocognit,revive // .
+func (l *lb) IsRW(ctx context.Context) bool {
+	wg := new(sync.WaitGroup)
+	wg.Add(len(l.instances))
+	errChan := make(chan error, len(l.instances))
+	for ix, inst := range l.instances {
+		go func(iix int, cl *redis.Client) {
+			defer wg.Done()
+			responses, err := cl.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+				k1 := fmt.Sprintf("rw-check-1-%v", uuid.NewString())
+				k2 := fmt.Sprintf("rw-check-2-%v", uuid.NewString())
+				now := *time.Now().Time
+				if err := pipeliner.Set(ctx, k1, now, stdlibtime.Minute).Err(); err != nil {
+					return err //nolint:wrapcheck // Not needed.
+				}
+				if err := pipeliner.Set(ctx, k2, now, stdlibtime.Minute).Err(); err != nil {
+					return err //nolint:wrapcheck // Not needed.
+				}
+
+				return nil
+			})
+			if err == nil {
+				errs := make([]error, 0, 1+1)
+				for _, resp := range responses {
+					errs = append(errs, resp.Err())
+				}
+				err = errors.Wrapf(multierror.Append(nil, errs...).ErrorOrNil(), "[%v]", l.urls[iix])
+			}
+			errChan <- errors.Wrapf(err, "[%v]", l.urls[iix])
+		}(ix, inst)
+	}
+	wg.Wait()
+	close(errChan)
+	errs := make([]error, 0, len(l.instances))
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+	err := multierror.Append(nil, errs...).ErrorOrNil()
+	log.Error(errors.Wrap(err, "storage/v3 rw-check failed"))
+
+	return err == nil
 }
 
 func (l *lb) instance() *redis.Client {

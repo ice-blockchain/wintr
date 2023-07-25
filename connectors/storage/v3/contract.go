@@ -16,6 +16,7 @@ type (
 		redis.Cmdable
 		io.Closer
 		Ping(ctx context.Context) *redis.StatusCmd
+		IsRW(ctx context.Context) bool
 	}
 )
 
@@ -23,6 +24,7 @@ type (
 
 type (
 	lb struct {
+		urls         []string
 		instances    []*redis.Client
 		currentIndex uint64
 	}

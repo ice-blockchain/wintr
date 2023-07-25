@@ -20,7 +20,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//nolint:gomnd,gocognit,revive // Configs.
+//nolint:gomnd,gocognit // Configs.
 func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
@@ -72,11 +72,8 @@ func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolS
 		}
 		clients = append(clients, client)
 	}
-	if len(clients) == 1 {
-		return clients[0]
-	}
 
-	return &lb{instances: clients}
+	return &lb{instances: clients, urls: cfg.WintrStorage.URLs}
 }
 
 func Set(ctx context.Context, db DB, values ...interface{ Key() string }) error {
