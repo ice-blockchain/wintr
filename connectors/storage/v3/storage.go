@@ -20,7 +20,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//nolint:gomnd,gocognit // Configs.
+//nolint:gomnd,gocognit,gocyclo,revive,cyclop // Configs.
 func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
 	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
@@ -43,24 +43,41 @@ func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolS
 		if opts.Password == "" {
 			opts.Password = cfg.WintrStorage.Credentials.Password
 		}
-		opts.ClientName = applicationYAMLKey
-
-		opts.MaxRetries = 25
-		opts.MinRetryBackoff = 10 * stdlibtime.Millisecond
-		opts.MaxRetryBackoff = 1 * stdlibtime.Second
-		opts.DialTimeout = 30 * stdlibtime.Second
-		opts.ReadTimeout = 30 * stdlibtime.Second
-		opts.WriteTimeout = 30 * stdlibtime.Second
-		opts.ConnMaxIdleTime = 60 * stdlibtime.Second
+		if opts.ClientName == "" {
+			opts.ClientName = applicationYAMLKey
+		}
+		if opts.MaxRetries == 0 {
+			opts.MaxRetries = 25
+		}
+		if opts.MinRetryBackoff == 0 {
+			opts.MinRetryBackoff = 10 * stdlibtime.Millisecond
+		}
+		if opts.MaxRetryBackoff == 0 {
+			opts.MaxRetryBackoff = 1 * stdlibtime.Second
+		}
+		if opts.DialTimeout == 0 {
+			opts.DialTimeout = 2 * stdlibtime.Second
+		}
+		if opts.ReadTimeout == 0 {
+			opts.ReadTimeout = 30 * stdlibtime.Second
+		}
+		if opts.WriteTimeout == 0 {
+			opts.WriteTimeout = 30 * stdlibtime.Second
+		}
+		if opts.ConnMaxIdleTime == 0 {
+			opts.ConnMaxIdleTime = 60 * stdlibtime.Second
+		}
 		opts.ContextTimeoutEnabled = true
 		opts.PoolFIFO = true
-		opts.PoolSize = cfg.WintrStorage.ConnectionsPerCore * runtime.GOMAXPROCS(-1)
-		if len(overriddenPoolSize) == 1 {
-			opts.PoolSize = overriddenPoolSize[0]
-		}
-		opts.PoolSize /= len(cfg.WintrStorage.URLs)
 		if opts.PoolSize == 0 {
-			opts.PoolSize = 1
+			opts.PoolSize = cfg.WintrStorage.ConnectionsPerCore * runtime.GOMAXPROCS(-1)
+			if len(overriddenPoolSize) == 1 {
+				opts.PoolSize = overriddenPoolSize[0]
+			}
+			opts.PoolSize /= len(cfg.WintrStorage.URLs)
+			if opts.PoolSize == 0 {
+				opts.PoolSize = 1
+			}
 		}
 		opts.MinIdleConns = 1
 		opts.MaxIdleConns = 1
