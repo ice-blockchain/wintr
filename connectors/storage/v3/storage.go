@@ -80,7 +80,11 @@ func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolS
 			}
 		}
 		opts.MinIdleConns = 1
-		opts.MaxIdleConns = 1
+		opts.MaxIdleConns = opts.PoolSize
+		if cfg.WintrStorage.MaxIdleConnections > 0 {
+			opts.MaxIdleConns = cfg.WintrStorage.MaxIdleConnections
+		}
+
 		client := redis.NewClient(opts)
 		result, err := client.Ping(ctx).Result()
 		log.Panic(err)
