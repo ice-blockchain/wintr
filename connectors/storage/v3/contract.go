@@ -37,7 +37,6 @@ type (
 			URL                string   `yaml:"url" mapstructure:"url"`
 			URLs               []string `yaml:"urls" mapstructure:"urls"` //nolint:tagliatelle // .
 			ConnectionsPerCore int      `yaml:"connectionsPerCore" mapstructure:"connectionsPerCore"`
-			MaxIdleConnections int      `yaml:"maxIdleConnections" mapstructure:"maxIdleConnections"`
 		} `yaml:"wintr/connectors/storage/v3" mapstructure:"wintr/connectors/storage/v3"` //nolint:tagliatelle // Nope.
 	}
 )
