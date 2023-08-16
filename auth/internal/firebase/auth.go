@@ -9,9 +9,9 @@ import (
 	"strings"
 	stdlibtime "time"
 
+	"dario.cat/mergo"
 	firebase "firebase.google.com/go/v4"
 	firebaseAuth "firebase.google.com/go/v4/auth"
-	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	firebaseoption "google.golang.org/api/option"
 

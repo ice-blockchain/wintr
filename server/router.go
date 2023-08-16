@@ -163,7 +163,7 @@ func (req *Request[REQ, RESP]) validate() *Response[ErrorResponse] {
 }
 
 //nolint:gocyclo,revive,cyclop // .
-func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response[ErrorResponse]) { //nolint:gocognit // .
+func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response[ErrorResponse]) {
 	userID := strings.Trim(req.ginCtx.Param("userId"), " ")
 	if req.allowUnauthorized {
 		defer func() {

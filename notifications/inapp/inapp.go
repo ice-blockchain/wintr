@@ -120,7 +120,7 @@ func retry(ctx context.Context, op func() error) error {
 		})
 }
 
-func (i *inApp) send(ctx context.Context, parcel *Parcel, userIDs ...UserID) error { //nolint:revive,gocognit,funlen // Its better.
+func (i *inApp) send(ctx context.Context, parcel *Parcel, userIDs ...UserID) error { //nolint:revive,funlen // Its better.
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context error")
 	}
@@ -169,7 +169,7 @@ func activity(parcel *Parcel) *getstreamio.Activity {
 	}
 }
 
-func (i *inApp) broadcast(ctx context.Context, parcel *Parcel, userIDs []UserID) error { //nolint:gocognit,funlen // Its better.
+func (i *inApp) broadcast(ctx context.Context, parcel *Parcel, userIDs []UserID) error { //nolint:funlen // Its better.
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context error")
 	}

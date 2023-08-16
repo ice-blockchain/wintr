@@ -90,7 +90,7 @@ func retry(ctx context.Context, op func() error) error {
 		})
 }
 
-func (e *email) send(ctx context.Context, parcel *Parcel, destinations ...Participant) error { //nolint:revive,gocognit // Its better.
+func (e *email) send(ctx context.Context, parcel *Parcel, destinations ...Participant) error { //nolint:revive // Its better.
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
