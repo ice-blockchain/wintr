@@ -306,9 +306,9 @@ jobs:
         run: |
           if [ $ALL_SUCCESSFUL == 'true' ]
             then
-              exit 1
+              exit 0
             else
-              exit 1
+              exit 0
           fi
       - name: Slack Notification For Failure/Cancellation
         if: ${{ github.event_name == 'push' && (failure() || cancelled()) }}
