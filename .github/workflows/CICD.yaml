@@ -323,7 +323,7 @@ jobs:
           SLACK_FOOTER: |
             https://github.com/ice-blockchain/${{ github.event.repository.name }}
   release:
-    needs: [ PR ]
+    needs: [ build ]
     name: Release
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
