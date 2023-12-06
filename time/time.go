@@ -52,9 +52,9 @@ func (t *Time) Scan(src any) error {
 
 func (t *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
 	var nanos uint64
-	if t.Location() != stdlibtime.UTC {
+	if t != nil && t.Time != nil && t.Location() != stdlibtime.UTC {
 		nanos = uint64(t.UTC().UnixNano())
-	} else {
+	} else if t != nil && t.Time != nil {
 		nanos = uint64(t.UnixNano())
 	}
 
@@ -62,7 +62,7 @@ func (t *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
 }
 
 func (t *Time) MarshalBinary() ([]byte, error) {
-	if t == nil || t.Time == nil {
+	if t == nil || t.Time == nil || t.UnixNano() == 0 {
 		return nil, nil
 	}
 
@@ -70,7 +70,7 @@ func (t *Time) MarshalBinary() ([]byte, error) {
 }
 
 func (t *Time) MarshalText() ([]byte, error) {
-	if t == nil || t.Time == nil {
+	if t == nil || t.Time == nil || t.UnixNano() == 0 {
 		return nil, nil
 	}
 
@@ -78,7 +78,7 @@ func (t *Time) MarshalText() ([]byte, error) {
 }
 
 func (t *Time) MarshalJSON(_ context.Context) ([]byte, error) {
-	if t.UnixNano() == 0 {
+	if t == nil || t.Time == nil || t.UnixNano() == 0 {
 		return []byte("null"), nil
 	}
 	if t.Location() != stdlibtime.UTC {
@@ -122,7 +122,11 @@ func (t *Time) unmarshallUint64(data []byte) {
 			return
 		}
 	}
-	millisOrNanos, err := strconv.Atoi(string(data))
+	val := string(data)
+	if val == "" {
+		return
+	}
+	millisOrNanos, err := strconv.Atoi(val)
 	log.Panic(err) //nolint:revive // That's the point.
 	t.Time = new(stdlibtime.Time)
 	if len(data) == 13 { //nolint:gomnd // There's no magic here, there are 13 digits in a millisecond based timestamp.
