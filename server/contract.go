@@ -83,6 +83,8 @@ const (
 	requestingUserIDCtxValueKey = "requestingUserIDCtxValueKey"
 
 	authClientCtxValueKey = "authClientCtxValueKey"
+
+	streamDefaultCapacity = 1000
 )
 
 var (

@@ -5,6 +5,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -48,6 +49,7 @@ func RootHandler[REQ, RESP any](handleRequest func(context.Context, *Request[REQ
 
 			return
 		}
+
 		reqCtx := context.WithValue(ctx, requestingUserIDCtxValueKey, req.AuthenticatedUser.UserID) //nolint:staticcheck,revive // .
 		success, failure := handleRequest(reqCtx, req)
 		if failure != nil {
@@ -64,6 +66,56 @@ func RootHandler[REQ, RESP any](handleRequest func(context.Context, *Request[REQ
 		} else {
 			ginCtx.Status(success.Code)
 		}
+	}
+}
+
+//nolint:funlen // .
+func SSEHandler[REQ, RESP any](messageName string, produceMessage func(context.Context, *Request[REQ, RESP], chan<- RESP) *Response[ErrorResponse]) func(*gin.Context) {
+	return func(ginCtx *gin.Context) {
+		ctx, cancel := context.WithCancel(ginCtx.Request.Context())
+		defer cancel()
+		if ginCtx.Request.Proto != "HTTP/2.0" {
+			log.Warn(fmt.Sprintf("suboptimal http version used for %[1]T", new(REQ)), "expected", "HTTP/2.0", "actual", ginCtx.Request.Proto)
+		}
+		ginCtx.Writer.Header().Set("Content-Type", "text/event-stream")
+		ginCtx.Writer.Header().Set("Cache-Control", "no-cache")
+		ginCtx.Writer.Header().Set("Connection", "keep-alive")
+		ginCtx.Writer.Header().Set("Transfer-Encoding", "chunked")
+		req := new(Request[REQ, RESP]).init(ginCtx)
+		if err := req.processRequest(); err != nil {
+			log.Error(errors.Wrap(err.Data.InternalErr(), "endpoint processing failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", err)
+			ginCtx.JSON(err.Code, err.Data)
+
+			return
+		}
+		if err := req.authorize(ctx); err != nil {
+			log.Error(errors.Wrap(err.Data.InternalErr(), "endpoint authentication failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", err)
+			ginCtx.JSON(err.Code, err.Data)
+
+			return
+		}
+		reqCtx := context.WithValue(ctx, requestingUserIDCtxValueKey, req.AuthenticatedUser.UserID) //nolint:staticcheck,revive // .
+		stream := make(chan RESP, streamDefaultCapacity)
+		go func() {
+			for ctx.Err() == nil {
+				failure := produceMessage(reqCtx, req, stream)
+				if failure != nil {
+					log.Error(errors.Wrap(failure.Data.InternalErr(), "endpoint failed"), fmt.Sprintf("%[1]T", req.Data), req, "Response", failure)
+					ginCtx.JSON(req.processErrorResponse(ctx, failure))
+					close(stream)
+					return
+				}
+			}
+		}()
+		ginCtx.Stream(func(w io.Writer) bool {
+			if msg, ok := <-stream; ok {
+				ginCtx.SSEvent(messageName, msg)
+
+				return true
+			}
+
+			return false
+		})
 	}
 }
 
