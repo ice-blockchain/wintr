@@ -29,13 +29,13 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.WintrStorage.PrimaryURL != "" {
-		master = mustConnectPool(ctx, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, cfg.WintrStorage.PrimaryURL)
+		master = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, cfg.WintrStorage.PrimaryURL) //nolint:lll // .
 	}
 	for ix, url := range cfg.WintrStorage.ReplicaURLs {
 		if ix == 0 {
 			replicas = make([]*pgxpool.Pool, len(cfg.WintrStorage.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		replicas[ix] = mustConnectPool(ctx, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, url)
+		replicas[ix] = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, url)
 	}
 	if master != nil && ddl != "" && cfg.WintrStorage.RunDDL {
 		for _, statement := range strings.Split(ddl, "----") {
@@ -48,7 +48,7 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 }
 
 //nolint:gomnd // Configuration.
-func mustConnectPool(ctx context.Context, user, pass, url string) (db *pgxpool.Pool) {
+func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
 	log.Panic(errors.Wrapf(err, "failed to parse pool config: %v", url)) //nolint:revive // Intended
 	poolConfig.ConnConfig.User = user
@@ -60,7 +60,7 @@ func mustConnectPool(ctx context.Context, user, pass, url string) (db *pgxpool.P
 	poolConfig.MaxConnIdleTime = stdlibtime.Minute
 	poolConfig.MaxConnLifetimeJitter = stdlibtime.Minute
 	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
-	poolConfig.AfterConnect = doAfterConnect
+	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
 	poolConfig.MinConns = 1
 	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
 	log.Panic(errors.Wrapf(err, "failed to start pool for config: %v", url))
@@ -68,12 +68,17 @@ func mustConnectPool(ctx context.Context, user, pass, url string) (db *pgxpool.P
 	return db
 }
 
-func doAfterConnect(ctx context.Context, conn *pgx.Conn) error { //nolint:funlen // .
+func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error { //nolint:funlen // .
+	actualTimeout := "30s"
+	if timeout != "" {
+		actualTimeout = timeout
+	}
+	log.Info(fmt.Sprintf("wintr/connectors/storage/v2:timeout:%v", timeout))
 	customConnectionParameters := map[string]string{
-		"statement_timeout":                   "30s",
-		"idle_in_transaction_session_timeout": "30s",
-		"lock_timeout":                        "30s",
-		// "tcp_user_timeout":                 "30s",.
+		"statement_timeout":                   actualTimeout,
+		"idle_in_transaction_session_timeout": actualTimeout,
+		"lock_timeout":                        actualTimeout,
+		// "tcp_user_timeout":                 actualTimeout,.
 		"enable_partitionwise_join":      "on",
 		"enable_partitionwise_aggregate": "on",
 	}
@@ -97,10 +102,7 @@ func doAfterConnect(ctx context.Context, conn *pgx.Conn) error { //nolint:funlen
 	}
 	actual := make(map[string]string, len(res))
 	for _, row := range res {
-		if row.Setting == "30000" {
-			row.Setting = "30s"
-		}
-		actual[row.Name] = row.Setting
+		actual[row.Name] = strings.ReplaceAll(row.Setting, "0000", "0s")
 	}
 	if !reflect.DeepEqual(actual, customConnectionParameters) {
 		return errors.Errorf("db validation failed, expected:%#v, actual:%#v", customConnectionParameters, actual)
