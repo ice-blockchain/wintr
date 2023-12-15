@@ -43,7 +43,7 @@ jobs:
             https://github.com/ice-blockchain/${{ github.event.repository.name }}
   verify-latest-versions-used:
     name: Verify Latest Versions
-    if: ${{ false }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,7 +75,7 @@ jobs:
             https://github.com/ice-blockchain/${{ github.event.repository.name }}
   verify-auto-generated:
     name: Verify Auto Generated
-    if: ${{ false }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -107,7 +107,7 @@ jobs:
             https://github.com/ice-blockchain/${{ github.event.repository.name }}
   lint:
     name: Lint
-    if: ${{ false }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -185,7 +185,7 @@ jobs:
         - email
         - notifications/push
         - auth
-    if: ${{ false }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     #    runs-on: self-hosted-ubuntu-latest-x64
     steps:
@@ -247,7 +247,7 @@ jobs:
           - email
           - notifications/push
           - auth
-    if: ${{ false }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     #    runs-on: self-hosted-ubuntu-latest-x64
     steps:
@@ -308,7 +308,7 @@ jobs:
             then
               exit 0
             else
-              exit 0
+              exit 1
           fi
       - name: Slack Notification For Failure/Cancellation
         if: ${{ github.event_name == 'push' && (failure() || cancelled()) }}
@@ -323,7 +323,7 @@ jobs:
           SLACK_FOOTER: |
             https://github.com/ice-blockchain/${{ github.event.repository.name }}
   release:
-    needs: [ build ]
+    needs: [ PR ]
     name: Release
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
