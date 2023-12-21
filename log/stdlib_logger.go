@@ -29,6 +29,7 @@ var (
 //nolint:gochecknoinits // log is global, so it's initialization can be done in init
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lmsgprefix | log.LUTC | log.Llongfile | log.Lmicroseconds)
+	log.SetOutput(os.Stderr)
 	config.MustLoadFromKey("logger", &appCfg)
 }
 
