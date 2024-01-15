@@ -96,6 +96,19 @@ func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 	return errors.Wrapf(a.fb.UpdateEmail(ctx, userID, email), "failed to update email for user:%v to %v using firebase auth", userID, email)
 }
 
+func (a *auth) GetUserUIDByEmail(ctx context.Context, email string) (string, error) {
+	usr, err := a.fb.GetUserByEmail(ctx, email)
+	if err != nil {
+		if err == ErrUserNotFound {
+			return "", nil
+		}
+
+		return "", errors.Wrapf(err, "failed to get user by email:%v using firebase auth", email)
+	}
+
+	return usr.UID, err
+}
+
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
 	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string,
 ) (accessToken, refreshToken string, err error) {

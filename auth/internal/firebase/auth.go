@@ -140,6 +140,19 @@ func (a *auth) GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRe
 	return usr, errors.Wrapf(err, "can't get firebase user data for:%v", userID)
 }
 
+func (a *auth) GetUserByEmail(ctx context.Context, email string) (*firebaseAuth.UserRecord, error) {
+	usr, err := a.client.GetUserByEmail(ctx, email)
+	if err != nil {
+		if strings.HasSuffix(err.Error(), fmt.Sprintf("no user exists with the email: \"%v\"", email)) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, errors.Wrapf(err, "can't get firebase user data by email for:%v", email)
+	}
+
+	return usr, nil
+}
+
 func (cfg *config) setWintrAuthFirebaseCredentialsFileContent(applicationYAMLKey string) {
 	if cfg.WintrAuthFirebase.Credentials.FileContent == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))

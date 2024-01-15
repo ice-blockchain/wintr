@@ -42,6 +42,7 @@ type (
 		GenerateTokens(now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string) (accessToken, refreshToken string, err error)
 		GenerateMetadata(now *time.Time, userID string, md map[string]any) (string, error)
 		ModifyTokenWithMetadata(token *Token, metadataStr string) (*Token, error)
+		GetUserUIDByEmail(ctx context.Context, email string) (string, error)
 	}
 )
 
