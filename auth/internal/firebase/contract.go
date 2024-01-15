@@ -25,6 +25,7 @@ type (
 		DeleteUser(ctx context.Context, userID string) error
 		UpdateEmail(ctx context.Context, userID, email string) error
 		GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRecord, error)
+		GetUserByEmail(ctx context.Context, email string) (*firebaseAuth.UserRecord, error)
 	}
 )
 
