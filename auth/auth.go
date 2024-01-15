@@ -99,7 +99,7 @@ func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 func (a *auth) GetUserUIDByEmail(ctx context.Context, email string) (string, error) {
 	usr, err := a.fb.GetUserByEmail(ctx, email)
 	if err != nil {
-		if err == ErrUserNotFound {
+		if errors.Is(err, ErrUserNotFound) {
 			return "", nil
 		}
 
