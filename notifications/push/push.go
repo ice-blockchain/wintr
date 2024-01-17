@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	stdlibtime "time"
@@ -124,17 +125,49 @@ func (p *push) Send(ctx context.Context, notif *Notification[DeviceToken], respo
 func (p *push) Broadcast(ctx context.Context, notification *Notification[SubscriptionTopic]) error {
 	return errors.Wrapf(retry(ctx, func() error {
 		_, err := p.client.Send(ctx, &fcm.Message{
-			Data: notification.Data,
-			Notification: &fcm.Notification{
-				Title:    notification.Title,
-				Body:     notification.Body,
-				ImageURL: notification.ImageURL,
-			},
-			Topic: string(notification.Target),
+			Data:    notification.Data,
+			Android: buildAndroidDataOnlyNotification(notification),
+			APNS:    buildAppleNotification(notification),
+			Topic:   string(notification.Target),
 		})
 
 		return err //nolint:wrapcheck // No need to do that, it's wrapped outside.
 	}), "[%v] permanently failed to broadcast %#v", p.applicationYAMLKey, notification)
+}
+
+func buildAndroidDataOnlyNotification(notification *Notification[SubscriptionTopic]) *fcm.AndroidConfig {
+	dataOnlyNotification := make(map[string]string, len(notification.Data)+3)
+	for k, v := range notification.Data {
+		dataOnlyNotification[k] = v
+	}
+	dataOnlyNotification[dataOnlyTitle] = notification.Title
+	dataOnlyNotification[dataOnlyBody] = notification.Body
+	dataOnlyNotification[dataOnlyImageURL] = notification.ImageURL
+	dataOnlyNotification[dataOnlyType] = typeDelayedNotification
+	dataOnlyNotification[dataOnlyMinDelay] = strconv.FormatUint(uint64(notification.MinDelay), 10)
+	dataOnlyNotification[dataOnlyMaxDelay] = strconv.FormatUint(uint64(notification.MaxDelay), 10)
+
+	return &fcm.AndroidConfig{
+		Data:     dataOnlyNotification,
+		Priority: "high",
+	}
+}
+
+func buildAppleNotification(notification *Notification[SubscriptionTopic]) *fcm.APNSConfig {
+	return &fcm.APNSConfig{
+		Payload: &fcm.APNSPayload{
+			Aps: &fcm.Aps{
+				AlertString: "",
+				Alert: &fcm.ApsAlert{
+					Title: notification.Title,
+					Body:  notification.Body,
+				},
+			},
+		},
+		FCMOptions: &fcm.APNSFCMOptions{
+			ImageURL: notification.ImageURL,
+		},
+	}
 }
 
 func retry(ctx context.Context, op func() error) error {

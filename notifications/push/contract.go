@@ -30,6 +30,8 @@ type (
 		Title    string `json:"title,omitempty"`
 		Body     string `json:"body,omitempty"`
 		ImageURL string `json:"imageUrl,omitempty"`
+		MinDelay uint   `json:"minDelay"`
+		MaxDelay uint   `json:"maxDelay"`
 	}
 	Client interface {
 		io.Closer
@@ -47,6 +49,15 @@ const (
 	requestDeadline                                  = 25 * stdlibtime.Second
 	fcmSendAllBufferingDeadline                      = 1 * stdlibtime.Second
 	fcmSendAllSlowProcessingMonitoringTickerDeadline = 3 * fcmSendAllBufferingDeadline
+
+	dataOnlyTitle    = "title"
+	dataOnlyBody     = "body"
+	dataOnlyImageURL = "imageURL"
+	dataOnlyMinDelay = "minDelaySec"
+	dataOnlyMaxDelay = "maxDelaySec"
+	dataOnlyType     = "type"
+
+	typeDelayedNotification = "delayed"
 )
 
 type (
