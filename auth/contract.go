@@ -24,6 +24,7 @@ const (
 var (
 	ErrUserNotFound = firebaseauth.ErrUserNotFound
 	ErrConflict     = firebaseauth.ErrConflict
+	ErrForbidden    = firebaseauth.ErrForbidden
 
 	ErrInvalidToken   = iceauth.ErrInvalidToken
 	ErrExpiredToken   = iceauth.ErrExpiredToken

@@ -46,7 +46,8 @@ func New(ctx context.Context, applicationYAMLKey string) Client {
 	}
 
 	return &auth{
-		client: client,
+		client:             client,
+		allowEmailPassword: cfg.WintrAuthFirebase.AllowEmailPassword,
 	}
 }
 
@@ -54,6 +55,9 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 	firebaseToken, vErr := a.client.VerifyIDToken(ctx, token)
 	if vErr != nil {
 		return nil, errors.Wrap(vErr, "error verifying firebase token")
+	}
+	if (!a.allowEmailPassword) && firebaseToken.Firebase.SignInProvider == passwordSignInProvider {
+		return nil, errors.Wrapf(ErrForbidden, "%v sign_in_provider is not allowed", firebaseToken.Firebase.SignInProvider)
 	}
 	var email, role string
 	userID := firebaseToken.UID

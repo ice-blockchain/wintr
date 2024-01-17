@@ -176,6 +176,9 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 	authToken := strings.TrimPrefix(req.ginCtx.GetHeader("Authorization"), "Bearer ")
 	token, err := Auth(ctx).VerifyToken(ctx, authToken)
 	if err != nil {
+		if errors.Is(err, auth.ErrForbidden) {
+			return Forbidden(err)
+		}
 		return Unauthorized(err)
 	}
 	metadataHeader := req.ginCtx.GetHeader("X-Account-Metadata")

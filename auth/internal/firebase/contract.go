@@ -16,6 +16,7 @@ import (
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrConflict     = errors.New("change conflicts with another user")
+	ErrForbidden    = errors.New("forbidden")
 )
 
 type (
@@ -30,10 +31,14 @@ type (
 )
 
 // Private API.
+const (
+	passwordSignInProvider = "password" //nolint:gosec // Not an actual password.
+)
 
 type (
 	auth struct {
-		client *firebaseAuth.Client
+		client             *firebaseAuth.Client
+		allowEmailPassword bool
 	}
 
 	config struct {
@@ -42,6 +47,7 @@ type (
 				FilePath    string `yaml:"filePath"`
 				FileContent string `yaml:"fileContent"`
 			} `yaml:"credentials" mapstructure:"credentials"`
+			AllowEmailPassword bool `yaml:"allowEmailPassword"`
 		} `yaml:"wintr/auth/firebase" mapstructure:"wintr/auth/firebase"` //nolint:tagliatelle // Nope.
 	}
 )
