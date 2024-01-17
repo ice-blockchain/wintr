@@ -5,6 +5,7 @@ package storage
 import (
 	"context"
 	"strings"
+	stdlibtime "time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -38,6 +39,11 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 			return nil, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
 		}
 	})
+	if err != nil && (errors.Is(err, ErrSerializationFailure) || errors.Is(err, ErrTxAborted)) {
+		stdlibtime.Sleep(10 * stdlibtime.Millisecond)
+
+		return DoInTransaction(ctx, db, fn)
+	}
 
 	return err
 }
@@ -172,7 +178,10 @@ func IsUnexpected(err error) bool {
 		!IsErr(err, ErrRelationNotFound) &&
 		!IsErr(err, ErrNotFound) &&
 		!IsErr(err, ErrCheckFailed) &&
-		!IsErr(err, ErrRelationInUse)
+		!IsErr(err, ErrRelationInUse) &&
+		!IsErr(err, ErrSerializationFailure) &&
+		!IsErr(err, ErrTxAborted) &&
+		!IsErr(err, ErrExclusionViolation)
 }
 
 func parseDBError(err error) error { //nolint:funlen // .
@@ -205,6 +214,15 @@ func parseDBError(err error) error { //nolint:funlen // .
 			column = strings.ReplaceAll(column, "_", "")
 
 			return terror.New(ErrCheckFailed, map[string]any{"column": column})
+		}
+		if dbErr.SQLState() == "40001" {
+			return ErrSerializationFailure
+		}
+		if dbErr.SQLState() == "25P02" {
+			return ErrTxAborted
+		}
+		if dbErr.SQLState() == "23P01" {
+			return ErrExclusionViolation
 		}
 
 		return err

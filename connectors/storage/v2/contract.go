@@ -10,11 +10,14 @@ import (
 // Public API.
 
 var (
-	ErrNotFound         = errors.New("not found")
-	ErrRelationNotFound = errors.New("relation not found")
-	ErrRelationInUse    = errors.New("relation in use")
-	ErrDuplicate        = errors.New("duplicate")
-	ErrCheckFailed      = errors.New("check failed")
+	ErrNotFound             = errors.New("not found")
+	ErrRelationNotFound     = errors.New("relation not found")
+	ErrRelationInUse        = errors.New("relation in use")
+	ErrDuplicate            = errors.New("duplicate")
+	ErrCheckFailed          = errors.New("check failed")
+	ErrSerializationFailure = errors.New("serialization failure")
+	ErrTxAborted            = errors.New("transaction aborted")
+	ErrExclusionViolation   = errors.New("exclusion violation")
 )
 
 type (
