@@ -39,7 +39,7 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 			return nil, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
 		}
 	})
-	if errors.Is(err, ErrSerializationFailure) {
+	if err != nil && (errors.Is(err, ErrSerializationFailure) || errors.Is(err, ErrTxAborted)) {
 		stdlibtime.Sleep(10 * stdlibtime.Millisecond)
 
 		return DoInTransaction(ctx, db, fn)
@@ -180,7 +180,8 @@ func IsUnexpected(err error) bool {
 		!IsErr(err, ErrCheckFailed) &&
 		!IsErr(err, ErrRelationInUse) &&
 		!IsErr(err, ErrSerializationFailure) &&
-		!IsErr(err, ErrTxAborted)
+		!IsErr(err, ErrTxAborted) &&
+		!IsErr(err, ErrExclusionViolation)
 }
 
 func parseDBError(err error) error { //nolint:funlen // .
@@ -215,11 +216,16 @@ func parseDBError(err error) error { //nolint:funlen // .
 			return terror.New(ErrCheckFailed, map[string]any{"column": column})
 		}
 		if dbErr.SQLState() == "40001" {
-			return terror.New(ErrSerializationFailure, map[string]any{})
+			return ErrSerializationFailure
 		}
 		if dbErr.SQLState() == "25P02" {
-			return terror.New(ErrTxAborted, map[string]any{})
+			return ErrTxAborted
 		}
+		if dbErr.SQLState() == "23P01" {
+			return ErrExclusionViolation
+		}
+
+		return err
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound

@@ -17,6 +17,7 @@ var (
 	ErrCheckFailed          = errors.New("check failed")
 	ErrSerializationFailure = errors.New("serialization failure")
 	ErrTxAborted            = errors.New("transaction aborted")
+	ErrExclusionViolation   = errors.New("exclusion violation")
 )
 
 type (
