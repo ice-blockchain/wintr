@@ -34,7 +34,7 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 	txOptions := pgx.TxOptions{IsoLevel: pgx.Serializable, AccessMode: pgx.ReadWrite, DeferrableMode: pgx.NotDeferrable}
 	_, err := retry[any](ctx, func() (any, error) {
 		//nolint:wrapcheck // We have nothing relevant to wrap.
-		if err := pgx.BeginTxFunc(ctx, db.primary(), txOptions, func(tx pgx.Tx) error { return fn(tx) }); err != nil && IsUnexpected(err) {
+		if err := parseDBError(pgx.BeginTxFunc(ctx, db.primary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
 			return nil, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
