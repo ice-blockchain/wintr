@@ -160,8 +160,8 @@ func buildAndroidDataOnlyNotification(notification *DelayedNotification) *fcm.An
 	dataOnlyNotification[dataOnlyBody] = notification.Body
 	dataOnlyNotification[dataOnlyImageURL] = notification.ImageURL
 	dataOnlyNotification[dataOnlyType] = typeDelayedNotification
-	dataOnlyNotification[dataOnlyMinDelay] = strconv.FormatUint(uint64(notification.MinDelay), 10)
-	dataOnlyNotification[dataOnlyMaxDelay] = strconv.FormatUint(uint64(notification.MaxDelay), 10)
+	dataOnlyNotification[dataOnlyMinDelay] = strconv.FormatUint(uint64(notification.MinDelaySec), 10)
+	dataOnlyNotification[dataOnlyMaxDelay] = strconv.FormatUint(uint64(notification.MaxDelaySec), 10)
 
 	return &fcm.AndroidConfig{
 		Data:     dataOnlyNotification,
