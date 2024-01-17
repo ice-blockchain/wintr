@@ -4,6 +4,7 @@ package storage
 
 import (
 	"context"
+	"net"
 	"strings"
 	stdlibtime "time"
 
@@ -174,14 +175,10 @@ func IsErr(err, target error, column ...string) bool {
 }
 
 func IsUnexpected(err error) bool {
-	return !IsErr(err, ErrDuplicate) &&
-		!IsErr(err, ErrRelationNotFound) &&
-		!IsErr(err, ErrNotFound) &&
-		!IsErr(err, ErrCheckFailed) &&
-		!IsErr(err, ErrRelationInUse) &&
-		!IsErr(err, ErrSerializationFailure) &&
-		!IsErr(err, ErrTxAborted) &&
-		!IsErr(err, ErrExclusionViolation)
+	var pgConnErr *pgconn.PgError
+	var netOpErr *net.OpError
+
+	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr)
 }
 
 func parseDBError(err error) error { //nolint:funlen // .
