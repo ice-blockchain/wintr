@@ -19,13 +19,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appconfig "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appconfig.MustLoadFromKey(applicationYAMLKey, &cfg)
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.WintrStorage.PrimaryURL != "" {
@@ -193,10 +193,10 @@ func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
 	return tt, err
 }
 
-func (s *storageErr) Error() string {
+func (s *storageError) Error() string {
 	return s.Msg
 }
 
 func newStorageError(msg string) error {
-	return &storageErr{Msg: msg}
+	return &storageError{Msg: msg}
 }

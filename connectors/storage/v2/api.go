@@ -168,26 +168,35 @@ func IsErr(err, target error, column ...string) bool {
 }
 
 func IsUnexpected(err error) bool {
-	var stErr *storageErr
+	var stErr *storageError
 
 	return !errors.As(err, &stErr)
 }
 
 func parseDBError(err error) error { //nolint:funlen // .
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+
 	var dbErr *pgconn.PgError
-	if errors.As(err, &dbErr) { //nolint:nestif // .
-		if dbErr.SQLState() == "23505" {
+	if errors.As(err, &dbErr) {
+		switch dbErr.SQLState() {
+		case "23505":
 			if strings.HasSuffix(dbErr.ConstraintName, "_pkey") {
 				return terror.New(ErrDuplicate, map[string]any{"column": "pk"})
-			} else { //nolint:revive // Uglier to write otherwise.
+			} else {
 				column := strings.ReplaceAll(dbErr.ConstraintName, dbErr.TableName, "")
 				column = strings.ReplaceAll(column, "_key", "")
 				column = strings.ReplaceAll(column, "_", "")
 
 				return terror.New(ErrDuplicate, map[string]any{"column": column})
 			}
-		}
-		if dbErr.SQLState() == "23503" {
+
+		case "23503":
 			column := strings.ReplaceAll(dbErr.ConstraintName, dbErr.TableName, "")
 			column = strings.ReplaceAll(column, "_fkey", "")
 			column = strings.ReplaceAll(column, "_", "")
@@ -196,22 +205,17 @@ func parseDBError(err error) error { //nolint:funlen // .
 			}
 
 			return terror.New(ErrRelationNotFound, map[string]any{"column": column})
-		}
-		if dbErr.SQLState() == "23514" {
+
+		case "23514":
 			column := strings.ReplaceAll(dbErr.ConstraintName, dbErr.TableName, "")
 			column = strings.ReplaceAll(column, "_check", "")
 			column = strings.ReplaceAll(column, "_", "")
 
 			return terror.New(ErrCheckFailed, map[string]any{"column": column})
-		}
-		if dbErr.SQLState() == "25P02" {
+
+		case "25P02":
 			return terror.New(ErrTxAborted, nil)
 		}
-
-		return err
-	}
-	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
 	}
 
 	return err

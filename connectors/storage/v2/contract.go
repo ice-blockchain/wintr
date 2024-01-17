@@ -27,7 +27,7 @@ type (
 // Private API.
 
 type (
-	storageErr struct {
+	storageError struct {
 		Msg string
 	}
 	lb struct {
@@ -40,7 +40,7 @@ type (
 				User     string `yaml:"user"`
 				Password string `yaml:"password"`
 			} `yaml:"credentials" mapstructure:"credentials"`
-			Timeout     string   `yaml:"timeout" mapstructure:"timeout"`         //nolint:tagliatelle // Nope.
+			Timeout     string   `yaml:"timeout" mapstructure:"timeout"`
 			PrimaryURL  string   `yaml:"primaryURL" mapstructure:"primaryURL"`   //nolint:tagliatelle // Nope.
 			ReplicaURLs []string `yaml:"replicaURLs" mapstructure:"replicaURLs"` //nolint:tagliatelle // Nope.
 			RunDDL      bool     `yaml:"runDDL" mapstructure:"runDDL"`           //nolint:tagliatelle // Nope.
