@@ -125,6 +125,22 @@ func (p *push) Send(ctx context.Context, notif *Notification[DeviceToken], respo
 func (p *push) Broadcast(ctx context.Context, notification *Notification[SubscriptionTopic]) error {
 	return errors.Wrapf(retry(ctx, func() error {
 		_, err := p.client.Send(ctx, &fcm.Message{
+			Data: notification.Data,
+			Notification: &fcm.Notification{
+				Title:    notification.Title,
+				Body:     notification.Body,
+				ImageURL: notification.ImageURL,
+			},
+			Topic: string(notification.Target),
+		})
+
+		return err //nolint:wrapcheck // No need to do that, it's wrapped outside.
+	}), "[%v] permanently failed to broadcast %#v", p.applicationYAMLKey, notification)
+}
+
+func (p *push) BroadcastDelayed(ctx context.Context, notification *DelayedNotification) error {
+	return errors.Wrapf(retry(ctx, func() error {
+		_, err := p.client.Send(ctx, &fcm.Message{
 			Data:    notification.Data,
 			Android: buildAndroidDataOnlyNotification(notification),
 			APNS:    buildAppleNotification(notification),
@@ -132,10 +148,10 @@ func (p *push) Broadcast(ctx context.Context, notification *Notification[Subscri
 		})
 
 		return err //nolint:wrapcheck // No need to do that, it's wrapped outside.
-	}), "[%v] permanently failed to broadcast %#v", p.applicationYAMLKey, notification)
+	}), "[%v] permanently failed to broadcast delayed notification %#v", p.applicationYAMLKey, notification)
 }
 
-func buildAndroidDataOnlyNotification(notification *Notification[SubscriptionTopic]) *fcm.AndroidConfig {
+func buildAndroidDataOnlyNotification(notification *DelayedNotification) *fcm.AndroidConfig {
 	dataOnlyNotification := make(map[string]string, len(notification.Data)+3)
 	for k, v := range notification.Data {
 		dataOnlyNotification[k] = v
@@ -149,11 +165,11 @@ func buildAndroidDataOnlyNotification(notification *Notification[SubscriptionTop
 
 	return &fcm.AndroidConfig{
 		Data:     dataOnlyNotification,
-		Priority: "high",
+		Priority: priorityHigh,
 	}
 }
 
-func buildAppleNotification(notification *Notification[SubscriptionTopic]) *fcm.APNSConfig {
+func buildAppleNotification(notification *DelayedNotification) *fcm.APNSConfig {
 	return &fcm.APNSConfig{
 		Payload: &fcm.APNSPayload{
 			Aps: &fcm.Aps{

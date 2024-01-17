@@ -30,14 +30,18 @@ type (
 		Title    string `json:"title,omitempty"`
 		Body     string `json:"body,omitempty"`
 		ImageURL string `json:"imageUrl,omitempty"`
-		MinDelay uint   `json:"minDelay"`
-		MaxDelay uint   `json:"maxDelay"`
+	}
+	DelayedNotification struct {
+		*Notification[SubscriptionTopic]
+		MinDelay uint `json:"minDelay"`
+		MaxDelay uint `json:"maxDelay"`
 	}
 	Client interface {
 		io.Closer
 
 		Send(context.Context, *Notification[DeviceToken], chan<- error)
 		Broadcast(context.Context, *Notification[SubscriptionTopic]) error
+		BroadcastDelayed(context.Context, *DelayedNotification) error
 	}
 )
 
@@ -52,12 +56,13 @@ const (
 
 	dataOnlyTitle    = "title"
 	dataOnlyBody     = "body"
-	dataOnlyImageURL = "imageURL"
+	dataOnlyImageURL = "imageUrl"
 	dataOnlyMinDelay = "minDelaySec"
 	dataOnlyMaxDelay = "maxDelaySec"
 	dataOnlyType     = "type"
 
 	typeDelayedNotification = "delayed"
+	priorityHigh            = "high"
 )
 
 type (
