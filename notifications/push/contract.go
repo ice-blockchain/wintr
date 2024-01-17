@@ -33,8 +33,8 @@ type (
 	}
 	DelayedNotification struct {
 		*Notification[SubscriptionTopic]
-		MinDelay uint `json:"minDelay"`
-		MaxDelay uint `json:"maxDelay"`
+		MinDelaySec uint `json:"minDelaySec"`
+		MaxDelaySec uint `json:"maxDelaySec"`
 	}
 	Client interface {
 		io.Closer
