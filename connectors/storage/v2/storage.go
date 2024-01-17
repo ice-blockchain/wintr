@@ -192,3 +192,11 @@ func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
 
 	return tt, err
 }
+
+func (s *storageErr) Error() string {
+	return s.Msg
+}
+
+func newStorageError(msg string) error {
+	return &storageErr{Msg: msg}
+}

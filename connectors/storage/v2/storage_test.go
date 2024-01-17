@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/terror"
 )
@@ -139,4 +140,18 @@ $$ LANGUAGE plpgsql;`
 
 		return nil
 	}))
+}
+
+func TestStopWhenTxAborted(t *testing.T) {
+	t.Parallel()
+	db := MustConnect(context.Background(), "", "self")
+	require.NotNil(t, db)
+
+	err := DoInTransaction(context.Background(), db, func(tx QueryExecer) error {
+		_, gErr := Get[bool](context.Background(), tx, `SELECT $1 + $2`, 1, "2")
+
+		return gErr
+	})
+	require.ErrorIs(t, err, ErrTxAborted)
+	require.NoError(t, db.Close())
 }

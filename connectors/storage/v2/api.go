@@ -168,11 +168,9 @@ func IsErr(err, target error, column ...string) bool {
 }
 
 func IsUnexpected(err error) bool {
-	return !IsErr(err, ErrDuplicate) &&
-		!IsErr(err, ErrRelationNotFound) &&
-		!IsErr(err, ErrNotFound) &&
-		!IsErr(err, ErrCheckFailed) &&
-		!IsErr(err, ErrRelationInUse)
+	var stErr *storageErr
+
+	return !errors.As(err, &stErr)
 }
 
 func parseDBError(err error) error { //nolint:funlen // .
@@ -205,6 +203,9 @@ func parseDBError(err error) error { //nolint:funlen // .
 			column = strings.ReplaceAll(column, "_", "")
 
 			return terror.New(ErrCheckFailed, map[string]any{"column": column})
+		}
+		if dbErr.SQLState() == "25P02" {
+			return terror.New(ErrTxAborted, nil)
 		}
 
 		return err

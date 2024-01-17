@@ -4,17 +4,17 @@ package storage
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 )
 
 // Public API.
 
 var (
-	ErrNotFound         = errors.New("not found")
-	ErrRelationNotFound = errors.New("relation not found")
-	ErrRelationInUse    = errors.New("relation in use")
-	ErrDuplicate        = errors.New("duplicate")
-	ErrCheckFailed      = errors.New("check failed")
+	ErrNotFound         = newStorageError("not found")
+	ErrRelationNotFound = newStorageError("relation not found")
+	ErrRelationInUse    = newStorageError("relation in use")
+	ErrDuplicate        = newStorageError("duplicate")
+	ErrCheckFailed      = newStorageError("check failed")
+	ErrTxAborted        = newStorageError("transaction aborted")
 )
 
 type (
@@ -27,6 +27,9 @@ type (
 // Private API.
 
 type (
+	storageErr struct {
+		Msg string
+	}
 	lb struct {
 		replicas     []*pgxpool.Pool
 		currentIndex uint64
