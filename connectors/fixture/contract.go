@@ -14,11 +14,11 @@ type (
 	ContextErrClose = func(context.Context) error
 
 	TestRunner interface {
-		RunTests(*testing.M)
+		RunTests(m *testing.M)
 		StartConnectorsIndefinitely()
 	}
 	TestConnector interface {
-		Setup(context.Context) ContextErrClose
+		Setup(ctx context.Context) ContextErrClose
 		Order() int
 	}
 	ConnectorLifecycleHooks struct {

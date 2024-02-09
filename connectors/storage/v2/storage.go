@@ -19,13 +19,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.WintrStorage.PrimaryURL != "" {

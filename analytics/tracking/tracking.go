@@ -4,7 +4,6 @@ package tracking
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -14,7 +13,7 @@ import (
 	"github.com/imroc/req/v3"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
@@ -26,18 +25,18 @@ func init() { //nolint:gochecknoinits // It's the only way to tweak the client.
 
 func New(applicationYAMLKey string) Client {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.Tracking.Credentials.AppID == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.Tracking.Credentials.AppID = os.Getenv(fmt.Sprintf("%s_ANALYTICS_TRACKING_APP_ID", module))
+		cfg.Tracking.Credentials.AppID = os.Getenv(module + "_ANALYTICS_TRACKING_APP_ID")
 		if cfg.Tracking.Credentials.AppID == "" {
 			cfg.Tracking.Credentials.AppID = os.Getenv("ANALYTICS_TRACKING_APP_ID")
 		}
 	}
 	if cfg.Tracking.Credentials.APIKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.Tracking.Credentials.APIKey = os.Getenv(fmt.Sprintf("%s_ANALYTICS_TRACKING_API_KEY", module))
+		cfg.Tracking.Credentials.APIKey = os.Getenv(module + "_ANALYTICS_TRACKING_API_KEY")
 		if cfg.Tracking.Credentials.APIKey == "" {
 			cfg.Tracking.Credentials.APIKey = os.Getenv("ANALYTICS_TRACKING_API_KEY")
 		}
@@ -69,7 +68,7 @@ func (t *tracking) TrackAction(ctx context.Context, userID string, action *Actio
 }
 
 func (t *tracking) SetUserAttributes(ctx context.Context, userID string, attributes map[string]any) error {
-	url := t.cfg.Tracking.BaseURL + "/v1/customer/" + t.cfg.Tracking.Credentials.AppID
+	url := t.cfg.Tracking.BaseURL + "/v1/customer/" + t.cfg.Tracking.Credentials.AppID //nolint:goconst // .
 	body := make(map[string]any, 1+1+1)
 	body["type"] = "customer"
 	body["customer_id"] = userID

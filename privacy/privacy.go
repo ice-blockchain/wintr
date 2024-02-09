@@ -9,13 +9,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func init() { //nolint:gochecknoinits // We're initializing a global, default one.
 	var cfg config
-	appCfg.MustLoadFromKey("wintr/privacy", &cfg)
+	appcfg.MustLoadFromKey("wintr/privacy", &cfg)
 
 	ed = NewEncryptDecrypter(cfg.Secret)
 }

@@ -22,8 +22,8 @@ type (
 
 		messagebroker.Client
 
-		VerifyMessages(context.Context, ...RawMessage) error
-		VerifyNoMessages(context.Context, ...RawMessage) error
+		VerifyMessages(ctx context.Context, msgs ...RawMessage) error
+		VerifyNoMessages(ctx context.Context, msgs ...RawMessage) error
 	}
 )
 

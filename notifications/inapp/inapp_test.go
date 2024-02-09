@@ -193,7 +193,7 @@ func requireBroadcast(t *testing.T, wg *sync.WaitGroup) {
 	for i := range userIDs {
 		userIDs[i] = uuid.NewString()
 	}
-	require.NoError(t, notificationFeedClient.Send(ctx, p1, userIDs...))
+	assert.NoError(t, notificationFeedClient.Send(ctx, p1, userIDs...))
 }
 
 func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing ratelimit, we have 2 tests that need to not run in parallel.
@@ -234,12 +234,12 @@ func requireSend(t *testing.T, wg *sync.WaitGroup) {
 			Value: userID,
 		},
 	}
-	require.NoError(t, notificationFeedClient.Send(ctx, p1, userID))
+	assert.NoError(t, notificationFeedClient.Send(ctx, p1, userID))
 }
 
 func assertInDelta(tb testing.TB, expected, actual, delta int64) { //nolint:unparam // Not a problem.
 	tb.Helper()
 	diff := expected - actual
-	assert.True(tb, diff <= delta, "diff is %v", diff)
-	assert.True(tb, diff >= 0, "diff is %v", diff)
+	assert.LessOrEqual(tb, diff, delta, "diff is %v", diff)
+	assert.GreaterOrEqual(tb, diff, 0, "diff is %v", diff)
 }

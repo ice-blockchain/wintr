@@ -34,7 +34,7 @@ type (
 
 	Client interface {
 		VerifyPhoneNumber(ctx context.Context, number string) error
-		Send(context.Context, *Parcel) error
+		Send(ctx context.Context, p *Parcel) error
 	}
 )
 

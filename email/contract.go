@@ -45,7 +45,7 @@ type (
 	}
 
 	Client interface {
-		Send(context.Context, *Parcel, ...Participant) error
+		Send(ctx context.Context, parcel *Parcel, participants ...Participant) error
 	}
 )
 

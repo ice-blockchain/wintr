@@ -14,8 +14,8 @@ import (
 
 type (
 	EncryptDecrypter interface {
-		Encrypt(string) string
-		Decrypt(string) (string, error)
+		Encrypt(input string) string
+		Decrypt(input string) (string, error)
 	}
 	Sensitive   string
 	DBSensitive string

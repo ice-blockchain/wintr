@@ -11,18 +11,18 @@ import (
 
 	"dario.cat/mergo"
 	firebase "firebase.google.com/go/v4"
-	firebaseAuth "firebase.google.com/go/v4/auth"
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/pkg/errors"
 	firebaseoption "google.golang.org/api/option"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
 	cfg := new(config)
-	appCfg.MustLoadFromKey(applicationYAMLKey, cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, cfg)
 	cfg.setWintrAuthFirebaseCredentialsFileContent(applicationYAMLKey)
 	cfg.setWintrAuthFirebaseCredentialsFilePath(applicationYAMLKey)
 
@@ -41,7 +41,7 @@ func New(ctx context.Context, applicationYAMLKey string) Client {
 	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 30*stdlibtime.Second) //nolint:gomnd // It's a one time call.
 	defer cancelEagerLoad()
 	t, err := client.VerifyIDTokenAndCheckRevoked(eagerLoadCtx, "invalid token")
-	if t != nil || !firebaseAuth.IsIDTokenInvalid(err) {
+	if t != nil || !firebaseauth.IsIDTokenInvalid(err) {
 		log.Panic(errors.New("unexpected success"))
 	}
 
@@ -63,10 +63,10 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 	userID := firebaseToken.UID
 	if len(firebaseToken.Claims) > 0 {
 		if emailInterface, found := firebaseToken.Claims["email"]; found {
-			email, _ = emailInterface.(string) //nolint:errcheck // Not needed.
+			email, _ = emailInterface.(string) //nolint:errcheck,revive // Not needed.
 		}
 		if roleInterface, found := firebaseToken.Claims["role"]; found {
-			role, _ = roleInterface.(string) //nolint:errcheck // Not needed.
+			role, _ = roleInterface.(string) //nolint:errcheck,revive // Not needed.
 		}
 	}
 
@@ -109,7 +109,7 @@ func (a *auth) UpdateEmail(ctx context.Context, userID, email string) error {
 	if ctx.Err() != nil {
 		return errors.Wrap(ctx.Err(), "context failed")
 	}
-	if _, err := a.client.UpdateUser(ctx, userID, new(firebaseAuth.UserToUpdate).Email(email).EmailVerified(true)); err != nil {
+	if _, err := a.client.UpdateUser(ctx, userID, new(firebaseauth.UserToUpdate).Email(email).EmailVerified(true)); err != nil {
 		if strings.HasSuffix(err.Error(), "user with the provided email already exists") {
 			return ErrConflict
 		}
@@ -138,13 +138,13 @@ func (a *auth) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (a *auth) GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRecord, error) {
+func (a *auth) GetUser(ctx context.Context, userID string) (*firebaseauth.UserRecord, error) {
 	usr, err := a.client.GetUser(ctx, userID)
 
 	return usr, errors.Wrapf(err, "can't get firebase user data for:%v", userID)
 }
 
-func (a *auth) GetUserByEmail(ctx context.Context, email string) (*firebaseAuth.UserRecord, error) {
+func (a *auth) GetUserByEmail(ctx context.Context, email string) (*firebaseauth.UserRecord, error) {
 	usr, err := a.client.GetUserByEmail(ctx, email)
 	if err != nil {
 		if strings.HasSuffix(err.Error(), fmt.Sprintf("no user exists with the email: \"%v\"", email)) {
@@ -160,7 +160,7 @@ func (a *auth) GetUserByEmail(ctx context.Context, email string) (*firebaseAuth.
 func (cfg *config) setWintrAuthFirebaseCredentialsFileContent(applicationYAMLKey string) {
 	if cfg.WintrAuthFirebase.Credentials.FileContent == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrAuthFirebase.Credentials.FileContent = os.Getenv(fmt.Sprintf("%s_AUTH_CREDENTIALS_FILE_CONTENT", module))
+		cfg.WintrAuthFirebase.Credentials.FileContent = os.Getenv(module + "_AUTH_CREDENTIALS_FILE_CONTENT")
 		if cfg.WintrAuthFirebase.Credentials.FileContent == "" {
 			cfg.WintrAuthFirebase.Credentials.FileContent = os.Getenv("AUTH_CREDENTIALS_FILE_CONTENT")
 		}
@@ -176,7 +176,7 @@ func (cfg *config) setWintrAuthFirebaseCredentialsFileContent(applicationYAMLKey
 func (cfg *config) setWintrAuthFirebaseCredentialsFilePath(applicationYAMLKey string) {
 	if cfg.WintrAuthFirebase.Credentials.FilePath == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrAuthFirebase.Credentials.FilePath = os.Getenv(fmt.Sprintf("%s_AUTH_CREDENTIALS_FILE_PATH", module))
+		cfg.WintrAuthFirebase.Credentials.FilePath = os.Getenv(module + "_AUTH_CREDENTIALS_FILE_PATH")
 		if cfg.WintrAuthFirebase.Credentials.FilePath == "" {
 			cfg.WintrAuthFirebase.Credentials.FilePath = os.Getenv("AUTH_CREDENTIALS_FILE_PATH")
 		}

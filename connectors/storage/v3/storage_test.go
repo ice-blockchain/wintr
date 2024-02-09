@@ -40,11 +40,11 @@ func TestStorage(t *testing.T) {
 	t.Parallel()
 	db := MustConnect(context.Background(), "self")
 	result, err := db.Ping(context.Background()).Result()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "PONG", result)
 	assert.True(t, db.IsRW(context.Background()))
 	result, eerr := db.FlushAll(context.Background()).Result()
-	assert.NoError(t, eerr)
+	require.NoError(t, eerr)
 	assert.Equal(t, "OK", result)
 	res, err := db.Del(context.Background(), "x1", "x2", "x3", "x4", "x5", "x6").Result()
 	require.NoError(t, err)
@@ -118,7 +118,7 @@ func BenchmarkDeserializeValue(b *testing.B) {
 				XXX
 			}
 			scans := 0
-			if err := DeserializeValue(&xxx, func(val any) error {
+			if err := DeserializeValue(&xxx, func(_ any) error {
 				scans++
 
 				return nil

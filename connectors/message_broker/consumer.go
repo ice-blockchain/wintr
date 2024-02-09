@@ -73,7 +73,7 @@ func (mb *messageBroker) partitionConsumers(fetchedTopic *kgo.FetchTopic) *sync.
 		}
 	}
 
-	return topicConsumers.(*sync.Map) //nolint:forcetypeassert // We know for sure.
+	return topicConsumers.(*sync.Map) //nolint:forcetypeassert,revive // We know for sure.
 }
 
 func (mb *messageBroker) partitionConsumer(
@@ -106,7 +106,7 @@ func (mb *messageBroker) partitionConsumer(
 		return nil
 	}
 
-	return pc.(*partitionConsumer) //nolint:forcetypeassert // We know for sure.
+	return pc.(*partitionConsumer) //nolint:forcetypeassert,revive // We know for sure.
 }
 
 func (mb *messageBroker) processNotFoundPartitions(fetchedTopic *kgo.FetchTopic, fetchPartitions ...kgo.FetchPartition) {

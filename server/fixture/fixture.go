@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,7 +26,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"golang.org/x/net/http2"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	connectorsfixture "github.com/ice-blockchain/wintr/connectors/fixture"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/server"
@@ -37,7 +38,7 @@ func NewTestConnector(
 	additionalContainerMounts ...func(projectRoot string) testcontainers.ContainerMount,
 ) TestConnector {
 	var cfg server.Config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	return &testConnector{
 		cfg:                       &cfg,
@@ -146,7 +147,7 @@ func (tc *testConnector) buildContainerRequest(ctx context.Context) testcontaine
 		osName = "linux"
 		goarch = runtime.GOARCH
 	)
-	port := fmt.Sprintf("%v", tc.cfg.HTTPServer.Port)
+	port := strconv.FormatUint(uint64(tc.cfg.HTTPServer.Port), 10)
 
 	return testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{

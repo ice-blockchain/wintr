@@ -28,6 +28,6 @@ var (
 	_ sql.Scanner                                  = (*Time)(nil)
 	_ interface{ MarshalBinary() ([]byte, error) } = (*Time)(nil)
 	_ interface{ MarshalText() ([]byte, error) }   = (*Time)(nil)
-	_ interface{ UnmarshalBinary([]byte) error }   = (*Time)(nil)
-	_ interface{ UnmarshalText([]byte) error }     = (*Time)(nil)
+	_ interface{ UnmarshalBinary(b []byte) error } = (*Time)(nil)
+	_ interface{ UnmarshalText(b []byte) error }   = (*Time)(nil)
 )

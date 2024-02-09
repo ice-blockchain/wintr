@@ -16,13 +16,13 @@ import (
 	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func MustConnect(ctx context.Context, applicationYAMLKey string) Client {
 	var cfg Config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	mb := &messageBroker{cfg: &cfg}
 	mb.connectCreateAndValidateTopics(ctx)
@@ -32,7 +32,7 @@ func MustConnect(ctx context.Context, applicationYAMLKey string) Client {
 
 func MustConnectAndStartConsuming(ctx context.Context, cancel context.CancelFunc, applicationYAMLKey string, processors ...Processor) Client {
 	var cfg Config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if len(processors) == 0 {
 		log.Panic(errors.New("at least one processor required if you want to start consuming"))
 	}

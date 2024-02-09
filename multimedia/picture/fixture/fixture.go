@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 )
 
 func MultipartFileHeader(tb testing.TB, fs embed.FS, filename, multiPartKey, multiPartFileName string) *multipart.FileHeader {
@@ -38,7 +38,7 @@ func MultipartFileHeader(tb testing.TB, fs embed.FS, filename, multiPartKey, mul
 	require.NoError(tb, writer.Close())
 	form, err := multipart.NewReader(body, writer.Boundary()).ReadForm(stat.Size())
 	require.NoError(tb, err)
-	require.Greater(tb, len(form.File[multiPartKey]), 0)
+	require.NotEmpty(tb, form.File[multiPartKey])
 
 	return form.File[multiPartKey][0]
 }
@@ -54,10 +54,10 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 			URLDownload string `yaml:"urlDownload"`
 		} `yaml:"wintr/multimedia/picture" mapstructure:"wintr/multimedia/picture"` //nolint:tagliatelle // Nope.
 	}
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(fmt.Sprintf("%s_PICTURE_STORAGE_ACCESS_KEY", module))
+		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(module + "_PICTURE_STORAGE_ACCESS_KEY") //nolint:goconst // .
 		if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 			cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv("PICTURE_STORAGE_ACCESS_KEY")
 		}
@@ -76,7 +76,7 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 	assert.Equal(tb, http.StatusOK, resp.StatusCode)
 	bodyBytes, err := io.ReadAll(resp.Body)
 	require.NoError(tb, err)
-	assert.Greater(tb, len(bodyBytes), 0)
+	assert.NotEmpty(tb, bodyBytes)
 
 	url = fmt.Sprintf("%s/%s", cfg.WintrMultimediaPicture.URLDownload, fileName)
 	req, err = http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
@@ -89,7 +89,7 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 	assert.Equal(tb, http.StatusOK, resp.StatusCode)
 	bodyBytes, err = io.ReadAll(resp.Body)
 	require.NoError(tb, err)
-	assert.Greater(tb, len(bodyBytes), 0)
+	assert.NotEmpty(tb, bodyBytes)
 }
 
 func AssertPictureDeleted(ctx context.Context, tb testing.TB, applicationYAMLKey, fileName string) { //nolint:funlen // .
@@ -103,10 +103,10 @@ func AssertPictureDeleted(ctx context.Context, tb testing.TB, applicationYAMLKey
 			URLDownload string `yaml:"urlDownload"`
 		} `yaml:"wintr/multimedia/picture" mapstructure:"wintr/multimedia/picture"` //nolint:tagliatelle // Nope.
 	}
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(fmt.Sprintf("%s_PICTURE_STORAGE_ACCESS_KEY", module))
+		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(module + "_PICTURE_STORAGE_ACCESS_KEY")
 		if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 			cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv("PICTURE_STORAGE_ACCESS_KEY")
 		}

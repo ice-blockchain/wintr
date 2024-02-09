@@ -9,21 +9,21 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
-	firebaseAuth "github.com/ice-blockchain/wintr/auth/internal/firebase"
-	iceAuth "github.com/ice-blockchain/wintr/auth/internal/ice"
+	firebaseauth "github.com/ice-blockchain/wintr/auth/internal/firebase"
+	iceauth "github.com/ice-blockchain/wintr/auth/internal/ice"
 	"github.com/ice-blockchain/wintr/time"
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
 	return &auth{
-		fb:  firebaseAuth.New(ctx, applicationYAMLKey),
-		ice: iceAuth.New(applicationYAMLKey),
+		fb:  firebaseauth.New(ctx, applicationYAMLKey),
+		ice: iceauth.New(applicationYAMLKey),
 	}
 }
 
 func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 	var authToken *Token
-	if err := iceAuth.DetectIceToken(token); err != nil {
+	if err := iceauth.DetectIceToken(token); err != nil {
 		authToken, err = a.fb.VerifyToken(ctx, token)
 
 		return authToken, errors.Wrapf(err, "can't verify fb token:%v", token)
@@ -68,15 +68,15 @@ func (*auth) checkMetadataOwnership(userID string, metadata jwt.MapClaims) error
 func (*auth) firstRegisteredUserID(metadata map[string]any) string {
 	var userID string
 	if registeredWithProviderInterface, found := metadata[internal.RegisteredWithProviderClaim]; found {
-		registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,forcetypeassert // Not needed.
+		registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,revive,forcetypeassert // Not needed.
 		switch registeredWithProvider {
 		case internal.ProviderFirebase:
 			if firebaseIDInterface, ok := metadata[internal.FirebaseIDClaim]; ok {
-				userID, _ = firebaseIDInterface.(string) //nolint:errcheck // Not needed.
+				userID, _ = firebaseIDInterface.(string) //nolint:errcheck,revive // Not needed.
 			}
 		case internal.ProviderIce:
 			if iceIDInterface, ok := metadata[internal.IceIDClaim]; ok {
-				userID, _ = iceIDInterface.(string) //nolint:errcheck // Not needed.
+				userID, _ = iceIDInterface.(string) //nolint:errcheck,revive // Not needed.
 			}
 		}
 	}
@@ -106,7 +106,7 @@ func (a *auth) GetUserUIDByEmail(ctx context.Context, email string) (string, err
 		return "", errors.Wrapf(err, "failed to get user by email:%v using firebase auth", email)
 	}
 
-	return usr.UID, err
+	return usr.UID, nil
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.

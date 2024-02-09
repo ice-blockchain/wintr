@@ -123,7 +123,7 @@ func (tc *httpTestClient) testSwaggerRoot(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
 	body, status, headers := tc.Get(ctx, tb, tc.swaggerRoot)
-	assert.Greater(tb, len(body), 0)
+	assert.NotEmpty(tb, len(body))
 	assert.Equal(tb, http.StatusOK, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.NoError(tb, err)
@@ -137,7 +137,7 @@ func (tc *httpTestClient) testSwaggerIndex(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
 	body, status, headers := tc.Get(ctx, tb, fmt.Sprintf("%v/swagger/index.html", tc.swaggerRoot))
-	assert.Greater(tb, len(body), 0)
+	assert.NotEmpty(tb, len(body))
 	assert.Equal(tb, http.StatusOK, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.True(tb, err == nil && l > 0)
@@ -187,7 +187,7 @@ func (*httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body stri
 	assert.Equal(tb, expectedBody, body)
 	assert.Equal(tb, http.StatusUnauthorized, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
-	assert.NoError(tb, err)
+	require.NoError(tb, err)
 	assert.Greater(tb, l, 0)
 	headers.Del("Date")
 	headers.Del("Content-Length")

@@ -162,7 +162,7 @@ func (req *Request[REQ, RESP]) validate() *Response[ErrorResponse] {
 	return UnprocessableEntity(errors.Errorf("properties `%v` are required", strings.Join(requiredFields, ",")), "MISSING_PROPERTIES")
 }
 
-//nolint:gocyclo,revive,cyclop // .
+//nolint:gocyclo,revive,cyclop,gocognit // .
 func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response[ErrorResponse]) {
 	userID := strings.Trim(req.ginCtx.Param("userId"), " ")
 	if req.allowUnauthorized {
@@ -172,13 +172,13 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 			}
 		}()
 	}
-
 	authToken := strings.TrimPrefix(req.ginCtx.GetHeader("Authorization"), "Bearer ")
 	token, err := Auth(ctx).VerifyToken(ctx, authToken)
 	if err != nil {
 		if errors.Is(err, auth.ErrForbidden) {
 			return Forbidden(err)
 		}
+
 		return Unauthorized(err)
 	}
 	metadataHeader := req.ginCtx.GetHeader("X-Account-Metadata")
@@ -187,9 +187,7 @@ func (req *Request[REQ, RESP]) authorize(ctx context.Context) (errResp *Response
 	}
 	req.AuthenticatedUser.Token = *token
 	req.AuthenticatedUser.Language = req.ginCtx.GetHeader(languageHeader)
-	if userID != "" &&
-		userID != "-" &&
-		req.AuthenticatedUser.UserID != userID &&
+	if userID != "" && userID != "-" && req.AuthenticatedUser.UserID != userID &&
 		((!req.allowForbiddenWriteOperation && req.ginCtx.Request.Method != http.MethodGet) ||
 			(req.ginCtx.Request.Method == http.MethodGet && !req.allowForbiddenGet && !strings.HasSuffix(req.ginCtx.Request.URL.Path, userID))) {
 		return Forbidden(errors.Errorf("operation not allowed. uri>%v!=token>%v", userID, req.AuthenticatedUser.UserID))
@@ -214,5 +212,5 @@ func (req *Request[REQ, RESP]) processErrorResponse(ctx context.Context, failure
 }
 
 func Auth(ctx context.Context) auth.Client {
-	return ctx.Value(authClientCtxValueKey).(auth.Client) //nolint:forcetypeassert // We know for sure.
+	return ctx.Value(authClientCtxValueKey).(auth.Client) //nolint:forcetypeassert,revive // We know for sure.
 }

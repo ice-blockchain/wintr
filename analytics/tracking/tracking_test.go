@@ -24,7 +24,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	client = New(testApplicationYAMLKey).(*tracking) //nolint:forcetypeassert,errcheck // We know for sure.
+	client = New(testApplicationYAMLKey).(*tracking) //nolint:forcetypeassert,revive,errcheck // We know for sure.
 	os.Exit(m.Run())
 }
 

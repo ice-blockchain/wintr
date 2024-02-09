@@ -39,9 +39,9 @@ type (
 	Client interface {
 		io.Closer
 
-		Send(context.Context, *Notification[DeviceToken], chan<- error)
-		Broadcast(context.Context, *Notification[SubscriptionTopic]) error
-		BroadcastDelayed(context.Context, *DelayedNotification) error
+		Send(ctx context.Context, notif *Notification[DeviceToken], errs chan<- error)
+		Broadcast(ctx context.Context, notif *Notification[SubscriptionTopic]) error
+		BroadcastDelayed(ctx context.Context, notif *DelayedNotification) error
 	}
 )
 
