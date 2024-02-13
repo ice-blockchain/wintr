@@ -5,7 +5,9 @@ package inapp
 import (
 	"context"
 	"fmt"
+	"github.com/ice-blockchain/wintr/log"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	stdlibtime "time"
@@ -33,6 +35,15 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Your application was suspended") {
+				log.Warn("Your application was suspended")
+				os.Exit(0)
+			}
+		}
+	}()
+
 	notificationFeedClient = New(testApplicationYAMLKey, testNotificationFeedName)
 	flatFeedClient = New(testApplicationYAMLKey, testFlatFeedName)
 	os.Exit(m.Run())

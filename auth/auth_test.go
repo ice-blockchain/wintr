@@ -104,7 +104,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	require.NoError(t, client.DeleteUser(ctx, uid))
 	require.NotErrorIs(t, client.DeleteUser(ctx, uuid.NewString()), ErrUserNotFound)
 	_, err = fixture.GetUser(ctx, uid)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.True(t, strings.HasPrefix(err.Error(), "no user exists with the"))
 }
 
@@ -296,7 +296,7 @@ func TestMetadata_RegisteredBy(t *testing.T) { //nolint:funlen // .
 		var decodedMetadata jwt.MapClaims
 		err = client.(*auth).ice.VerifyTokenFields(metadataToken, &decodedMetadata) //nolint:forcetypeassert // .
 		require.NoError(t, err)
-		assert.Len(t, len(decodedMetadata), 6)
+		assert.Len(t, decodedMetadata, 6)
 		assert.Equal(t, userID, decodedMetadata["sub"])
 		assert.Equal(t, internal.MetadataIssuer, decodedMetadata["iss"])
 		assert.Equal(t, now.Unix(), int64(decodedMetadata["iat"].(float64))) //nolint:forcetypeassert // .
@@ -350,5 +350,5 @@ func TestMetadata_MetadataNotOwnedByToken(t *testing.T) {
 
 	tok := &Token{UserID: uuid.NewString()} // Metadata was issued for token "userID", not random one.
 	_, err = client.ModifyTokenWithMetadata(tok, metadataToken)
-	require.ErrorIs(t, err, ErrInvalidToken)
+	require.ErrorIs(t, err, ErrWrongTypeToken)
 }
