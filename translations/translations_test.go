@@ -23,9 +23,6 @@ var (
 func recoverUnconfigured(t *testing.T) {
 	t.Helper()
 	if e := recover(); e != nil { //nolint:revive // .
-		if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
-			t.Skip("Missing API key")
-		}
 		if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
 			t.Skip("Invalid project key")
 		}
