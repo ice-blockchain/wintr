@@ -5,12 +5,15 @@ package translations
 import (
 	"context"
 	_ "embed"
+	"os"
 	"strings"
 	"testing"
 	stdlibtime "time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ice-blockchain/wintr/log"
 )
 
 var (
@@ -18,23 +21,32 @@ var (
 	expectedENTranslation string
 	//go:embed .testdata/expected_ru
 	expectedRUTranslation string
+	cl                    Client //nolint:gochecknoglobals // For testing.
 )
+
+func TestMain(m *testing.M) {
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
+				log.Warn("Invalid project key")
+				os.Exit(0)
+			}
+			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
+				log.Warn("Missing API key")
+				os.Exit(0)
+			}
+		}
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	cl = New(ctx, "self")
+	os.Exit(m.Run()) //nolint:gocritic // We have to decide what to do with these tests first.
+}
 
 func TestClientTranslate(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() {
-		if e := recover(); e != nil {
-			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Invalid project key")
-			}
-			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Missing API key")
-			}
-		}
-	}()
-	cl := New(ctx, "self")
 
 	translationRU, err := cl.Translate(ctx, "ru", "test", map[string]string{"username": "@jdoe", "bogus": "bogus"})
 	require.NoError(t, err)
@@ -53,17 +65,6 @@ func TestClientTranslateAllLanguages(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() {
-		if e := recover(); e != nil {
-			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Invalid project key")
-			}
-			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Missing API key")
-			}
-		}
-	}()
-	cl := New(ctx, "self")
 
 	allTranslations, err := cl.TranslateAllLanguages(ctx, "test", map[string]string{"username": "@jdoe", "bogus": "bogus"})
 	require.NoError(t, err)
@@ -76,17 +77,6 @@ func TestClientTranslateMultipleKeysAllLanguages(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() {
-		if e := recover(); e != nil {
-			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Invalid project key")
-			}
-			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Missing API key")
-			}
-		}
-	}()
-	cl := New(ctx, "self")
 
 	args := map[string]string{"username": "@jdoe", "bogus": "bogus"}
 	allTranslations, err := cl.TranslateMultipleKeysAllLanguages(ctx, []TranslationKey{"test", "test"}, args)
@@ -102,17 +92,6 @@ func TestClientTranslateMultipleKeys(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() {
-		if e := recover(); e != nil {
-			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Invalid project key")
-			}
-			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
-				t.Skip("Missing API key")
-			}
-		}
-	}()
-	cl := New(ctx, "self")
 
 	keys := []TranslationKey{"test", "test"}
 	translationRU, err := cl.TranslateMultipleKeys(ctx, "ru", keys, map[string]string{"username": "@jdoe", "bogus": "bogus"})
