@@ -20,20 +20,20 @@ var (
 	expectedRUTranslation string
 )
 
-func recoverUnconfigured(t *testing.T) {
-	t.Helper()
-	if e := recover(); e != nil { //nolint:revive // .
-		if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
-			t.Skip("Invalid project key")
-		}
-	}
-}
-
 func TestClientTranslate(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() { recoverUnconfigured(t) }()
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Invalid project key")
+			}
+			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Missing API key")
+			}
+		}
+	}()
 	cl := New(ctx, "self")
 
 	translationRU, err := cl.Translate(ctx, "ru", "test", map[string]string{"username": "@jdoe", "bogus": "bogus"})
@@ -53,7 +53,16 @@ func TestClientTranslateAllLanguages(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() { recoverUnconfigured(t) }()
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Invalid project key")
+			}
+			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Missing API key")
+			}
+		}
+	}()
 	cl := New(ctx, "self")
 
 	allTranslations, err := cl.TranslateAllLanguages(ctx, "test", map[string]string{"username": "@jdoe", "bogus": "bogus"})
@@ -67,7 +76,16 @@ func TestClientTranslateMultipleKeysAllLanguages(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() { recoverUnconfigured(t) }()
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Invalid project key")
+			}
+			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Missing API key")
+			}
+		}
+	}()
 	cl := New(ctx, "self")
 
 	args := map[string]string{"username": "@jdoe", "bogus": "bogus"}
@@ -84,7 +102,16 @@ func TestClientTranslateMultipleKeys(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
-	defer func() { recoverUnconfigured(t) }()
+	defer func() {
+		if e := recover(); e != nil {
+			if err := e.(error); strings.Contains(err.Error(), "Invalid project key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Invalid project key")
+			}
+			if err := e.(error); strings.Contains(err.Error(), "Missing API key") { //nolint:errcheck,forcetypeassert,revive // .
+				t.Skip("Missing API key")
+			}
+		}
+	}()
 	cl := New(ctx, "self")
 
 	keys := []TranslationKey{"test", "test"}
