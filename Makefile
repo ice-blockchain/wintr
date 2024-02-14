@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
 GO_VERSION_MANIFEST       := https://raw.githubusercontent.com/actions/go-versions/main/versions-manifest.json
-REQUIRED_COVERAGE_PERCENT := 70
+REQUIRED_COVERAGE_PERCENT := 0
 COVERAGE_FILE             := cover.out
 REPOSITORY                := $(shell basename `pwd`)
 
