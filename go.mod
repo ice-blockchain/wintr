@@ -169,6 +169,5 @@ require (
 replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.6.19
 	github.com/docker/docker => github.com/docker/docker v20.10.22+incompatible
-	github.com/redis/go-redis/v9 => github.com/redis/go-redis/v9 v9.0.5
 	github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.15.0
 )
