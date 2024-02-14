@@ -26,9 +26,9 @@ type (
 		AppID     string `json:"appId,omitempty"`
 	}
 	Client interface {
-		CreateUserToken(context.Context, UserID) (*Token, error)
+		CreateUserToken(ctx context.Context, userID UserID) (*Token, error)
 
-		Send(context.Context, *Parcel, ...UserID) error
+		Send(ctx context.Context, p *Parcel, userIDs ...UserID) error
 	}
 
 	Parcel = internal.Parcel

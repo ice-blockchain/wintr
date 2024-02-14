@@ -39,7 +39,7 @@ func (c *testConnector) Order() int {
 
 func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 	containerID := strings.ToLower(uuid.New().String())
-	tmpFolder := fmt.Sprintf(".tmp-%s", containerID)
+	tmpFolder := ".tmp-" + containerID
 	applicationYAMLKey, ok := ctx.Value(applicationYAMLKeyContextValueKey).(string)
 	if !ok {
 		log.Panic("no package name provided in context")

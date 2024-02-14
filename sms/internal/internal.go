@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -11,26 +10,26 @@ import (
 	"github.com/pkg/errors"
 	"github.com/twilio/twilio-go"
 	twilioopenapi "github.com/twilio/twilio-go/rest/api/v2010"
-	twilioopenapiMessagingV1 "github.com/twilio/twilio-go/rest/messaging/v1"
+	twilioopenapimessagingv1 "github.com/twilio/twilio-go/rest/messaging/v1"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func New(applicationYAMLKey string) (*twilio.RestClient, *PhoneNumbersRoundRobinLB) {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.WintrSMS.Credentials.User == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrSMS.Credentials.User = os.Getenv(fmt.Sprintf("%s_SMS_CLIENT_USER", module))
+		cfg.WintrSMS.Credentials.User = os.Getenv(module + "_SMS_CLIENT_USER")
 		if cfg.WintrSMS.Credentials.User == "" {
 			cfg.WintrSMS.Credentials.User = os.Getenv("SMS_CLIENT_USER")
 		}
 	}
 	if cfg.WintrSMS.Credentials.Password == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrSMS.Credentials.Password = os.Getenv(fmt.Sprintf("%s_SMS_CLIENT_PASSWORD", module))
+		cfg.WintrSMS.Credentials.Password = os.Getenv(module + "_SMS_CLIENT_PASSWORD")
 		if cfg.WintrSMS.Credentials.Password == "" {
 			cfg.WintrSMS.Credentials.Password = os.Getenv("SMS_CLIENT_PASSWORD")
 		}
@@ -54,7 +53,7 @@ func (lb *PhoneNumbersRoundRobinLB) init(client *twilio.RestClient) *PhoneNumber
 	for i := range allPhoneNumbersOwned {
 		lb.phoneNumbers = append(lb.phoneNumbers, *(allPhoneNumbersOwned[i].PhoneNumber))
 	}
-	services, err := client.MessagingV1.ListService(new(twilioopenapiMessagingV1.ListServiceParams).SetLimit(1))
+	services, err := client.MessagingV1.ListService(new(twilioopenapimessagingv1.ListServiceParams).SetLimit(1))
 	log.Panic(errors.Wrapf(err, "failed to ListMessageServices"))
 	if len(services) > 0 {
 		lb.schedulingMessagingServiceSID = *services[0].Sid

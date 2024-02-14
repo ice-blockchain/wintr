@@ -29,10 +29,10 @@ type (
 	}
 	// State is the actual custom behaviour that has to be implemented by users of this package to customize their http server`s lifecycle.
 	State interface {
-		Init(context.Context, context.CancelFunc)
-		Close(context.Context) error
-		RegisterRoutes(*Router)
-		CheckHealth(context.Context) error
+		Init(ctx context.Context, cancel context.CancelFunc)
+		Close(ctx context.Context) error
+		RegisterRoutes(r *Router)
+		CheckHealth(ctx context.Context) error
 	}
 	Request[REQ any, RESP any] struct {
 		Data                         *REQ                        `json:"data,omitempty"`

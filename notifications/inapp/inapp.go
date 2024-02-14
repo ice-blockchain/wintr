@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/notifications/inapp/internal"
 	"github.com/ice-blockchain/wintr/time"
@@ -23,25 +23,25 @@ import (
 
 func New(applicationYAMLKey, feedName string) Client { //nolint:funlen // .
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.WintrInAppNotifications.Credentials.Key == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrInAppNotifications.Credentials.Key = os.Getenv(fmt.Sprintf("%s_INAPP_NOTIFICATIONS_CLIENT_KEY", module))
+		cfg.WintrInAppNotifications.Credentials.Key = os.Getenv(module + "_INAPP_NOTIFICATIONS_CLIENT_KEY")
 		if cfg.WintrInAppNotifications.Credentials.Key == "" {
 			cfg.WintrInAppNotifications.Credentials.Key = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_KEY")
 		}
 	}
 	if cfg.WintrInAppNotifications.Credentials.Secret == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv(fmt.Sprintf("%s_INAPP_NOTIFICATIONS_CLIENT_SECRET", module))
+		cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv(module + "_INAPP_NOTIFICATIONS_CLIENT_SECRET")
 		if cfg.WintrInAppNotifications.Credentials.Secret == "" {
 			cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_SECRET")
 		}
 	}
 	if cfg.WintrInAppNotifications.Credentials.AppID == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrInAppNotifications.Credentials.AppID = os.Getenv(fmt.Sprintf("%s_INAPP_NOTIFICATIONS_CLIENT_APP_ID", module))
+		cfg.WintrInAppNotifications.Credentials.AppID = os.Getenv(module + "_INAPP_NOTIFICATIONS_CLIENT_APP_ID")
 		if cfg.WintrInAppNotifications.Credentials.AppID == "" {
 			cfg.WintrInAppNotifications.Credentials.AppID = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_APP_ID")
 		}

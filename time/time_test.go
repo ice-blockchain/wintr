@@ -45,7 +45,7 @@ func TestTime(t *testing.T) {
 	marshalBinary2, err := t111.CreatedAt.MarshalText()
 	require.NoError(t, err)
 	assert.EqualValues(t, marshalBinary1, marshalBinary2)
-	assert.EqualValues(t, string(marshalBinary1), "")
+	assert.EqualValues(t, "", string(marshalBinary1))
 	bytes, err := json.MarshalContext(context.Background(), t1)
 	require.NoError(t, err)
 	assert.Equal(t, `{"createdAt":"2006-01-02T15:04:05.999999999Z"}`, string(bytes))

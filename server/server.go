@@ -15,17 +15,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
 
 	"github.com/ice-blockchain/wintr/auth"
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func New(state State, cfgKey, swaggerRoot string) Server {
-	appCfg.MustLoadFromKey(cfgKey, &cfg)
-	appCfg.MustLoadFromKey("development", &development)
+	appcfg.MustLoadFromKey(cfgKey, &cfg)
+	appcfg.MustLoadFromKey("development", &development)
 
 	return &srv{State: state, swaggerRoot: swaggerRoot, applicationYAMLKey: cfgKey}
 }
@@ -84,7 +84,7 @@ func (s *srv) setupSwaggerRoutes() {
 		GET(root, func(c *gin.Context) {
 			c.Redirect(http.StatusFound, (&url.URL{Path: fmt.Sprintf("%v/swagger/index.html", root)}).RequestURI())
 		}).
-		GET(fmt.Sprintf("%v/swagger/*any", root), ginSwagger.WrapHandler(swaggerFiles.Handler))
+		GET(fmt.Sprintf("%v/swagger/*any", root), ginswagger.WrapHandler(swaggerfiles.Handler))
 }
 
 func (s *srv) setupServer(ctx context.Context) {

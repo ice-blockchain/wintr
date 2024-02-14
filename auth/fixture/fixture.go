@@ -15,7 +15,7 @@ import (
 	stdlibtime "time"
 
 	firebase "firebase.google.com/go/v4"
-	firebaseAuth "firebase.google.com/go/v4/auth"
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/goccy/go-json"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -28,13 +28,13 @@ import (
 
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
-	globalFirebaseClient *firebaseAuth.Client
+	globalFirebaseClient *firebaseauth.Client
 	globalIceClient      iceauth.Client
 	singletonIce         = new(sync.Once)
 	singletonFirebase    = new(sync.Once)
 )
 
-func clientFirebase() *firebaseAuth.Client {
+func clientFirebase() *firebaseauth.Client {
 	singletonFirebase.Do(func() {
 		globalFirebaseClient = newFirebaseClient()
 	})
@@ -63,7 +63,7 @@ func CreateUser(role string) (uid, token string) {
 	})
 	log.Panic(err) //nolint:revive // Intended.
 
-	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=%s", os.Getenv("GCP_FIREBASE_AUTH_API_KEY"))
+	url := "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + os.Getenv("GCP_FIREBASE_AUTH_API_KEY")
 	respBytes := postRequest(url, req)
 
 	var respBody struct {
@@ -81,7 +81,7 @@ func DeleteUser(uid string) {
 	log.Panic(clientFirebase().DeleteUser(delCtx, uid))
 }
 
-func GetUser(ctx context.Context, uid string) (*firebaseAuth.UserRecord, error) {
+func GetUser(ctx context.Context, uid string) (*firebaseauth.UserRecord, error) {
 	return clientFirebase().GetUser(ctx, uid) //nolint:wrapcheck // It's a proxy.
 }
 
@@ -115,7 +115,7 @@ func generateUser(ctx context.Context, role string) (uid, email, password string
 	phoneNumber := fmt.Sprintf("+1%d", randNumber.Uint64()+phoneNumberMin)
 	password = uuid.NewString()
 
-	user := new(firebaseAuth.UserToCreate).
+	user := new(firebaseauth.UserToCreate).
 		Email(fmt.Sprintf("%s@%s-test-user.com", uuid.NewString(), uuid.NewString())).
 		Password(password).
 		PhoneNumber(phoneNumber).
@@ -145,7 +145,7 @@ func postRequest(url string, req []byte) []byte {
 	return bodyBytes
 }
 
-func newFirebaseClient() *firebaseAuth.Client {
+func newFirebaseClient() *firebaseauth.Client {
 	ctx := context.Background()
 	fileContent := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	filePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -165,7 +165,7 @@ func newFirebaseClient() *firebaseAuth.Client {
 	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 5*stdlibtime.Second) //nolint:gomnd // It's a one time call.
 	defer cancelEagerLoad()
 	t, err := client.VerifyIDTokenAndCheckRevoked(eagerLoadCtx, "invalid token")
-	if t != nil || !firebaseAuth.IsIDTokenInvalid(err) {
+	if t != nil || !firebaseauth.IsIDTokenInvalid(err) {
 		log.Panic(errors.New("unexpected success"))
 	}
 

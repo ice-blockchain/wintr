@@ -18,10 +18,10 @@ type (
 	TranslationValue = string
 	TranslationArgs  = map[string]string
 	Client           interface {
-		Translate(context.Context, Language, TranslationKey, ...TranslationArgs) (TranslationValue, error)
-		TranslateMultipleKeys(context.Context, Language, []TranslationKey, ...TranslationArgs) (map[TranslationKey]TranslationValue, error)
-		TranslateAllLanguages(context.Context, TranslationKey, ...TranslationArgs) (map[Language]TranslationValue, error)
-		TranslateMultipleKeysAllLanguages(context.Context, []TranslationKey, ...TranslationArgs) (map[Language]map[TranslationKey]TranslationValue, error)
+		Translate(ctx context.Context, lang Language, key TranslationKey, args ...TranslationArgs) (TranslationValue, error)
+		TranslateMultipleKeys(ctx context.Context, lang Language, keys []TranslationKey, args ...TranslationArgs) (map[TranslationKey]TranslationValue, error)
+		TranslateAllLanguages(ctx context.Context, key TranslationKey, args ...TranslationArgs) (map[Language]TranslationValue, error)
+		TranslateMultipleKeysAllLanguages(ctx context.Context, keys []TranslationKey, args ...TranslationArgs) (map[Language]map[TranslationKey]TranslationValue, error) //nolint:lll // .
 	}
 )
 

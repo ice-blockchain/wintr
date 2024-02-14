@@ -33,7 +33,6 @@ type (
 func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) error) error {
 	txOptions := pgx.TxOptions{IsoLevel: pgx.Serializable, AccessMode: pgx.ReadWrite, DeferrableMode: pgx.NotDeferrable}
 	_, err := retry[any](ctx, func() (any, error) {
-		//nolint:wrapcheck // We have nothing relevant to wrap.
 		if err := parseDBError(pgx.BeginTxFunc(ctx, db.primary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
@@ -41,7 +40,7 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 		}
 	})
 	if err != nil && (errors.Is(err, ErrSerializationFailure) || errors.Is(err, ErrTxAborted)) {
-		stdlibtime.Sleep(10 * stdlibtime.Millisecond)
+		stdlibtime.Sleep(10 * stdlibtime.Millisecond) //nolint:gomnd // Not a magic number.
 
 		return DoInTransaction(ctx, db, fn)
 	}
@@ -181,7 +180,7 @@ func IsUnexpected(err error) bool {
 	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr)
 }
 
-func parseDBError(err error) error { //nolint:funlen // .
+func parseDBError(err error) error { //nolint:funlen,gocognit,revive // .
 	var dbErr *pgconn.PgError
 	if errors.As(err, &dbErr) { //nolint:nestif // .
 		if dbErr.SQLState() == "23505" {

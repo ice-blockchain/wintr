@@ -4,14 +4,13 @@ package fixture
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
 	getstreamio "github.com/GetStream/stream-go2/v7"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/notifications/inapp/internal"
 	"github.com/ice-blockchain/wintr/time"
@@ -109,17 +108,17 @@ func newGetStreamIOClient(applicationYAMLKey string) *getstreamio.Client {
 			} `yaml:"credentials" mapstructure:"credentials"`
 		} `yaml:"wintr/notifications/inapp" mapstructure:"wintr/notifications/inapp"` //nolint:tagliatelle // Nope.
 	}
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrInAppNotifications.Credentials.Key == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrInAppNotifications.Credentials.Key = os.Getenv(fmt.Sprintf("%s_INAPP_NOTIFICATIONS_CLIENT_KEY", module))
+		cfg.WintrInAppNotifications.Credentials.Key = os.Getenv(module + "_INAPP_NOTIFICATIONS_CLIENT_KEY")
 		if cfg.WintrInAppNotifications.Credentials.Key == "" {
 			cfg.WintrInAppNotifications.Credentials.Key = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_KEY")
 		}
 	}
 	if cfg.WintrInAppNotifications.Credentials.Secret == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv(fmt.Sprintf("%s_INAPP_NOTIFICATIONS_CLIENT_SECRET", module))
+		cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv(module + "_INAPP_NOTIFICATIONS_CLIENT_SECRET")
 		if cfg.WintrInAppNotifications.Credentials.Secret == "" {
 			cfg.WintrInAppNotifications.Credentials.Secret = os.Getenv("INAPP_NOTIFICATIONS_CLIENT_SECRET")
 		}

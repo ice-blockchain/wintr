@@ -18,7 +18,7 @@ import (
 	"github.com/imroc/req/v3"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
@@ -30,11 +30,11 @@ func init() { //nolint:gochecknoinits // It's the only way to tweak the client.
 
 func New(applicationYAMLKey string, ignoreFilesRegex ...string) Client {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(fmt.Sprintf("%s_PICTURE_STORAGE_ACCESS_KEY", module))
+		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(module + "_PICTURE_STORAGE_ACCESS_KEY")
 		if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 			cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv("PICTURE_STORAGE_ACCESS_KEY")
 		}
@@ -78,7 +78,7 @@ func (p *picture) StripDownloadURL(url string) string {
 		return url
 	}
 
-	return strings.Replace(url, fmt.Sprintf("%s/", p.cfg.WintrMultimediaPicture.URLDownload), "", 1)
+	return strings.Replace(url, p.cfg.WintrMultimediaPicture.URLDownload+"/", "", 1)
 }
 
 func (p *picture) SQLAliasDownloadURL(name string) string {

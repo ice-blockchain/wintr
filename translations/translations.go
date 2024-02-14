@@ -16,17 +16,17 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
 
 func New(ctx context.Context, applicationYAMLKey string) Client {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrTranslations.Credentials.APIKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrTranslations.Credentials.APIKey = os.Getenv(fmt.Sprintf("%s_TRANSLATIONS_CLIENT_APIKEY", module))
+		cfg.WintrTranslations.Credentials.APIKey = os.Getenv(module + "_TRANSLATIONS_CLIENT_APIKEY")
 		if cfg.WintrTranslations.Credentials.APIKey == "" {
 			cfg.WintrTranslations.Credentials.APIKey = os.Getenv("TRANSLATIONS_CLIENT_APIKEY")
 		}

@@ -4,7 +4,6 @@ package push
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -19,16 +18,16 @@ import (
 	"github.com/pkg/errors"
 	firebaseoption "google.golang.org/api/option"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 func New(applicationYAMLKey string) Client { //nolint:funlen,gocognit,revive // .
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrPushNotifications.Credentials.FileContent == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrPushNotifications.Credentials.FileContent = os.Getenv(fmt.Sprintf("%s_PUSH_NOTIFICATIONS_CREDENTIALS_FILE_CONTENT", module))
+		cfg.WintrPushNotifications.Credentials.FileContent = os.Getenv(module + "_PUSH_NOTIFICATIONS_CREDENTIALS_FILE_CONTENT")
 		if cfg.WintrPushNotifications.Credentials.FileContent == "" {
 			cfg.WintrPushNotifications.Credentials.FileContent = os.Getenv("PUSH_NOTIFICATIONS_CREDENTIALS_FILE_CONTENT")
 		}
@@ -41,7 +40,7 @@ func New(applicationYAMLKey string) Client { //nolint:funlen,gocognit,revive // 
 	}
 	if cfg.WintrPushNotifications.Credentials.FilePath == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrPushNotifications.Credentials.FilePath = os.Getenv(fmt.Sprintf("%s_PUSH_NOTIFICATIONS_CREDENTIALS_FILE_PATH", module))
+		cfg.WintrPushNotifications.Credentials.FilePath = os.Getenv(module + "_PUSH_NOTIFICATIONS_CREDENTIALS_FILE_PATH")
 		if cfg.WintrPushNotifications.Credentials.FilePath == "" {
 			cfg.WintrPushNotifications.Credentials.FilePath = os.Getenv("PUSH_NOTIFICATIONS_CREDENTIALS_FILE_PATH")
 		}
@@ -152,7 +151,7 @@ func (p *push) BroadcastDelayed(ctx context.Context, notification *DelayedNotifi
 }
 
 func buildAndroidDataOnlyNotification(notification *DelayedNotification) *fcm.AndroidConfig {
-	dataOnlyNotification := make(map[string]string, len(notification.Data)+3)
+	dataOnlyNotification := make(map[string]string, len(notification.Data)+6) //nolint:gomnd // Extra fields.
 	for k, v := range notification.Data {
 		dataOnlyNotification[k] = v
 	}

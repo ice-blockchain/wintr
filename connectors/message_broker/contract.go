@@ -29,10 +29,10 @@ type (
 	}
 	Client interface {
 		io.Closer
-		SendMessage(context.Context, *Message, chan<- error)
+		SendMessage(ctx context.Context, m *Message, e chan<- error)
 	}
 	Processor interface {
-		Process(context.Context, *Message) error
+		Process(ctx context.Context, message *Message) error
 	}
 
 	// Config holds the configuration of this package mounted from `application.yaml`.

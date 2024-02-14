@@ -4,7 +4,6 @@ package email
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -16,7 +15,7 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
@@ -27,11 +26,11 @@ func init() { //nolint:gochecknoinits // It's the only way to tweak the client.
 }
 
 func New(applicationYAMLKey string) Client {
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
 	if cfg.WintrEmail.Credentials.APIKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrEmail.Credentials.APIKey = os.Getenv(fmt.Sprintf("%s_EMAIL_CLIENT_APIKEY", module))
+		cfg.WintrEmail.Credentials.APIKey = os.Getenv(module + "_EMAIL_CLIENT_APIKEY")
 		if cfg.WintrEmail.Credentials.APIKey == "" {
 			cfg.WintrEmail.Credentials.APIKey = os.Getenv("EMAIL_CLIENT_APIKEY")
 		}

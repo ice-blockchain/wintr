@@ -10,6 +10,7 @@ import (
 	"testing"
 	stdlibtime "time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/email/fixture"
@@ -102,5 +103,5 @@ func requireSend(t *testing.T, wg *sync.WaitGroup) {
 			Email: fmt.Sprintf("foo%v@baz", i),
 		})
 	}
-	require.NoError(t, client.Send(ctx, p1, destinations...))
+	assert.NoError(t, client.Send(ctx, p1, destinations...))
 }

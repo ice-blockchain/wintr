@@ -7,6 +7,7 @@ import (
 	"encoding"
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	stdlibtime "time"
@@ -16,14 +17,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 )
 
 //nolint:gomnd,gocognit,gocyclo,revive,cyclop // Configs.
 func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrStorage.ConnectionsPerCore == 0 {
 		cfg.WintrStorage.ConnectionsPerCore = 10
 	}
@@ -145,7 +146,7 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 			}
 		}
 		if anyNonNil {
-			if intf, ok := resp.(interface{ SetKey(string) }); ok {
+			if intf, ok := resp.(interface{ SetKey(key string) }); ok {
 				intf.SetKey(sliceResult.Args()[1].(string)) //nolint:forcetypeassert // We know for sure.
 			}
 
@@ -168,7 +169,7 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 	} else { //nolint:revive // Nope.
 		results := make([]*T, 0, len(cmdResults))
 		for _, cmdResult := range cmdResults {
-			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert // Scan checks it.
+			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert,revive // Scan checks it.
 			var resp any = new(T)
 			if sErr := DeserializeValue(resp, sliceResult.Scan); sErr != nil {
 				return nil, sErr
@@ -182,7 +183,7 @@ func Get[T any](ctx context.Context, db DB, keys ...string) ([]*T, error) { //no
 				}
 			}
 			if anyNonNil {
-				if intf, ok := resp.(interface{ SetKey(string) }); ok {
+				if intf, ok := resp.(interface{ SetKey(key string) }); ok {
 					intf.SetKey(sliceResult.Args()[1].(string)) //nolint:forcetypeassert // We know for sure.
 				}
 				results = append(results, resp.(*T)) //nolint:forcetypeassert // We know for sure.
@@ -208,7 +209,7 @@ func Bind[TT any](ctx context.Context, db DB, keys []string, results *[]*TT) err
 	} else { //nolint:revive // Nope.
 		res := *results
 		for _, cmdResult := range cmdResults {
-			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert // Scan checks it.
+			sliceResult := cmdResult.(*redis.SliceCmd) //nolint:errcheck,forcetypeassert,revive // Scan checks it.
 			var resp any = new(TT)
 			if sErr := DeserializeValue(resp, sliceResult.Scan); sErr != nil {
 				return sErr
@@ -222,7 +223,7 @@ func Bind[TT any](ctx context.Context, db DB, keys []string, results *[]*TT) err
 				}
 			}
 			if anyNonNil {
-				if intf, ok := resp.(interface{ SetKey(string) }); ok {
+				if intf, ok := resp.(interface{ SetKey(key string) }); ok {
 					intf.SetKey(sliceResult.Args()[1].(string)) //nolint:forcetypeassert // We know for sure.
 				}
 				res = append(res, resp.(*TT)) //nolint:forcetypeassert // We know for sure.
@@ -246,7 +247,7 @@ func processRedisFieldTags[TT any]() []string {
 		val := new(TT)
 		fieldNames, _ = typeCache.LoadOrStore(*val, collectFields(reflect.TypeOf(val).Elem()))
 	}
-	fields := fieldNames.([]string) //nolint:forcetypeassert,errcheck // We know for sure.
+	fields := fieldNames.([]string) //nolint:forcetypeassert,errcheck,revive // We know for sure.
 	if len(fields) == 0 {
 		log.Panic(fmt.Sprintf("%#v has no redis tags", new(TT)))
 	}
@@ -356,7 +357,7 @@ func serializeStructFields(value reflect.Value) (resp []any) { //nolint:funlen,g
 				log.Panic(err)
 				resp = append(resp, name, string(data))
 			case stdlibtime.Duration:
-				resp = append(resp, name, fmt.Sprint(typedVal.Nanoseconds()))
+				resp = append(resp, name, strconv.FormatInt(typedVal.Nanoseconds(), 10))
 			case string:
 				resp = append(resp, name, typedVal)
 			default:

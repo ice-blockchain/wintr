@@ -183,7 +183,6 @@ jobs:
         - coin
         - time
         - privacy
-        - translations
         - multimedia/picture
         - analytics/tracking
         - email

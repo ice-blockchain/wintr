@@ -3,7 +3,6 @@
 package iceauth
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -11,12 +10,12 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
-	appCfg "github.com/ice-blockchain/wintr/config"
+	appcfg "github.com/ice-blockchain/wintr/config"
 )
 
 func New(applicationYAMLKey string) Client {
 	var cfg config
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	cfg.loadSecretForJWT(applicationYAMLKey)
 
 	return &auth{
@@ -102,7 +101,7 @@ func (a *auth) verify() func(token *jwt.Token) (any, error) {
 func (cfg *config) loadSecretForJWT(applicationYAMLKey string) {
 	if cfg.WintrAuthIce.JWTSecret == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrAuthIce.JWTSecret = os.Getenv(fmt.Sprintf("%s_JWT_SECRET", module))
+		cfg.WintrAuthIce.JWTSecret = os.Getenv(module + "_JWT_SECRET")
 		if cfg.WintrAuthIce.JWTSecret == "" {
 			cfg.WintrAuthIce.JWTSecret = os.Getenv("JWT_SECRET")
 		}

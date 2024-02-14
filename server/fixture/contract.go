@@ -26,11 +26,11 @@ type (
 	ContentType      = string
 
 	HTTPTestClient interface {
-		Get(context.Context, testing.TB, URL, ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
-		Delete(context.Context, testing.TB, URL, ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
-		Patch(context.Context, testing.TB, URL, ReqBody, ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
-		Put(context.Context, testing.TB, URL, ReqBody, ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
-		Post(context.Context, testing.TB, URL, ReqBody, ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
+		Get(ctx context.Context, tb testing.TB, u URL, headers ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
+		Delete(ctx context.Context, tb testing.TB, u URL, headers ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
+		Patch(ctx context.Context, tb testing.TB, u URL, body ReqBody, headers ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
+		Put(ctx context.Context, tb testing.TB, u URL, body ReqBody, headers ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
+		Post(ctx context.Context, tb testing.TB, u URL, body ReqBody, headers ...http.Header) (ActualRespBody, RespStatusCode, http.Header)
 	}
 	TestConnector interface {
 		connectorsfixture.TestConnector
@@ -39,10 +39,10 @@ type (
 		WrapJSONBody(jsonData string) (ReqBody, ContentType)
 		WrapMultipartBody(tb testing.TB, values map[string]any) (ReqBody, ContentType)
 
-		TestSwagger(context.Context, testing.TB)
-		TestHealthCheck(context.Context, testing.TB)
+		TestSwagger(ctx context.Context, tb testing.TB)
+		TestHealthCheck(ctx context.Context, tb testing.TB)
 
-		AssertUnauthorized(testing.TB, ExpectedRespBody, ActualRespBody, RespStatusCode, http.Header)
+		AssertUnauthorized(tb testing.TB, exp ExpectedRespBody, actual ActualRespBody, respCode RespStatusCode, headers http.Header)
 	}
 )
 

@@ -27,6 +27,12 @@ var (
 	client Client
 )
 
+const (
+	testToken = "bogusToken" //nolint:gosec // Not a teal token.
+	testTitle = "ice.io Test simple notification"
+	testBody  = "This is a ice.io simple push notification from wintr/notifications/push tests "
+)
+
 func TestMain(m *testing.M) {
 	client = New(testApplicationYAMLKey)
 	os.Exit(m.Run())
@@ -38,9 +44,9 @@ func TestClientSend(t *testing.T) {
 	defer cancel()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-		Target:   DeviceToken("bogusToken" + uuid.NewString()),
-		Title:    "ice.io Test simple notification",
-		Body:     "This is a ice.io simple push notification from wintr/notifications/push tests " + uuid.NewString(),
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	responder := make(chan error)
@@ -54,9 +60,9 @@ func TestClientSendClosedResponder(t *testing.T) {
 	defer cancel()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-		Target:   DeviceToken("bogusToken" + uuid.NewString()),
-		Title:    "ice.io Test simple notification",
-		Body:     "This is a ice.io simple push notification from wintr/notifications/push tests " + uuid.NewString(),
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	responder := make(chan error)
@@ -72,9 +78,9 @@ func TestClientSendNoResponder(t *testing.T) {
 	defer cancel()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-		Target:   DeviceToken("bogusToken" + uuid.NewString()),
-		Title:    "ice.io Test simple notification",
-		Body:     "This is a ice.io simple push notification from wintr/notifications/push tests " + uuid.NewString(),
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	client.Send(ctx, n1, nil)
@@ -90,9 +96,9 @@ func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 	}()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-		Target:   DeviceToken("bogusToken" + uuid.NewString()),
-		Title:    "ice.io Test simple notification",
-		Body:     "This is a ice.io simple push notification from wintr/notifications/push tests " + uuid.NewString(),
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	wg := new(sync.WaitGroup)
@@ -124,9 +130,9 @@ func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 	isolatedClient := New(testApplicationYAMLKey)
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-		Target:   DeviceToken("bogusToken" + uuid.NewString()),
-		Title:    "ice.io Test simple notification",
-		Body:     "This is a ice.io simple push notification from wintr/notifications/push tests " + uuid.NewString(),
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	wg := new(sync.WaitGroup)
@@ -180,8 +186,8 @@ func BenchmarkClientSend(b *testing.B) {
 		for pb.Next() {
 			n1 := &Notification[DeviceToken]{
 				Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
-				Target:   DeviceToken("bogusToken" + uuid.NewString()),
-				Title:    "ice.io Test simple notification",
+				Target:   DeviceToken(testToken + uuid.NewString()),
+				Title:    testTitle,
 				Body:     "This is a ice.io simple push notification from wintr/notifications/push benchmarks " + uuid.NewString(),
 				ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 			}

@@ -92,7 +92,7 @@ func TestClientUploadNoDelete(t *testing.T) { //nolint:funlen // .
 	for _, picName := range &cleanupFilenames {
 		go func(filename string) {
 			defer wg.Done()
-			require.NoError(t, client.UploadPicture(ctx, nil, filename))
+			assert.NoError(t, client.UploadPicture(ctx, nil, filename))
 			fixture.AssertPictureDeleted(ctx, t, testWriteApplicationYAMLKey, filename)
 		}(picName)
 	}

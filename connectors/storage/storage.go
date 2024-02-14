@@ -11,14 +11,14 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/go-tarantool-client"
-	tntMulti "github.com/ice-blockchain/go-tarantool-client/multi"
-	appCfg "github.com/ice-blockchain/wintr/config"
+	tntmulti "github.com/ice-blockchain/go-tarantool-client/multi"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/terror"
 )
 
 func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicationYAMLKey string) (db tarantool.Connector) {
-	appCfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	var err error
 	schemaInitCtx, schemaInitCancel := ctx, cancel
 	if !cfg.DB.ReadOnly && !cfg.DB.SkipSchemaCreation {
@@ -49,13 +49,13 @@ func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicatio
 }
 
 func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Connector, err error) {
-	auth := tntMulti.BasicAuth{
+	auth := tntmulti.BasicAuth{
 		User: cfg.DB.User,
 		Pass: cfg.DB.Password,
 	}
 
 	log.Info("connecting to DB...", "URLs", cfg.DB.URLs, "readOnly", cfg.DB.ReadOnly)
-	if db, err = tntMulti.ConnectWithWritableAwareDefaults(ctx, cancel, !cfg.DB.ReadOnly, auth, cfg.DB.URLs...); err != nil {
+	if db, err = tntmulti.ConnectWithWritableAwareDefaults(ctx, cancel, !cfg.DB.ReadOnly, auth, cfg.DB.URLs...); err != nil {
 		return nil, errors.Wrapf(err, "could not connect to tarantool instances: %v", cfg.DB.URLs)
 	}
 
@@ -147,7 +147,7 @@ func detectRangedSpaces(expectedSpace, markedDDL string) []string {
 	}
 	expectedSpaces := make([]string, 0, rightRange+1)
 	for i := 0; i <= rightRange; i++ {
-		expectedSpaces = append(expectedSpaces, strings.Replace(expectedSpace, "]]", fmt.Sprint(i), 1))
+		expectedSpaces = append(expectedSpaces, strings.Replace(expectedSpace, "]]", strconv.Itoa(i), 1))
 	}
 
 	return expectedSpaces
@@ -157,7 +157,7 @@ func getAllUserSpaces(db tarantool.Connector) (map[string]any, error) {
 	var spacesR []map[string]any
 	getAllSpacesFuncName := getAllUserSpacesFunctionName
 	if cfg.DB.ReadOnly {
-		getAllSpacesFuncName = fmt.Sprintf("{{non-writable}}%s", getAllUserSpacesFunctionName)
+		getAllSpacesFuncName = "{{non-writable}}" + getAllUserSpacesFunctionName
 	}
 	if err := db.Call17Typed(getAllSpacesFuncName, []any{}, &spacesR); err != nil || len(spacesR) != 1 {
 		return nil, errors.Wrapf(err, "calling %s failed", getAllSpacesFuncName)

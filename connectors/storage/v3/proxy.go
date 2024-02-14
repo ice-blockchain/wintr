@@ -1348,6 +1348,535 @@ func (l *lb) ModuleLoadex(ctx context.Context, conf *redis.ModuleLoadexConfig) *
 	return l.instance().ModuleLoadex(ctx, conf)
 }
 
+func (l *lb) BFAdd(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().BFAdd(ctx, key, element)
+}
+
+func (l *lb) BFCard(ctx context.Context, key string) *redis.IntCmd {
+	return l.instance().BFCard(ctx, key)
+}
+
+func (l *lb) BFExists(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().BFExists(ctx, key, element)
+}
+
+func (l *lb) BFInfo(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfo(ctx, key)
+}
+
+func (l *lb) BFInfoArg(ctx context.Context, key, option string) *redis.BFInfoCmd {
+	return l.instance().BFInfoArg(ctx, key, option)
+}
+
+func (l *lb) BFInfoCapacity(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfoCapacity(ctx, key)
+}
+
+func (l *lb) BFInfoSize(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfoSize(ctx, key)
+}
+
+func (l *lb) BFInfoFilters(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfoFilters(ctx, key)
+}
+
+func (l *lb) BFInfoItems(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfoItems(ctx, key)
+}
+
+func (l *lb) BFInfoExpansion(ctx context.Context, key string) *redis.BFInfoCmd {
+	return l.instance().BFInfoExpansion(ctx, key)
+}
+
+func (l *lb) BFInsert(ctx context.Context, key string, options *redis.BFInsertOptions, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().BFInsert(ctx, key, options, elements...)
+}
+
+func (l *lb) BFMAdd(ctx context.Context, key string, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().BFMAdd(ctx, key, elements...)
+}
+
+func (l *lb) BFMExists(ctx context.Context, key string, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().BFMExists(ctx, key, elements...)
+}
+
+func (l *lb) BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) *redis.StatusCmd {
+	return l.instance().BFReserve(ctx, key, errorRate, capacity)
+}
+
+func (l *lb) BFReserveExpansion(ctx context.Context, key string, errorRate float64, capacity, expansion int64) *redis.StatusCmd {
+	return l.instance().BFReserveExpansion(ctx, key, errorRate, capacity, expansion)
+}
+
+func (l *lb) BFReserveNonScaling(ctx context.Context, key string, errorRate float64, capacity int64) *redis.StatusCmd {
+	return l.instance().BFReserveNonScaling(ctx, key, errorRate, capacity)
+}
+
+func (l *lb) BFReserveWithArgs(ctx context.Context, key string, options *redis.BFReserveOptions) *redis.StatusCmd {
+	return l.instance().BFReserveWithArgs(ctx, key, options)
+}
+
+func (l *lb) BFScanDump(ctx context.Context, key string, iterator int64) *redis.ScanDumpCmd {
+	return l.instance().BFScanDump(ctx, key, iterator)
+}
+
+func (l *lb) BFLoadChunk(ctx context.Context, key string, iterator int64, data any) *redis.StatusCmd {
+	return l.instance().BFLoadChunk(ctx, key, iterator, data)
+}
+
+func (l *lb) CFAdd(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().CFAdd(ctx, key, element)
+}
+
+func (l *lb) CFAddNX(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().CFAddNX(ctx, key, element)
+}
+
+func (l *lb) CFCount(ctx context.Context, key string, element any) *redis.IntCmd {
+	return l.instance().CFCount(ctx, key, element)
+}
+
+func (l *lb) CFDel(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().CFDel(ctx, key, element)
+}
+
+func (l *lb) CFExists(ctx context.Context, key string, element any) *redis.BoolCmd {
+	return l.instance().CFExists(ctx, key, element)
+}
+
+func (l *lb) CFInfo(ctx context.Context, key string) *redis.CFInfoCmd {
+	return l.instance().CFInfo(ctx, key)
+}
+
+func (l *lb) CFInsert(ctx context.Context, key string, options *redis.CFInsertOptions, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().CFInsert(ctx, key, options, elements...)
+}
+
+func (l *lb) CFInsertNX(ctx context.Context, key string, options *redis.CFInsertOptions, elements ...any) *redis.IntSliceCmd {
+	return l.instance().CFInsertNX(ctx, key, options, elements...)
+}
+
+func (l *lb) CFMExists(ctx context.Context, key string, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().CFMExists(ctx, key, elements...)
+}
+
+func (l *lb) CFReserve(ctx context.Context, key string, capacity int64) *redis.StatusCmd {
+	return l.instance().CFReserve(ctx, key, capacity)
+}
+
+func (l *lb) CFReserveWithArgs(ctx context.Context, key string, options *redis.CFReserveOptions) *redis.StatusCmd {
+	return l.instance().CFReserveWithArgs(ctx, key, options)
+}
+
+func (l *lb) CFReserveExpansion(ctx context.Context, key string, capacity, expansion int64) *redis.StatusCmd {
+	return l.instance().CFReserveExpansion(ctx, key, capacity, expansion)
+}
+
+func (l *lb) CFReserveBucketSize(ctx context.Context, key string, capacity, bucketsize int64) *redis.StatusCmd {
+	return l.instance().CFReserveBucketSize(ctx, key, capacity, bucketsize)
+}
+
+func (l *lb) CFReserveMaxIterations(ctx context.Context, key string, capacity, maxiterations int64) *redis.StatusCmd {
+	return l.instance().CFReserveMaxIterations(ctx, key, capacity, maxiterations)
+}
+
+func (l *lb) CFScanDump(ctx context.Context, key string, iterator int64) *redis.ScanDumpCmd {
+	return l.instance().CFScanDump(ctx, key, iterator)
+}
+
+func (l *lb) CFLoadChunk(ctx context.Context, key string, iterator int64, data any) *redis.StatusCmd {
+	return l.instance().CFLoadChunk(ctx, key, iterator, data)
+}
+
+func (l *lb) CMSIncrBy(ctx context.Context, key string, elements ...any) *redis.IntSliceCmd {
+	return l.instance().CMSIncrBy(ctx, key, elements...)
+}
+
+func (l *lb) CMSInfo(ctx context.Context, key string) *redis.CMSInfoCmd {
+	return l.instance().CMSInfo(ctx, key)
+}
+
+func (l *lb) CMSInitByDim(ctx context.Context, key string, width, height int64) *redis.StatusCmd {
+	return l.instance().CMSInitByDim(ctx, key, width, height)
+}
+
+func (l *lb) CMSInitByProb(ctx context.Context, key string, errorRate, probability float64) *redis.StatusCmd {
+	return l.instance().CMSInitByProb(ctx, key, errorRate, probability)
+}
+
+func (l *lb) CMSMerge(ctx context.Context, destKey string, sourceKeys ...string) *redis.StatusCmd {
+	return l.instance().CMSMerge(ctx, destKey, sourceKeys...)
+}
+
+func (l *lb) CMSMergeWithWeight(ctx context.Context, destKey string, sourceKeys map[string]int64) *redis.StatusCmd {
+	return l.instance().CMSMergeWithWeight(ctx, destKey, sourceKeys)
+}
+
+func (l *lb) CMSQuery(ctx context.Context, key string, elements ...any) *redis.IntSliceCmd {
+	return l.instance().CMSQuery(ctx, key, elements...)
+}
+
+func (l *lb) TopKAdd(ctx context.Context, key string, elements ...any) *redis.StringSliceCmd {
+	return l.instance().TopKAdd(ctx, key, elements...)
+}
+
+func (l *lb) TopKCount(ctx context.Context, key string, elements ...any) *redis.IntSliceCmd {
+	return l.instance().TopKCount(ctx, key, elements...)
+}
+
+func (l *lb) TopKIncrBy(ctx context.Context, key string, elements ...any) *redis.StringSliceCmd {
+	return l.instance().TopKIncrBy(ctx, key, elements...)
+}
+
+func (l *lb) TopKInfo(ctx context.Context, key string) *redis.TopKInfoCmd {
+	return l.instance().TopKInfo(ctx, key)
+}
+
+func (l *lb) TopKList(ctx context.Context, key string) *redis.StringSliceCmd {
+	return l.instance().TopKList(ctx, key)
+}
+
+func (l *lb) TopKListWithCount(ctx context.Context, key string) *redis.MapStringIntCmd {
+	return l.instance().TopKListWithCount(ctx, key)
+}
+
+func (l *lb) TopKQuery(ctx context.Context, key string, elements ...any) *redis.BoolSliceCmd {
+	return l.instance().TopKQuery(ctx, key, elements...)
+}
+
+func (l *lb) TopKReserve(ctx context.Context, key string, k int64) *redis.StatusCmd {
+	return l.instance().TopKReserve(ctx, key, k)
+}
+
+//nolint:revive // API.
+func (l *lb) TopKReserveWithOptions(ctx context.Context, key string, k, width, depth int64, decay float64) *redis.StatusCmd {
+	return l.instance().TopKReserveWithOptions(ctx, key, k, width, depth, decay)
+}
+
+func (l *lb) TDigestAdd(ctx context.Context, key string, elements ...float64) *redis.StatusCmd {
+	return l.instance().TDigestAdd(ctx, key, elements...)
+}
+
+func (l *lb) TDigestByRank(ctx context.Context, key string, rank ...uint64) *redis.FloatSliceCmd {
+	return l.instance().TDigestByRank(ctx, key, rank...)
+}
+
+func (l *lb) TDigestByRevRank(ctx context.Context, key string, rank ...uint64) *redis.FloatSliceCmd {
+	return l.instance().TDigestByRevRank(ctx, key, rank...)
+}
+
+func (l *lb) TDigestCDF(ctx context.Context, key string, elements ...float64) *redis.FloatSliceCmd {
+	return l.instance().TDigestCDF(ctx, key, elements...)
+}
+
+func (l *lb) TDigestCreate(ctx context.Context, key string) *redis.StatusCmd {
+	return l.instance().TDigestCreate(ctx, key)
+}
+
+func (l *lb) TDigestCreateWithCompression(ctx context.Context, key string, compression int64) *redis.StatusCmd {
+	return l.instance().TDigestCreateWithCompression(ctx, key, compression)
+}
+
+func (l *lb) TDigestInfo(ctx context.Context, key string) *redis.TDigestInfoCmd {
+	return l.instance().TDigestInfo(ctx, key)
+}
+
+func (l *lb) TDigestMax(ctx context.Context, key string) *redis.FloatCmd {
+	return l.instance().TDigestMax(ctx, key)
+}
+
+func (l *lb) TDigestMin(ctx context.Context, key string) *redis.FloatCmd {
+	return l.instance().TDigestMin(ctx, key)
+}
+
+func (l *lb) TDigestMerge(ctx context.Context, destKey string, options *redis.TDigestMergeOptions, sourceKeys ...string) *redis.StatusCmd {
+	return l.instance().TDigestMerge(ctx, destKey, options, sourceKeys...)
+}
+
+func (l *lb) TDigestQuantile(ctx context.Context, key string, elements ...float64) *redis.FloatSliceCmd {
+	return l.instance().TDigestQuantile(ctx, key, elements...)
+}
+
+func (l *lb) TDigestRank(ctx context.Context, key string, values ...float64) *redis.IntSliceCmd {
+	return l.instance().TDigestRank(ctx, key, values...)
+}
+
+func (l *lb) TDigestReset(ctx context.Context, key string) *redis.StatusCmd {
+	return l.instance().TDigestReset(ctx, key)
+}
+
+func (l *lb) TDigestRevRank(ctx context.Context, key string, values ...float64) *redis.IntSliceCmd {
+	return l.instance().TDigestRevRank(ctx, key, values...)
+}
+
+func (l *lb) TDigestTrimmedMean(ctx context.Context, key string, lowCutQuantile, highCutQuantile float64) *redis.FloatCmd {
+	return l.instance().TDigestTrimmedMean(ctx, key, lowCutQuantile, highCutQuantile)
+}
+
+func (l *lb) JSONArrAppend(ctx context.Context, key, path string, values ...any) *redis.IntSliceCmd {
+	return l.instance().JSONArrAppend(ctx, key, path, values...)
+}
+
+func (l *lb) JSONArrIndex(ctx context.Context, key, path string, values ...any) *redis.IntSliceCmd {
+	return l.instance().JSONArrIndex(ctx, key, path, values...)
+}
+
+func (l *lb) JSONArrInsert(ctx context.Context, key, path string, index int64, values ...any) *redis.IntSliceCmd {
+	return l.instance().JSONArrInsert(ctx, key, path, index, values...)
+}
+
+func (l *lb) JSONArrLen(ctx context.Context, key, path string) *redis.IntSliceCmd {
+	return l.instance().JSONArrLen(ctx, key, path)
+}
+
+func (l *lb) JSONGet(ctx context.Context, key string, paths ...string) *redis.JSONCmd {
+	return l.instance().JSONGet(ctx, key, paths...)
+}
+
+func (l *lb) JSONSet(ctx context.Context, key, path string, value any) *redis.StatusCmd {
+	return l.instance().JSONSet(ctx, key, path, value)
+}
+
+func (l *lb) JSONDel(ctx context.Context, key, path string) *redis.IntCmd {
+	return l.instance().JSONDel(ctx, key, path)
+}
+
+func (l *lb) JSONMGet(ctx context.Context, path string, keys ...string) *redis.JSONSliceCmd {
+	return l.instance().JSONMGet(ctx, path, keys...)
+}
+
+func (l *lb) JSONMSet(ctx context.Context, values ...any) *redis.StatusCmd {
+	return l.instance().JSONMSet(ctx, values...)
+}
+
+func (l *lb) JSONArrIndexWithArgs(ctx context.Context, key, path string, options *redis.JSONArrIndexArgs, value ...any) *redis.IntSliceCmd {
+	return l.instance().JSONArrIndexWithArgs(ctx, key, path, options, value...)
+}
+
+func (l *lb) JSONArrPop(ctx context.Context, key, path string, index int) *redis.StringSliceCmd {
+	return l.instance().JSONArrPop(ctx, key, path, index)
+}
+
+func (l *lb) JSONArrTrim(ctx context.Context, key, path string) *redis.IntSliceCmd {
+	return l.instance().JSONArrTrim(ctx, key, path)
+}
+
+func (l *lb) JSONArrTrimWithArgs(ctx context.Context, key, path string, options *redis.JSONArrTrimArgs) *redis.IntSliceCmd {
+	return l.instance().JSONArrTrimWithArgs(ctx, key, path, options)
+}
+
+func (l *lb) JSONClear(ctx context.Context, key, path string) *redis.IntCmd {
+	return l.instance().JSONClear(ctx, key, path)
+}
+
+func (l *lb) JSONDebugMemory(ctx context.Context, key, path string) *redis.IntCmd {
+	return l.instance().JSONDebugMemory(ctx, key, path)
+}
+
+func (l *lb) JSONForget(ctx context.Context, key, path string) *redis.IntCmd {
+	return l.instance().JSONForget(ctx, key, path)
+}
+
+func (l *lb) JSONGetWithArgs(ctx context.Context, key string, options *redis.JSONGetArgs, paths ...string) *redis.JSONCmd {
+	return l.instance().JSONGetWithArgs(ctx, key, options, paths...)
+}
+
+func (l *lb) JSONMerge(ctx context.Context, key, path, value string) *redis.StatusCmd {
+	return l.instance().JSONMerge(ctx, key, path, value)
+}
+
+func (l *lb) JSONMSetArgs(ctx context.Context, docs []redis.JSONSetArgs) *redis.StatusCmd {
+	return l.instance().JSONMSetArgs(ctx, docs)
+}
+
+func (l *lb) JSONNumIncrBy(ctx context.Context, key, path string, value float64) *redis.JSONCmd {
+	return l.instance().JSONNumIncrBy(ctx, key, path, value)
+}
+
+func (l *lb) JSONObjKeys(ctx context.Context, key, path string) *redis.SliceCmd {
+	return l.instance().JSONObjKeys(ctx, key, path)
+}
+
+func (l *lb) JSONObjLen(ctx context.Context, key, path string) *redis.IntPointerSliceCmd {
+	return l.instance().JSONObjLen(ctx, key, path)
+}
+
+func (l *lb) JSONSetMode(ctx context.Context, key, path string, value any, mode string) *redis.StatusCmd {
+	return l.instance().JSONSetMode(ctx, key, path, value, mode)
+}
+
+func (l *lb) JSONStrAppend(ctx context.Context, key, path, value string) *redis.IntPointerSliceCmd {
+	return l.instance().JSONStrAppend(ctx, key, path, value)
+}
+
+func (l *lb) JSONStrLen(ctx context.Context, key, path string) *redis.IntPointerSliceCmd {
+	return l.instance().JSONStrLen(ctx, key, path)
+}
+
+func (l *lb) JSONToggle(ctx context.Context, key, path string) *redis.IntPointerSliceCmd {
+	return l.instance().JSONToggle(ctx, key, path)
+}
+
+func (l *lb) JSONType(ctx context.Context, key, path string) *redis.JSONSliceCmd {
+	return l.instance().JSONType(ctx, key, path)
+}
+
+func (l *lb) TFunctionLoad(ctx context.Context, lib string) *redis.StatusCmd {
+	return l.instance().TFunctionLoad(ctx, lib)
+}
+
+func (l *lb) TFunctionLoadArgs(ctx context.Context, lib string, options *redis.TFunctionLoadOptions) *redis.StatusCmd {
+	return l.instance().TFunctionLoadArgs(ctx, lib, options)
+}
+
+func (l *lb) TFunctionDelete(ctx context.Context, libName string) *redis.StatusCmd {
+	return l.instance().TFunctionDelete(ctx, libName)
+}
+
+func (l *lb) TFunctionList(ctx context.Context) *redis.MapStringInterfaceSliceCmd {
+	return l.instance().TFunctionList(ctx)
+}
+
+func (l *lb) TFunctionListArgs(ctx context.Context, options *redis.TFunctionListOptions) *redis.MapStringInterfaceSliceCmd {
+	return l.instance().TFunctionListArgs(ctx, options)
+}
+
+func (l *lb) TFCall(ctx context.Context, libName, funcName string, numKeys int) *redis.Cmd {
+	return l.instance().TFCall(ctx, libName, funcName, numKeys)
+}
+
+func (l *lb) TFCallArgs(ctx context.Context, libName, funcName string, numKeys int, options *redis.TFCallOptions) *redis.Cmd {
+	return l.instance().TFCallArgs(ctx, libName, funcName, numKeys, options)
+}
+
+func (l *lb) TFCallASYNC(ctx context.Context, libName, funcName string, numKeys int) *redis.Cmd {
+	return l.instance().TFCallASYNC(ctx, libName, funcName, numKeys)
+}
+
+func (l *lb) TFCallASYNCArgs(ctx context.Context, libName, funcName string, numKeys int, options *redis.TFCallOptions) *redis.Cmd {
+	return l.instance().TFCallASYNCArgs(ctx, libName, funcName, numKeys, options)
+}
+
+func (l *lb) TSAdd(ctx context.Context, key string, timestamp any, value float64) *redis.IntCmd {
+	return l.instance().TSAdd(ctx, key, timestamp, value)
+}
+
+func (l *lb) TSAddWithArgs(ctx context.Context, key string, timestamp any, value float64, options *redis.TSOptions) *redis.IntCmd {
+	return l.instance().TSAddWithArgs(ctx, key, timestamp, value, options)
+}
+
+func (l *lb) TSCreate(ctx context.Context, key string) *redis.StatusCmd {
+	return l.instance().TSCreate(ctx, key)
+}
+
+func (l *lb) TSCreateWithArgs(ctx context.Context, key string, options *redis.TSOptions) *redis.StatusCmd {
+	return l.instance().TSCreateWithArgs(ctx, key, options)
+}
+
+func (l *lb) TSAlter(ctx context.Context, key string, options *redis.TSAlterOptions) *redis.StatusCmd {
+	return l.instance().TSAlter(ctx, key, options)
+}
+
+func (l *lb) TSCreateRule(ctx context.Context, sourceKey, destKey string, aggregator redis.Aggregator, bucketDuration int) *redis.StatusCmd {
+	return l.instance().TSCreateRule(ctx, sourceKey, destKey, aggregator, bucketDuration)
+}
+
+//nolint:lll,revive // API.
+func (l *lb) TSCreateRuleWithArgs(ctx context.Context, sourceKey, destKey string, aggregator redis.Aggregator, bucketDuration int, options *redis.TSCreateRuleOptions) *redis.StatusCmd {
+	return l.instance().TSCreateRuleWithArgs(ctx, sourceKey, destKey, aggregator, bucketDuration, options)
+}
+
+func (l *lb) TSIncrBy(ctx context.Context, key string, timestamp float64) *redis.IntCmd {
+	return l.instance().TSIncrBy(ctx, key, timestamp)
+}
+
+func (l *lb) TSIncrByWithArgs(ctx context.Context, key string, timestamp float64, options *redis.TSIncrDecrOptions) *redis.IntCmd {
+	return l.instance().TSIncrByWithArgs(ctx, key, timestamp, options)
+}
+
+func (l *lb) TSDecrBy(ctx context.Context, key string, timestamp float64) *redis.IntCmd {
+	return l.instance().TSDecrBy(ctx, key, timestamp)
+}
+
+func (l *lb) TSDecrByWithArgs(ctx context.Context, key string, timestamp float64, options *redis.TSIncrDecrOptions) *redis.IntCmd {
+	return l.instance().TSDecrByWithArgs(ctx, key, timestamp, options)
+}
+
+func (l *lb) TSDel(ctx context.Context, key string, fromTimestamp, toTimestamp int) *redis.IntCmd {
+	return l.instance().TSDel(ctx, key, fromTimestamp, toTimestamp)
+}
+
+func (l *lb) TSDeleteRule(ctx context.Context, sourceKey, destKey string) *redis.StatusCmd {
+	return l.instance().TSDeleteRule(ctx, sourceKey, destKey)
+}
+
+func (l *lb) TSGet(ctx context.Context, key string) *redis.TSTimestampValueCmd {
+	return l.instance().TSGet(ctx, key)
+}
+
+func (l *lb) TSGetWithArgs(ctx context.Context, key string, options *redis.TSGetOptions) *redis.TSTimestampValueCmd {
+	return l.instance().TSGetWithArgs(ctx, key, options)
+}
+
+func (l *lb) TSInfo(ctx context.Context, key string) *redis.MapStringInterfaceCmd {
+	return l.instance().TSInfo(ctx, key)
+}
+
+func (l *lb) TSInfoWithArgs(ctx context.Context, key string, options *redis.TSInfoOptions) *redis.MapStringInterfaceCmd {
+	return l.instance().TSInfoWithArgs(ctx, key, options)
+}
+
+func (l *lb) TSMAdd(ctx context.Context, ktvSlices [][]any) *redis.IntSliceCmd {
+	return l.instance().TSMAdd(ctx, ktvSlices)
+}
+
+func (l *lb) TSQueryIndex(ctx context.Context, filterExpr []string) *redis.StringSliceCmd {
+	return l.instance().TSQueryIndex(ctx, filterExpr)
+}
+
+func (l *lb) TSRevRange(ctx context.Context, key string, fromTimestamp, toTimestamp int) *redis.TSTimestampValueSliceCmd {
+	return l.instance().TSRevRange(ctx, key, fromTimestamp, toTimestamp)
+}
+
+//nolint:lll // .
+func (l *lb) TSRevRangeWithArgs(ctx context.Context, key string, fromTimestamp, toTimestamp int, options *redis.TSRevRangeOptions) *redis.TSTimestampValueSliceCmd {
+	return l.instance().TSRevRangeWithArgs(ctx, key, fromTimestamp, toTimestamp, options)
+}
+
+func (l *lb) TSRange(ctx context.Context, key string, fromTimestamp, toTimestamp int) *redis.TSTimestampValueSliceCmd {
+	return l.instance().TSRange(ctx, key, fromTimestamp, toTimestamp)
+}
+
+func (l *lb) TSRangeWithArgs(ctx context.Context, key string, fromTimestamp, toTimestamp int, options *redis.TSRangeOptions) *redis.TSTimestampValueSliceCmd {
+	return l.instance().TSRangeWithArgs(ctx, key, fromTimestamp, toTimestamp, options)
+}
+
+func (l *lb) TSMRange(ctx context.Context, fromTimestamp, toTimestamp int, filterExpr []string) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMRange(ctx, fromTimestamp, toTimestamp, filterExpr)
+}
+
+//nolint:lll // .
+func (l *lb) TSMRangeWithArgs(ctx context.Context, fromTimestamp, toTimestamp int, filterExpr []string, options *redis.TSMRangeOptions) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMRangeWithArgs(ctx, fromTimestamp, toTimestamp, filterExpr, options)
+}
+
+func (l *lb) TSMRevRange(ctx context.Context, fromTimestamp, toTimestamp int, filterExpr []string) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMRevRange(ctx, fromTimestamp, toTimestamp, filterExpr)
+}
+
+//nolint:lll // .
+func (l *lb) TSMRevRangeWithArgs(ctx context.Context, fromTimestamp, toTimestamp int, filterExpr []string, options *redis.TSMRevRangeOptions) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMRevRangeWithArgs(ctx, fromTimestamp, toTimestamp, filterExpr, options)
+}
+
+func (l *lb) TSMGet(ctx context.Context, filters []string) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMGet(ctx, filters)
+}
+
+func (l *lb) TSMGetWithArgs(ctx context.Context, filters []string, options *redis.TSMGetOptions) *redis.MapStringSliceInterfaceCmd {
+	return l.instance().TSMGetWithArgs(ctx, filters, options)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))

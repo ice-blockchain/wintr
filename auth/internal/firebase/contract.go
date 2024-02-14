@@ -5,7 +5,7 @@ package firebaseauth
 import (
 	"context"
 
-	firebaseAuth "firebase.google.com/go/v4/auth"
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/auth/internal"
@@ -25,8 +25,8 @@ type (
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
 		UpdateEmail(ctx context.Context, userID, email string) error
-		GetUser(ctx context.Context, userID string) (*firebaseAuth.UserRecord, error)
-		GetUserByEmail(ctx context.Context, email string) (*firebaseAuth.UserRecord, error)
+		GetUser(ctx context.Context, userID string) (*firebaseauth.UserRecord, error)
+		GetUserByEmail(ctx context.Context, email string) (*firebaseauth.UserRecord, error)
 	}
 )
 
@@ -37,7 +37,7 @@ const (
 
 type (
 	auth struct {
-		client             *firebaseAuth.Client
+		client             *firebaseauth.Client
 		allowEmailPassword bool
 	}
 

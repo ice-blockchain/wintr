@@ -137,7 +137,7 @@ lint:
 	golangci-lint run
 
 getAddLicense:
-	GO111MODULE=off go get -v -u github.com/google/addlicense
+	go install -v github.com/google/addlicense@latest
 
 addLicense: getAddLicense
 	`go env GOPATH`/bin/addlicense -f LICENSE.header * .github/*
