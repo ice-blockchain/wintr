@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"testing"
 	stdlibtime "time"
@@ -15,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/notifications/inapp/fixture"
 	"github.com/ice-blockchain/wintr/notifications/inapp/internal"
 )
@@ -35,18 +33,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	defer func() {
-		if e := recover(); e != nil {
-			if err := e.(error); strings.Contains(err.Error(), "Your application was suspended") { //nolint:errcheck,forcetypeassert,revive // .
-				log.Warn("Your application was suspended")
-				os.Exit(0)
-			}
-		}
-	}()
-
 	notificationFeedClient = New(testApplicationYAMLKey, testNotificationFeedName)
 	flatFeedClient = New(testApplicationYAMLKey, testFlatFeedName)
-	os.Exit(m.Run()) //nolint:gocritic // We have to decide what to do with these tests first.
+	os.Exit(m.Run())
 }
 
 func TestClientSend(t *testing.T) { //nolint:funlen // .
