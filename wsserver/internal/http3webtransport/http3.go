@@ -5,6 +5,7 @@ package http3webtransport
 import (
 	"context"
 	"fmt"
+	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 )
 
 func New(cfg *internal.Config, handler internal.HandlerFunc) internal.Server {
+	appcfg.MustLoadFromKey("development", &development)
 	s := &srv{}
 	wtserver := &webtransport.Server{
 		H3: http3.Server{
@@ -25,6 +27,12 @@ func New(cfg *internal.Config, handler internal.HandlerFunc) internal.Server {
 				Tracer: qlog.DefaultTracer,
 			},
 		},
+	}
+	if development {
+		noCors := func(r *http.Request) bool {
+			return true
+		}
+		wtserver.CheckOrigin = noCors
 	}
 	s.server = wtserver
 	return s
@@ -42,16 +50,18 @@ func (s *srv) handleWebSocket(handlerFunc internal.HandlerFunc) http.HandlerFunc
 			w.WriteHeader(500)
 			return
 		}
-		stream, err := conn.OpenStream()
+		stream, err := conn.AcceptStream(context.Background())
 		if err != nil {
 			log.Error(errors.Wrapf(err, "getting stream failed"))
 			w.WriteHeader(500)
 			return
 		}
 		defer stream.Close()
+		log.Info("stream opened")
 		handlerFunc(stream)
 	}
 }
+
 func (s *srv) Shutdown(ctx context.Context) error {
 	return s.server.Close()
 }

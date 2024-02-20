@@ -7,7 +7,7 @@ import (
 	"github.com/quic-go/webtransport-go"
 )
 
-type ()
+var development bool
 
 type (
 	srv struct {
