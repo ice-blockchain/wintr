@@ -1877,6 +1877,10 @@ func (l *lb) TSMGetWithArgs(ctx context.Context, filters []string, options *redi
 	return l.instance().TSMGetWithArgs(ctx, filters, options)
 }
 
+func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
+	return l.instance().ObjectFreq(ctx, key)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))
