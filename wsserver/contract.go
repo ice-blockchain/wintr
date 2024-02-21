@@ -5,7 +5,6 @@ package wsserver
 import (
 	"context"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
-	"io"
 	"os"
 )
 
@@ -16,7 +15,7 @@ type (
 	}
 
 	Service interface {
-		HandleWS(ctx context.Context, stream io.ReadWriteCloser)
+		internal.WSHandler
 		Close(ctx context.Context) error
 	}
 )
@@ -24,7 +23,7 @@ type (
 type (
 	srv struct {
 		h3server internal.Server
-		server   internal.Server
+		wsServer internal.Server
 		cfg      *internal.Config
 		quit     chan<- os.Signal
 		service  Service

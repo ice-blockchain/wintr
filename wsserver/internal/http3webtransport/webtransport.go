@@ -5,7 +5,6 @@ package http3webtransport
 import (
 	"context"
 	"fmt"
-	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"github.com/pkg/errors"
@@ -16,32 +15,33 @@ import (
 	"net/http"
 )
 
-func New(cfg *internal.Config, wshandler internal.WsHandlerFunc, handler http.Handler) internal.Server {
-	appcfg.MustLoadFromKey("development", &development)
+func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
 	s := &srv{cfg: cfg}
+	s.handler = s.handleWebTransport(wshandler, handler)
+	return s
+}
+
+func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) error {
 	wtserver := &webtransport.Server{
 		H3: http3.Server{
-			Addr:    fmt.Sprintf(":%v", cfg.WSServer.Port),
-			Handler: s.handleWebTransport(wshandler, handler),
+			Addr:    fmt.Sprintf(":%v", s.cfg.WSServer.Port),
+			Port:    int(s.cfg.WSServer.Port),
+			Handler: s.handler,
 			QuicConfig: &quic.Config{
 				Tracer: qlog.DefaultTracer,
 			},
 		},
 	}
-	if development {
+	if s.cfg.Development {
 		noCors := func(r *http.Request) bool {
 			return true
 		}
 		wtserver.CheckOrigin = noCors
 	}
 	s.server = wtserver
-	return s
-}
-
-func (s *srv) ListenAndServeTLS(certFile, keyFile string) error {
 	return s.server.ListenAndServeTLS(certFile, keyFile)
 }
-func (s *srv) handleWebTransport(wsHandlerFunc internal.WsHandlerFunc, handler http.Handler) http.HandlerFunc {
+func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		if r.Method == http.MethodConnect {
@@ -58,7 +58,7 @@ func (s *srv) handleWebTransport(wsHandlerFunc internal.WsHandlerFunc, handler h
 				return
 			}
 			defer stream.Close()
-			wsHandlerFunc(ctx, stream)
+			wsHandler.HandleWS(ctx, stream)
 		} else {
 			if handler != nil {
 				handler.ServeHTTP(w, r)
