@@ -23,9 +23,10 @@ type (
 
 type (
 	srv struct {
-		server  internal.Server
-		cfg     *internal.Config
-		quit    chan<- os.Signal
-		service Service
+		h3server internal.Server
+		server   internal.Server
+		cfg      *internal.Config
+		quit     chan<- os.Signal
+		service  Service
 	}
 )

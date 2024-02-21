@@ -19,7 +19,7 @@ func New(service Service, cfgKey string) Server {
 	var cfg internal.Config
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	s := &srv{cfg: &cfg, service: service}
-	s.server = http3webtransport.New(s.cfg, s.service.HandleWS, nil)
+	s.h3server = http3webtransport.New(s.cfg, s.service.HandleWS, nil)
 	return s
 }
 
@@ -39,7 +39,7 @@ func (s *srv) startServer() {
 			!errors.Is(err, http.ErrServerClosed)
 	}
 
-	if err := s.server.ListenAndServeTLS(s.cfg.WSServer.CertPath, s.cfg.WSServer.KeyPath); isUnexpectedError(err) {
+	if err := s.h3server.ListenAndServeTLS(s.cfg.WSServer.CertPath, s.cfg.WSServer.KeyPath); isUnexpectedError(err) {
 		s.quit <- syscall.SIGTERM
 		log.Error(errors.Wrap(err, "server.ListenAndServeTLS failed"))
 	}
@@ -61,7 +61,7 @@ func (s *srv) shutDown() {
 	defer cancel()
 	log.Info("shutting down server...")
 
-	if err := s.server.Shutdown(ctx); err != nil && !errors.Is(err, io.EOF) {
+	if err := s.h3server.Shutdown(ctx); err != nil && !errors.Is(err, io.EOF) {
 		log.Error(errors.Wrap(err, "server shutdown failed"))
 	} else {
 		log.Info("server shutdown succeeded")

@@ -18,7 +18,7 @@ import (
 
 func New(cfg *internal.Config, wshandler internal.WsHandlerFunc, handler http.Handler) internal.Server {
 	appcfg.MustLoadFromKey("development", &development)
-	s := &srv{}
+	s := &srv{cfg: cfg}
 	wtserver := &webtransport.Server{
 		H3: http3.Server{
 			Addr:    fmt.Sprintf(":%v", cfg.WSServer.Port),
