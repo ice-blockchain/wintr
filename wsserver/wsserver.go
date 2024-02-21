@@ -19,7 +19,7 @@ func New(service Service, cfgKey string) Server {
 	var cfg internal.Config
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	s := &srv{cfg: &cfg, service: service}
-	s.server = http3webtransport.New(s.cfg, s.service.HandleWS)
+	s.server = http3webtransport.New(s.cfg, s.service.HandleWS, nil)
 	return s
 }
 

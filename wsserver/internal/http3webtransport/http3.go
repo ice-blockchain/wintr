@@ -16,13 +16,13 @@ import (
 	"net/http"
 )
 
-func New(cfg *internal.Config, handler internal.HandlerFunc) internal.Server {
+func New(cfg *internal.Config, wshandler internal.WsHandlerFunc, handler http.Handler) internal.Server {
 	appcfg.MustLoadFromKey("development", &development)
 	s := &srv{}
 	wtserver := &webtransport.Server{
 		H3: http3.Server{
 			Addr:    fmt.Sprintf(":%v", cfg.WSServer.Port),
-			Handler: s.handleWebSocket(handler),
+			Handler: s.handleWebTransport(wshandler, handler),
 			QuicConfig: &quic.Config{
 				Tracer: qlog.DefaultTracer,
 			},
@@ -41,24 +41,29 @@ func New(cfg *internal.Config, handler internal.HandlerFunc) internal.Server {
 func (s *srv) ListenAndServeTLS(certFile, keyFile string) error {
 	return s.server.ListenAndServeTLS(certFile, keyFile)
 }
-func (s *srv) handleWebSocket(handlerFunc internal.HandlerFunc) http.HandlerFunc {
+func (s *srv) handleWebTransport(wsHandlerFunc internal.WsHandlerFunc, handler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		conn, err := s.server.Upgrade(w, r)
-		if err != nil {
-			log.Error(errors.Wrapf(err, "upgrading failed"))
-			w.WriteHeader(500)
-			return
+		ctx := r.Context()
+		if r.Method == http.MethodConnect {
+			conn, err := s.server.Upgrade(w, r)
+			if err != nil {
+				log.Error(errors.Wrapf(err, "upgrading failed"))
+				w.WriteHeader(500)
+				return
+			}
+			stream, err := conn.AcceptStream(ctx)
+			if err != nil {
+				log.Error(errors.Wrapf(err, "getting stream failed"))
+				w.WriteHeader(500)
+				return
+			}
+			defer stream.Close()
+			wsHandlerFunc(ctx, stream)
+		} else {
+			if handler != nil {
+				handler.ServeHTTP(w, r)
+			}
 		}
-		stream, err := conn.AcceptStream(context.Background())
-		if err != nil {
-			log.Error(errors.Wrapf(err, "getting stream failed"))
-			w.WriteHeader(500)
-			return
-		}
-		defer stream.Close()
-		log.Info("stream opened")
-		handlerFunc(stream)
 	}
 }
 

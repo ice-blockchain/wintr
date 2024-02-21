@@ -16,7 +16,7 @@ type (
 	}
 
 	Service interface {
-		HandleWS(stream io.ReadWriteCloser)
+		HandleWS(ctx context.Context, stream io.ReadWriteCloser)
 		Close(ctx context.Context) error
 	}
 )

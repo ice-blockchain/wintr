@@ -10,7 +10,7 @@ type (
 		ListenAndServeTLS(certFile, keyFile string) error
 		Shutdown(ctx context.Context) error
 	}
-	HandlerFunc func(stream io.ReadWriteCloser)
+	WsHandlerFunc func(ctx context.Context, stream io.ReadWriteCloser)
 
 	Config struct {
 		WSServer struct {
