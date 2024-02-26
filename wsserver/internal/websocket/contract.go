@@ -3,12 +3,12 @@
 package websocket
 
 import (
+	"context"
 	"github.com/gorilla/websocket"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"net/http"
+	stdlibtime "time"
 )
-
-var development bool
 
 type (
 	srv struct {
@@ -16,7 +16,14 @@ type (
 		handler http.HandlerFunc
 		cfg     *internal.Config
 	}
-	wsReadWriter struct {
-		websocket *websocket.Conn
+	wsConnection struct {
+		conn         *websocket.Conn
+		writeTimeout stdlibtime.Duration
+		readTimeout  stdlibtime.Duration
+		closeChannel chan struct{}
+	}
+	customCancelContext struct {
+		context.Context
+		ch <-chan struct{}
 	}
 )

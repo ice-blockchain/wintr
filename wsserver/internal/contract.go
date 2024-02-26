@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"io"
+	"time"
 )
 
 type (
@@ -15,17 +16,30 @@ type (
 	//Close
 	//ReadMessage() (messageType int, p []byte, err error)
 	//Close
+	WSReader interface {
+		ReadMessage() (messageType int, p []byte, err error)
+		io.Closer
+	}
+	WSWriter interface {
+		WriteMessage(messageType int, data []byte) error
+		io.Closer
+	}
+	WS interface {
+		WSWriter
+		WSReader
+	}
 	WSHandler interface {
-		// TODO: read / write instead
-		// call go read / go write in handler to have 2 routines
-		HandleWS(ctx context.Context, stream io.ReadWriteCloser)
+		Read(ctx context.Context, reader WSReader)
+		Write(ctx context.Context, writer WSWriter)
 	}
 
 	Config struct {
 		WSServer struct {
-			CertPath string `yaml:"certPath"`
-			KeyPath  string `yaml:"keyPath"`
-			Port     uint16 `yaml:"port"`
+			CertPath     string        `yaml:"certPath"`
+			KeyPath      string        `yaml:"keyPath"`
+			Port         uint16        `yaml:"port"`
+			WriteTimeout time.Duration `yaml:"writeTimeout"`
+			ReadTimeout  time.Duration `yaml:"readTimeout"`
 		} `yaml:"wsServer"`
 		Development bool `yaml:"development"`
 	}

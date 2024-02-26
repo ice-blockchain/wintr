@@ -18,6 +18,8 @@ type (
 		internal.WSHandler
 		Close(ctx context.Context) error
 	}
+	WSReader = internal.WSReader
+	WSWriter = internal.WSWriter
 )
 
 type (

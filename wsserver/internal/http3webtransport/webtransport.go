@@ -48,7 +48,8 @@ func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Hand
 			conn, err := s.server.Upgrade(w, r)
 			if err != nil {
 				log.Error(errors.Wrapf(err, "upgrading failed"))
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusBadRequest)
+
 				return
 			}
 			stream, err := conn.AcceptStream(ctx)
@@ -58,7 +59,8 @@ func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Hand
 				return
 			}
 			defer stream.Close()
-			wsHandler.HandleWS(ctx, stream)
+			go wsHandler.Read(ctx, &wsAdapter{stream: stream})
+			go wsHandler.Write(ctx, &wsAdapter{stream: stream})
 		} else {
 			if handler != nil {
 				handler.ServeHTTP(w, r)
@@ -69,4 +71,18 @@ func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Hand
 
 func (s *srv) Shutdown(ctx context.Context) error {
 	return s.server.Close()
+}
+
+func (w *wsAdapter) WriteMessage(_ int, data []byte) (err error) {
+	_, err = w.stream.Write(data)
+	return errors.Wrapf(err, "failed to write data to webtransport stream")
+}
+
+func (w *wsAdapter) Close() error {
+	return w.stream.Close()
+}
+
+func (w *wsAdapter) ReadMessage() (messageType int, p []byte, err error) {
+	_, err = w.stream.Read(p)
+	return 1, p, errors.Wrapf(err, "failed to read data from webtransport stream")
 }
