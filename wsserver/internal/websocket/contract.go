@@ -3,7 +3,6 @@
 package websocket
 
 import (
-	"context"
 	"github.com/gorilla/websocket"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"net/http"
@@ -21,9 +20,5 @@ type (
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
 		closeChannel chan struct{}
-	}
-	customCancelContext struct {
-		context.Context
-		ch <-chan struct{}
 	}
 )

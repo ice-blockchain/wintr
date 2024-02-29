@@ -6,6 +6,7 @@ import (
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"github.com/quic-go/webtransport-go"
 	"net/http"
+	stdlibtime "time"
 )
 
 var development bool
@@ -17,6 +18,12 @@ type (
 		cfg     *internal.Config
 	}
 	wsAdapter struct {
-		stream webtransport.Stream
+		conn         *webtransport.Session
+		stream       webtransport.Stream
+		writeTimeout stdlibtime.Duration
+		readTimeout  stdlibtime.Duration
+		closeChannel chan struct{}
 	}
 )
+
+const acceptStreamTimeout = 30 * stdlibtime.Second

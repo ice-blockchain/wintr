@@ -11,11 +11,6 @@ type (
 		ListenAndServeTLS(ctx context.Context, certFile, keyFile string) error
 		Shutdown(ctx context.Context) error
 	}
-	// TODO custom interface with methods instead if io package
-	//WriteMessage(messageType int, data []byte) error
-	//Close
-	//ReadMessage() (messageType int, p []byte, err error)
-	//Close
 	WSReader interface {
 		ReadMessage() (messageType int, p []byte, err error)
 		io.Closer
@@ -44,3 +39,12 @@ type (
 		Development bool `yaml:"development"`
 	}
 )
+
+type (
+	customCancelContext struct {
+		context.Context
+		ch <-chan struct{}
+	}
+)
+
+const ReadBufferSize = 1024
