@@ -9,9 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"internal/godebug"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
-	"net/http"
 	"net/http/httptrace"
 	"net/textproto"
 	"reflect"
@@ -26,7 +26,7 @@ import (
 
 // ErrLineTooLong is returned when reading request or response bodies
 // with malformed chunked encoding.
-var ErrLineTooLong = http.ErrLineTooLong
+var ErrLineTooLong = internal.ErrLineTooLong
 
 type errorReader struct {
 	err error
@@ -309,7 +309,7 @@ func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) 
 	if t.Trailer != nil {
 		keys := make([]string, 0, len(t.Trailer))
 		for k := range t.Trailer {
-			k = http.CanonicalHeaderKey(k)
+			k = CanonicalHeaderKey(k)
 			switch k {
 			case "Transfer-Encoding", "Trailer", "Content-Length":
 				return badStringError("invalid Trailer key", k)
@@ -561,12 +561,12 @@ func readTransfer(msg any, r *bufio.Reader) (err error) {
 	switch {
 	case t.Chunked:
 		if isResponse && (noResponseBodyExpected(t.RequestMethod) || !bodyAllowedForStatus(t.StatusCode)) {
-			t.Body = http.NoBody
+			t.Body = NoBody
 		} else {
 			t.Body = &body{src: internal.NewChunkedReader(r), hdr: msg, r: r, closing: t.Close}
 		}
 	case realLength == 0:
-		t.Body = http.NoBody
+		t.Body = NoBody
 	case realLength > 0:
 		t.Body = &body{src: io.LimitReader(r, realLength), closing: t.Close}
 	default:
@@ -576,7 +576,7 @@ func readTransfer(msg any, r *bufio.Reader) (err error) {
 			t.Body = &body{src: r, closing: t.Close}
 		} else {
 			// Persistent connection (i.e. HTTP/1.1)
-			t.Body = http.NoBody
+			t.Body = NoBody
 		}
 	}
 
@@ -779,7 +779,7 @@ func fixTrailer(header Header, chunked bool) (Header, error) {
 	var err error
 	for _, v := range vv {
 		foreachHeaderElement(v, func(key string) {
-			key = http.CanonicalHeaderKey(key)
+			key = CanonicalHeaderKey(key)
 			switch key {
 			case "Transfer-Encoding", "Trailer", "Content-Length":
 				if err == nil {
@@ -1038,7 +1038,7 @@ func (bl bodyLocked) Read(p []byte) (n int, err error) {
 	return bl.b.readLocked(p)
 }
 
-var laxContentLength = godebug.New("httplaxcontentlength")
+//var laxContentLength = godebug.New("httplaxcontentlength")
 
 // parseContentLength checks that the header is valid and then trims
 // whitespace. It returns -1 if no value is set otherwise the value
@@ -1052,10 +1052,10 @@ func parseContentLength(clHeaders []string) (int64, error) {
 	// The Content-Length must be a valid numeric value.
 	// See: https://datatracker.ietf.org/doc/html/rfc2616/#section-14.13
 	if cl == "" {
-		if laxContentLength.Value() == "1" {
-			laxContentLength.IncNonDefault()
-			return -1, nil
-		}
+		//if laxContentLength.Value() == "1" {
+		//	laxContentLength.IncNonDefault()
+		//	return -1, nil
+		//}
 		return 0, badStringError("invalid empty Content-Length", cl)
 	}
 	n, err := strconv.ParseUint(cl, 10, 63)

@@ -17,13 +17,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"internal/godebug"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"net/http/httptrace"
-	"net/http/internal/ascii"
 	"net/textproto"
 	"net/url"
 	"reflect"
@@ -367,16 +365,16 @@ func (t *Transport) hasCustomTLSDialer() bool {
 	return t.DialTLS != nil || t.DialTLSContext != nil
 }
 
-var http2client = godebug.New("http2client")
+//var http2client = godebug.New("http2client")
 
 // onceSetNextProtoDefaults initializes TLSNextProto.
 // It must be called via t.nextProtoOnce.Do.
 func (t *Transport) onceSetNextProtoDefaults() {
 	t.tlsNextProtoWasNil = (t.TLSNextProto == nil)
-	if http2client.Value() == "0" {
-		http2client.IncNonDefault()
-		return
-	}
+	//if http2client.Value() == "0" {
+	//	http2client.IncNonDefault()
+	//	return
+	//}
 
 	// If they've already configured http2 with
 	// golang.org/x/net/http2 instead of the bundled copy, try to
@@ -668,7 +666,7 @@ func (r *readTrackingBody) Close() error {
 // This lets rewindBody avoid an error result when the request
 // does not have GetBody but the body hasn't been read at all yet.
 func setupRewindBody(req *Request) *Request {
-	if req.Body == nil || req.Body == http.NoBody {
+	if req.Body == nil || req.Body == NoBody {
 		return req
 	}
 	newReq := *req
@@ -681,7 +679,7 @@ func setupRewindBody(req *Request) *Request {
 // rewindBody takes care of closing req.Body when appropriate
 // (in all cases except when rewindBody returns req unmodified).
 func rewindBody(req *Request) (rewound *Request, err error) {
-	if req.Body == nil || req.Body == http.NoBody || (!req.Body.(*readTrackingBody).didRead && !req.Body.(*readTrackingBody).didClose) {
+	if req.Body == nil || req.Body == NoBody || (!req.Body.(*readTrackingBody).didRead && !req.Body.(*readTrackingBody).didClose) {
 		return req, nil // nothing to rewind
 	}
 	if !req.Body.(*readTrackingBody).didClose {

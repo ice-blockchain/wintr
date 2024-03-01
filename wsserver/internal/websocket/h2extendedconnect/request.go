@@ -14,12 +14,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"net/http/httptrace"
-	"net/http/internal/ascii"
 	"net/textproto"
 	"net/url"
 	urlpkg "net/url"
@@ -428,7 +427,7 @@ func (r *Request) UserAgent() string {
 }
 
 // Cookies parses and returns the HTTP cookies sent with the request.
-func (r *Request) Cookies() []*http.Cookie {
+func (r *Request) Cookies() []*Cookie {
 	return readCookies(r.Header, "")
 }
 
@@ -439,7 +438,7 @@ var ErrNoCookie = errors.New("http: named cookie not present")
 // [ErrNoCookie] if not found.
 // If multiple cookies match the given name, only one cookie will
 // be returned.
-func (r *Request) Cookie(name string) (*http.Cookie, error) {
+func (r *Request) Cookie(name string) (*Cookie, error) {
 	if name == "" {
 		return nil, ErrNoCookie
 	}
@@ -455,7 +454,7 @@ func (r *Request) Cookie(name string) (*http.Cookie, error) {
 // separated by semicolon.
 // AddCookie only sanitizes c's name and value, and does not sanitize
 // a Cookie header already present in the request.
-func (r *Request) AddCookie(c *http.Cookie) {
+func (r *Request) AddCookie(c *Cookie) {
 	s := fmt.Sprintf("%s=%s", sanitizeCookieName(c.Name), sanitizeCookieValue(c.Value))
 	if c := r.Header.Get("Cookie"); c != "" {
 		r.Header.Set("Cookie", c+"; "+s)
