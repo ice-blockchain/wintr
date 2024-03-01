@@ -8,6 +8,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
+	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 	"github.com/pkg/errors"
 	"net"
 	"net/http"
@@ -27,7 +28,7 @@ func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handle
 }
 
 func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) error {
-	s.server = &http.Server{
+	s.server = &h2ec.Server{
 		Addr:    fmt.Sprintf(":%v", s.cfg.WSServer.Port),
 		Handler: s.handler,
 		BaseContext: func(_ net.Listener) context.Context {
