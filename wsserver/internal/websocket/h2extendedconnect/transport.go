@@ -21,6 +21,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/http/httptrace"
 	"net/http/internal/ascii"
 	"net/textproto"
@@ -667,7 +668,7 @@ func (r *readTrackingBody) Close() error {
 // This lets rewindBody avoid an error result when the request
 // does not have GetBody but the body hasn't been read at all yet.
 func setupRewindBody(req *Request) *Request {
-	if req.Body == nil || req.Body == NoBody {
+	if req.Body == nil || req.Body == http.NoBody {
 		return req
 	}
 	newReq := *req
@@ -680,7 +681,7 @@ func setupRewindBody(req *Request) *Request {
 // rewindBody takes care of closing req.Body when appropriate
 // (in all cases except when rewindBody returns req unmodified).
 func rewindBody(req *Request) (rewound *Request, err error) {
-	if req.Body == nil || req.Body == NoBody || (!req.Body.(*readTrackingBody).didRead && !req.Body.(*readTrackingBody).didClose) {
+	if req.Body == nil || req.Body == http.NoBody || (!req.Body.(*readTrackingBody).didRead && !req.Body.(*readTrackingBody).didClose) {
 		return req, nil // nothing to rewind
 	}
 	if !req.Body.(*readTrackingBody).didClose {
