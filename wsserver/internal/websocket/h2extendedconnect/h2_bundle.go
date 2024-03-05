@@ -2892,7 +2892,7 @@ func (mh *http2MetaHeadersFrame) checkPseudos() error {
 	pf := mh.PseudoFields()
 	for i, hf := range pf {
 		switch hf.Name {
-		case ":method", ":path", ":scheme", ":authority":
+		case ":method", ":path", ":scheme", ":authority", ":protocol":
 			isRequest = true
 		case ":status":
 			isResponse = true
@@ -2900,7 +2900,7 @@ func (mh *http2MetaHeadersFrame) checkPseudos() error {
 			return http2pseudoHeaderError(hf.Name)
 		}
 		// Check for duplicates.
-		// This would be a bad algorithm, but N is 4.
+		// This would be a bad algorithm, but N is 5.
 		// And this doesn't allocate.
 		for _, hf2 := range pf[:i] {
 			if hf.Name == hf2.Name {
@@ -3417,6 +3417,11 @@ func (s http2Setting) Valid() error {
 		if s.Val < 16384 || s.Val > 1<<24-1 {
 			return http2ConnectionError(http2ErrCodeProtocol)
 		}
+	case http2SettingEnableConnectProtocol:
+		// Must be zero or one: https://datatracker.ietf.org/doc/html/rfc8441#section-3
+		if s.Val != 1 && s.Val != 0 {
+			return http2ConnectionError(http2ErrCodeProtocol)
+		}
 	}
 	return nil
 }
@@ -3426,21 +3431,23 @@ func (s http2Setting) Valid() error {
 type http2SettingID uint16
 
 const (
-	http2SettingHeaderTableSize      http2SettingID = 0x1
-	http2SettingEnablePush           http2SettingID = 0x2
-	http2SettingMaxConcurrentStreams http2SettingID = 0x3
-	http2SettingInitialWindowSize    http2SettingID = 0x4
-	http2SettingMaxFrameSize         http2SettingID = 0x5
-	http2SettingMaxHeaderListSize    http2SettingID = 0x6
+	http2SettingHeaderTableSize       http2SettingID = 0x1
+	http2SettingEnablePush            http2SettingID = 0x2
+	http2SettingMaxConcurrentStreams  http2SettingID = 0x3
+	http2SettingInitialWindowSize     http2SettingID = 0x4
+	http2SettingMaxFrameSize          http2SettingID = 0x5
+	http2SettingMaxHeaderListSize     http2SettingID = 0x6
+	http2SettingEnableConnectProtocol http2SettingID = 0x8
 )
 
 var http2settingName = map[http2SettingID]string{
-	http2SettingHeaderTableSize:      "HEADER_TABLE_SIZE",
-	http2SettingEnablePush:           "ENABLE_PUSH",
-	http2SettingMaxConcurrentStreams: "MAX_CONCURRENT_STREAMS",
-	http2SettingInitialWindowSize:    "INITIAL_WINDOW_SIZE",
-	http2SettingMaxFrameSize:         "MAX_FRAME_SIZE",
-	http2SettingMaxHeaderListSize:    "MAX_HEADER_LIST_SIZE",
+	http2SettingHeaderTableSize:       "HEADER_TABLE_SIZE",
+	http2SettingEnablePush:            "ENABLE_PUSH",
+	http2SettingMaxConcurrentStreams:  "MAX_CONCURRENT_STREAMS",
+	http2SettingInitialWindowSize:     "INITIAL_WINDOW_SIZE",
+	http2SettingMaxFrameSize:          "MAX_FRAME_SIZE",
+	http2SettingMaxHeaderListSize:     "MAX_HEADER_LIST_SIZE",
+	http2SettingEnableConnectProtocol: "ENABLE_CONNECT_PROTOCOL",
 }
 
 func (s http2SettingID) String() string {
@@ -3941,6 +3948,10 @@ func (s *http2Server) initialConnRecvWindowSize() int32 {
 		return s.MaxUploadBufferPerConnection
 	}
 	return 1 << 20
+}
+
+func (s *http2Server) enableConnectProtocol() uint32 {
+	return 1
 }
 
 func (s *http2Server) initialStreamRecvWindowSize() int32 {
@@ -4687,6 +4698,7 @@ func (sc *http2serverConn) serve() {
 			{http2SettingMaxHeaderListSize, sc.maxHeaderListSize()},
 			{http2SettingHeaderTableSize, sc.srv.maxDecoderHeaderTableSize()},
 			{http2SettingInitialWindowSize, uint32(sc.srv.initialStreamRecvWindowSize())},
+			{http2SettingEnableConnectProtocol, sc.srv.enableConnectProtocol()},
 		},
 	})
 	sc.unackedSettings++
@@ -5931,7 +5943,11 @@ func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHead
 	}
 
 	isConnect := rp.method == "CONNECT"
-	if isConnect {
+	// Per https://datatracker.ietf.org/doc/html/rfc8441#section-4, extended
+	// CONNECT requests (i.e. those with the protocol pseudo-header) follow the
+	// standard 8.1.2.6 validation requirements.
+	isExtendedConnect := isConnect && f.PseudoValue("protocol") != ""
+	if isConnect && !isExtendedConnect {
 		if rp.path != "" || rp.scheme != "" || rp.authority == "" {
 			return nil, nil, sc.countError("bad_connect", http2streamError(f.StreamID, http2ErrCodeProtocol))
 		}
@@ -5952,6 +5968,9 @@ func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHead
 	rp.header = make(Header)
 	for _, hf := range f.RegularFields() {
 		rp.header.Add(sc.canonicalHeader(hf.Name), hf.Value)
+	}
+	if isExtendedConnect {
+		rp.header.Set(":protocol", f.PseudoValue("protocol"))
 	}
 	if rp.authority == "" {
 		rp.authority = rp.header.Get("Host")
@@ -6040,13 +6059,18 @@ func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2re
 		stream:        st,
 		needsContinue: needsContinue,
 	}
+	proto := "HTTP/2.0"
+	protoHeader := rp.header.get(":protocol")
+	if protoHeader != "" {
+		proto = protoHeader
+	}
 	req := &Request{
 		Method:     rp.method,
 		URL:        url_,
 		RemoteAddr: sc.remoteAddrStr,
 		Header:     rp.header,
 		RequestURI: requestURI,
-		Proto:      "HTTP/2.0",
+		Proto:      proto,
 		ProtoMajor: 2,
 		ProtoMinor: 0,
 		TLS:        tlsState,
@@ -6149,7 +6173,10 @@ func (sc *http2serverConn) runHandler(rw *http2responseWriter, req *Request, han
 			}
 			return
 		}
-		rw.handlerDone()
+		isExtendedConnect := rw.rws.req.Method == MethodConnect && rw.rws.req.Header.get(":protocol") != ""
+		if !isExtendedConnect {
+			rw.handlerDone()
+		}
 	}()
 	handler(rw, req.toHttp())
 	didPanic = false
@@ -6328,13 +6355,13 @@ type http2responseWriterState struct {
 	bw *bufio.Writer // writing to a chunkWriter{this *responseWriterState}
 
 	// mutated by http.Handler goroutine:
-	handlerHeader Header   // nil until called
-	snapHeader    Header   // snapshot of handlerHeader at WriteHeader time
-	trailers      []string // set in writeChunk
-	status        int      // status code passed to WriteHeader
-	wroteHeader   bool     // WriteHeader called (explicitly or implicitly). Not necessarily sent to user yet.
-	sentHeader    bool     // have we sent the header frame?
-	handlerDone   bool     // handler has finished
+	handlerHeader http.Header // nil until called
+	snapHeader    http.Header // snapshot of handlerHeader at WriteHeader time
+	trailers      []string    // set in writeChunk
+	status        int         // status code passed to WriteHeader
+	wroteHeader   bool        // WriteHeader called (explicitly or implicitly). Not necessarily sent to user yet.
+	sentHeader    bool        // have we sent the header frame?
+	handlerDone   bool        // handler has finished
 
 	sentContentLen int64 // non-zero if handler set a Content-Length header
 	wroteBytes     int64
@@ -6447,7 +6474,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 		err = rws.conn.writeHeaders(rws.stream, &http2writeResHeaders{
 			streamID:      rws.stream.id,
 			httpResCode:   rws.status,
-			h:             rws.snapHeader,
+			h:             Header(rws.snapHeader),
 			endStream:     endStream,
 			contentType:   ctype,
 			contentLength: clen,
@@ -6481,7 +6508,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 	if rws.handlerDone && hasNonemptyTrailers {
 		err = rws.conn.writeHeaders(rws.stream, &http2writeResHeaders{
 			streamID:  rws.stream.id,
-			h:         rws.handlerHeader,
+			h:         Header(rws.handlerHeader),
 			trailers:  rws.trailers,
 			endStream: true,
 		})
@@ -6650,9 +6677,9 @@ func (w *http2responseWriter) Header() http.Header {
 		panic("Header called after Handler finished")
 	}
 	if rws.handlerHeader == nil {
-		rws.handlerHeader = make(Header)
+		rws.handlerHeader = make(http.Header)
 	}
-	return rws.handlerHeader.toHttp()
+	return rws.handlerHeader
 }
 
 // checkWriteHeaderCode is a copy of net/http's checkWriteHeaderCode.
@@ -6703,7 +6730,7 @@ func (rws *http2responseWriterState) writeHeader(code int) {
 		rws.conn.writeHeaders(rws.stream, &http2writeResHeaders{
 			streamID:    rws.stream.id,
 			httpResCode: code,
-			h:           h,
+			h:           Header(h),
 			endStream:   rws.handlerDone && !rws.hasTrailers(),
 		})
 
@@ -6713,7 +6740,7 @@ func (rws *http2responseWriterState) writeHeader(code int) {
 	rws.wroteHeader = true
 	rws.status = code
 	if len(rws.handlerHeader) > 0 {
-		rws.snapHeader = http2cloneHeader(rws.handlerHeader)
+		rws.snapHeader = http2cloneHeader(Header(rws.handlerHeader)).toHttp()
 	}
 }
 

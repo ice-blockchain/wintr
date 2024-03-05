@@ -3,9 +3,9 @@
 package websocket
 
 import (
-	"github.com/gorilla/websocket"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
+	"net"
 	"net/http"
 	stdlibtime "time"
 )
@@ -17,7 +17,7 @@ type (
 		cfg     *internal.Config
 	}
 	wsConnection struct {
-		conn         *websocket.Conn
+		conn         net.Conn
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
 		closeChannel chan struct{}

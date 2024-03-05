@@ -77,12 +77,7 @@ func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Hand
 			go wsHandler.Write(ctx, ws)
 			wsHandler.Read(ctx, ws)
 			return
-		} else if r.Header.Get("Upgrade") == "websocket" {
-			fmt.Println("h3 ws")
-			w.WriteHeader(http.StatusOK)
-			return
 		} else {
-			fmt.Println("Upgrade " + r.Header.Get("Upgrade"))
 			if handler != nil {
 				handler.ServeHTTP(w, r)
 			}
