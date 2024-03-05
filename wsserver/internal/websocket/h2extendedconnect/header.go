@@ -5,7 +5,6 @@
 package http
 
 import (
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"net/http/httptrace"
 	"net/textproto"
@@ -15,6 +14,8 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 // A Header represents the key-value pairs in an HTTP header.

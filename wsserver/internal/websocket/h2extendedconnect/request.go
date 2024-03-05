@@ -14,7 +14,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -28,6 +27,8 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/idna"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 const (

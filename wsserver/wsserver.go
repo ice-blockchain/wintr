@@ -1,19 +1,23 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package wsserver
 
 import (
 	"context"
 	"fmt"
-	appcfg "github.com/ice-blockchain/wintr/config"
-	"github.com/ice-blockchain/wintr/log"
-	"github.com/ice-blockchain/wintr/wsserver/internal"
-	"github.com/ice-blockchain/wintr/wsserver/internal/http3webtransport"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/pkg/errors"
+
+	appcfg "github.com/ice-blockchain/wintr/config"
+	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/wsserver/internal"
+	"github.com/ice-blockchain/wintr/wsserver/internal/http3webtransport"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket"
 )
 
 func New(service Service, cfgKey string) Server {

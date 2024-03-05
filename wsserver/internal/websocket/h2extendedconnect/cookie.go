@@ -7,13 +7,14 @@ package http
 import (
 	"errors"
 	"fmt"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"log"
 	"net"
 	"net/textproto"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 // A Cookie represents an HTTP cookie as sent in the Set-Cookie header of an

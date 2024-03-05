@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package internal
 
 import (
@@ -42,9 +44,7 @@ type (
 
 type (
 	customCancelContext struct {
-		context.Context
-		ch <-chan struct{}
+		context.Context //nolint:containedctx // Custom implementation.
+		ch              <-chan struct{}
 	}
 )
-
-const ReadBufferSize = 1024

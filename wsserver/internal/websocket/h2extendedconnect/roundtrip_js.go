@@ -10,9 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http/internal/ascii"
 	"strconv"
 	"strings"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"syscall/js"
 )
 

@@ -3,11 +3,12 @@
 package websocket
 
 import (
-	"github.com/ice-blockchain/wintr/wsserver/internal"
-	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 	"net"
 	"net/http"
 	stdlibtime "time"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal"
+	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 )
 
 type (
@@ -18,8 +19,12 @@ type (
 	}
 	wsConnection struct {
 		conn         net.Conn
+		closeChannel chan struct{}
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
-		closeChannel chan struct{}
 	}
+)
+
+const (
+	websocketProtocol = "websocket"
 )

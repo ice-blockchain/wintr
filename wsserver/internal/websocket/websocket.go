@@ -1,26 +1,27 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package websocket
 
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	stdlibtime "time"
+
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2upgrader"
-	"github.com/pkg/errors"
-	"net"
-	"net/http"
-	stdlibtime "time"
 )
 
-//	var upgrader = websocket.Upgrader{
-//		ReadBufferSize:  internal.ReadBufferSize,
-//		WriteBufferPool: &sync.Pool{},
-//	}
+//nolint:gochecknoglobals,grouper // We need single instance to avoid spending extra mem
 var h2Upgrader = &h2upgrader.H2Upgrader{}
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
@@ -38,20 +39,23 @@ func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) e
 			return ctx
 		},
 	}
-	return s.server.ListenAndServeTLS(certFile, keyFile)
+
+	return s.server.ListenAndServeTLS(certFile, keyFile) //nolint:contextcheck,wrapcheck // .
 }
+
+//nolint:funlen,revive // .
 func (s *srv) handleWebSocket(wsHandler internal.WSHandler, handler http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var conn net.Conn = nil
+	return func(writer http.ResponseWriter, req *http.Request) {
+		var conn net.Conn
 		var err error
-		if r.Header.Get("Upgrade") == "websocket" {
-			conn, _, _, err = ws.DefaultHTTPUpgrader.Upgrade(r, w)
-		} else if r.Method == http.MethodConnect && r.Proto == "websocket" {
-			conn, _, _, err = h2Upgrader.Upgrade(r, w)
+		if req.Header.Get("Upgrade") == websocketProtocol {
+			conn, _, _, err = ws.DefaultHTTPUpgrader.Upgrade(req, writer)
+		} else if req.Method == http.MethodConnect && req.Proto == websocketProtocol {
+			conn, _, _, err = h2Upgrader.Upgrade(req, writer)
 		}
 		if err != nil {
 			log.Error(errors.Wrapf(err, "upgrading failed"))
-			w.WriteHeader(http.StatusBadRequest)
+			writer.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
@@ -61,8 +65,7 @@ func (s *srv) handleWebSocket(wsHandler internal.WSHandler, handler http.Handler
 				defer func() {
 					log.Error(wsocket.Close(), "failed to close websocket conn")
 				}()
-				log.Info("ws esbablished")
-				ctx := internal.NewCustomCancelContext(r.Context(), wsocket.closeChannel)
+				ctx := internal.NewCustomCancelContext(req.Context(), wsocket.closeChannel)
 				go wsHandler.Write(ctx, wsocket)
 				go s.ping(ctx, conn)
 				wsHandler.Read(ctx, wsocket)
@@ -70,17 +73,19 @@ func (s *srv) handleWebSocket(wsHandler internal.WSHandler, handler http.Handler
 
 			return
 		} else if handler != nil {
-			handler.ServeHTTP(w, r)
+			handler.ServeHTTP(writer, req)
+
+			return
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (s *srv) Shutdown(ctx context.Context) error {
-	return s.server.Close()
+func (s *srv) Shutdown(_ context.Context) error {
+	return errors.Wrapf(s.server.Close(), "failed to close server")
 }
 
-func (s *srv) ping(ctx context.Context, conn net.Conn) {
+func (*srv) ping(ctx context.Context, conn net.Conn) {
 	ticker := stdlibtime.NewTicker(stdlibtime.Minute)
 	defer ticker.Stop()
 	for {
@@ -112,12 +117,12 @@ func (w *wsConnection) WriteMessage(messageType int, data []byte) error {
 		flusher.Flush()
 	}
 
-	return err
+	return errors.Wrapf(err, "failed to write data to websocket")
 }
 
 func (w *wsConnection) ReadMessage() (messageType int, p []byte, err error) {
 	if w.readTimeout > 0 {
-		_ = w.conn.SetReadDeadline(time.Now().Add(w.readTimeout))
+		_ = w.conn.SetReadDeadline(time.Now().Add(w.readTimeout)) //nolint:errcheck // It is not crucial if we ignore it here.
 	}
 	msgBytes, typ, err := wsutil.ReadClientData(w.conn)
 	if err != nil {
@@ -128,6 +133,7 @@ func (w *wsConnection) ReadMessage() (messageType int, p []byte, err error) {
 		if err == nil {
 			return w.ReadMessage()
 		}
+
 		return int(typ), msgBytes, err
 	}
 
@@ -137,7 +143,7 @@ func (w *wsConnection) ReadMessage() (messageType int, p []byte, err error) {
 func (w *wsConnection) Close() error {
 	close(w.closeChannel)
 
-	return multierror.Append(
+	return multierror.Append( //nolint:wrapcheck // .
 		wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, "")),
 		w.conn.Close(),
 	).ErrorOrNil()

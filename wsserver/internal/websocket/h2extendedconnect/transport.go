@@ -17,7 +17,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"log"
 	"net"
@@ -32,6 +31,8 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http/httpproxy"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 // DefaultTransport is the default implementation of [Transport] and is

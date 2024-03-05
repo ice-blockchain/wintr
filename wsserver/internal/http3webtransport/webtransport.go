@@ -5,16 +5,18 @@ package http3webtransport
 import (
 	"context"
 	"fmt"
-	"github.com/ice-blockchain/wintr/log"
-	"github.com/ice-blockchain/wintr/wsserver/internal"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/qlog"
 	"github.com/quic-go/webtransport-go"
-	"io"
-	"net/http"
-	"time"
+
+	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
@@ -80,9 +82,10 @@ func (s *srv) handleWebTransport(wsHandler internal.WSHandler, handler http.Hand
 		} else {
 			if handler != nil {
 				handler.ServeHTTP(w, r)
+				return
 			}
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 

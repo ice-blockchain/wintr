@@ -5,11 +5,12 @@
 package safefilepath_test
 
 import (
-	"internal/safefilepath"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"internal/safefilepath"
 )
 
 type PathTest struct {

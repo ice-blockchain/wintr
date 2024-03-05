@@ -4,8 +4,9 @@ package wsserver
 
 import (
 	"context"
-	"github.com/ice-blockchain/wintr/wsserver/internal"
 	"os"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
 type (

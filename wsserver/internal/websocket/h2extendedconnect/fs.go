@@ -9,7 +9,6 @@ package http
 import (
 	"errors"
 	"fmt"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/safefilepath"
 	"io"
 	"io/fs"
 	"mime"
@@ -24,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/safefilepath"
 )
 
 // A Dir implements [FileSystem] using the native file system restricted to a

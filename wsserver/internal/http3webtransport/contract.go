@@ -3,10 +3,12 @@
 package http3webtransport
 
 import (
-	"github.com/ice-blockchain/wintr/wsserver/internal"
-	"github.com/quic-go/webtransport-go"
 	"net/http"
 	stdlibtime "time"
+
+	"github.com/quic-go/webtransport-go"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
 var development bool

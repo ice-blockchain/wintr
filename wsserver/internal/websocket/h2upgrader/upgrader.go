@@ -1,61 +1,52 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package h2upgrader
 
 import (
 	"bufio"
-	"github.com/gobwas/httphead"
-	"github.com/gobwas/ws"
-	"github.com/ice-blockchain/wintr/log"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
+
+	"github.com/gobwas/httphead"
+	"github.com/gobwas/ws"
+	"github.com/pkg/errors"
+
+	"github.com/ice-blockchain/wintr/log"
 )
 
-func (u *H2Upgrader) Upgrade(r *http.Request, w http.ResponseWriter) (conn net.Conn, rw *bufio.ReadWriter, hs ws.Handshake, err error) {
-	// todo extra rfc5881 checks like connect call, protocol header, etc
-	if hj, ok := w.(http.Hijacker); ok {
-		conn, rw, err = hj.Hijack()
-		if err != nil {
-			return nil, nil, hs, errors.Wrapf(err, "failed to hijack http2")
-		}
-	} else {
-		log.Error(errors.New("http.ResponseWriter does not support hijack"))
-		w.WriteHeader(400)
-		return
+//nolint:funlen,gocritic,revive // Nope, we're keeping it compatible with 3rd party
+func (u *H2Upgrader) Upgrade(req *http.Request, writer http.ResponseWriter) (conn net.Conn, rw *bufio.ReadWriter, hs ws.Handshake, err error) {
+	if req.URL.Path == "" {
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return nil, nil, hs, ErrBadPath
 	}
-	if check := u.Protocol; err == nil && check != nil {
-		ps := r.Header[headerSecProtocolCanonical]
-		for i := 0; i < len(ps) && err == nil && hs.Protocol == ""; i++ {
-			var ok bool
-			hs.Protocol, ok = strSelectProtocol(ps[i], check)
-			if !ok {
-				err = ws.ErrMalformedRequest
-			}
-		}
+	if req.Proto != "websocket" {
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return nil, nil, hs, ErrBadProtocol
+	}
+	hj, ok := writer.(http.Hijacker)
+	if !ok {
+		err = errors.New("http.ResponseWriter does not support hijack")
+		log.Error(err)
+		writer.WriteHeader(http.StatusInternalServerError)
+
+		return nil, nil, hs, err
+	}
+	conn, rw, err = hj.Hijack()
+	if err != nil {
+		return nil, nil, hs, errors.Wrapf(err, "failed to hijack http2")
+	}
+	hs, err = u.syncWSProtocols(req)
+	if err != nil {
+		return nil, nil, hs, errors.Wrapf(err, "failed to sync ws protocol and extensions")
 	}
 
-	if f := u.Negotiate; err == nil && f != nil {
-		for _, h := range r.Header[headerSecExtensionsCanonical] {
-			hs.Extensions, err = negotiateExtensions([]byte(h), hs.Extensions, f)
-			if err != nil {
-				break
-			}
-		}
-	}
-	if check := u.Extension; err == nil && check != nil && u.Negotiate == nil {
-		xs := r.Header[headerSecExtensionsCanonical]
-		for i := 0; i < len(xs) && err == nil; i++ {
-			var ok bool
-			hs.Extensions, ok = btsSelectExtensions([]byte(xs[i]), hs.Extensions, check)
-			if !ok {
-				err = ws.ErrMalformedRequest
-			}
-		}
-	}
-
-	w.Header().Add(headerSecProtocolCanonical, hs.Protocol)
-	w.Header().Add(headerSecVersionCanonical, "13")
-	w.WriteHeader(200)
-	flusher, ok := w.(http.Flusher)
+	writer.Header().Add(headerSecProtocolCanonical, hs.Protocol)
+	writer.Header().Add(headerSecVersionCanonical, "13")
+	writer.WriteHeader(http.StatusOK)
+	flusher, ok := writer.(http.Flusher)
 	if !ok {
 		return conn, rw, hs, errors.New("websocket: response writer must implement flusher")
 	}
@@ -68,6 +59,7 @@ func strSelectProtocol(h string, check func(string) bool) (ret string, ok bool) 
 	ok = httphead.ScanTokens([]byte(h), func(v []byte) bool {
 		if check(string(v)) {
 			ret = string(v)
+
 			return false
 		}
 
@@ -77,14 +69,16 @@ func strSelectProtocol(h string, check func(string) bool) (ret string, ok bool) 
 	return ret, ok
 }
 
-func btsSelectExtensions(h []byte, selected []httphead.Option, check func(httphead.Option) bool) ([]httphead.Option, bool) {
+func btsSelectExtensions(header []byte, selected []httphead.Option, check func(httphead.Option) bool) ([]httphead.Option, bool) {
 	s := httphead.OptionSelector{
 		Flags: httphead.SelectCopy,
 		Check: check,
 	}
-	return s.Select(h, selected)
+
+	return s.Select(header, selected)
 }
 
+//nolint:gocritic // Nope, we need to keep it compatible with 3rd party.
 func negotiateMaybe(in httphead.Option, dest []httphead.Option, f func(httphead.Option) (httphead.Option, error)) ([]httphead.Option, error) {
 	if in.Size() == 0 {
 		return dest, nil
@@ -94,33 +88,70 @@ func negotiateMaybe(in httphead.Option, dest []httphead.Option, f func(httphead.
 		return nil, err
 	}
 	if opt.Size() > 0 {
-		dest = append(dest, opt)
+		dest = append(dest, opt) //nolint:revive // .
 	}
+
 	return dest, nil
 }
 
 func negotiateExtensions(
 	h []byte, dest []httphead.Option,
-	f func(httphead.Option) (httphead.Option, error),
+	extensionsFunc func(httphead.Option) (httphead.Option, error),
 ) (_ []httphead.Option, err error) {
 	index := -1
 	var current httphead.Option
-	ok := httphead.ScanOptions(h, func(i int, name, attr, val []byte) httphead.Control {
-		if i != index {
-			dest, err = negotiateMaybe(current, dest, f)
+	ok := httphead.ScanOptions(h, func(idx int, name, attr, val []byte) httphead.Control {
+		if idx != index {
+			dest, err = negotiateMaybe(current, dest, extensionsFunc) //nolint:revive // .
 			if err != nil {
 				return httphead.ControlBreak
 			}
-			index = i
+			index = idx
 			current = httphead.Option{Name: name}
 		}
 		if attr != nil {
 			current.Parameters.Set(attr, val)
 		}
+
 		return httphead.ControlContinue
 	})
 	if !ok {
 		return nil, ws.ErrMalformedRequest
 	}
-	return negotiateMaybe(current, dest, f)
+
+	return negotiateMaybe(current, dest, extensionsFunc)
+}
+
+//nolint:gocognit,gocyclo,revive,cyclop // .
+func (u *H2Upgrader) syncWSProtocols(req *http.Request) (hs ws.Handshake, err error) {
+	if check := u.Protocol; check != nil {
+		ps := req.Header[headerSecProtocolCanonical]
+		for i := 0; hs.Protocol == "" && err == nil && i < len(ps); i++ {
+			var ok bool
+			hs.Protocol, ok = strSelectProtocol(ps[i], check)
+			if !ok {
+				err = ws.ErrMalformedRequest
+			}
+		}
+	}
+	if f := u.Negotiate; err == nil && f != nil {
+		for _, h := range req.Header[headerSecExtensionsCanonical] {
+			hs.Extensions, err = negotiateExtensions([]byte(h), hs.Extensions, f)
+			if err != nil {
+				break
+			}
+		}
+	}
+	if check := u.Extension; err == nil && check != nil && u.Negotiate == nil {
+		xs := req.Header[headerSecExtensionsCanonical]
+		for i := 0; err == nil && i < len(xs); i++ {
+			var ok bool
+			hs.Extensions, ok = btsSelectExtensions([]byte(xs[i]), hs.Extensions, check)
+			if !ok {
+				err = ws.ErrMalformedRequest
+			}
+		}
+	}
+
+	return hs, err
 }

@@ -2,9 +2,10 @@ package http
 
 import (
 	"bufio"
-	"github.com/hashicorp/go-multierror"
 	"net"
 	stdlibtime "time"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 func (rw *http2responseWriter) Read(b []byte) (n int, err error) {

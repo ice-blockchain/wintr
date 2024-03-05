@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"io"
 	"net/http/httptrace"
 	"net/textproto"
@@ -22,6 +20,9 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal"
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 // ErrLineTooLong is returned when reading request or response bodies
