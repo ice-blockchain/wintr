@@ -13,8 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 	"syscall/js"
+
+	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect/internal/ascii"
 )
 
 var uint8Array = js.Global().Get("Uint8Array")

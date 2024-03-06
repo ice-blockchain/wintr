@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package h2upgrader
+package connectwsupgrader
 
 import (
 	"bufio"
@@ -10,31 +10,30 @@ import (
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
 	"github.com/pkg/errors"
+	"github.com/quic-go/quic-go/http3"
 
 	"github.com/ice-blockchain/wintr/log"
 )
 
 //nolint:funlen,gocritic,revive // Nope, we're keeping it compatible with 3rd party
-func (u *H2Upgrader) Upgrade(req *http.Request, writer http.ResponseWriter) (conn net.Conn, rw *bufio.ReadWriter, hs ws.Handshake, err error) {
-	if req.URL.Path == "" {
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return nil, nil, hs, ErrBadPath
-	}
+func (u *ConnectUpgrader) Upgrade(req *http.Request, writer http.ResponseWriter) (conn net.Conn, rw *bufio.ReadWriter, hs ws.Handshake, err error) {
 	if req.Proto != "websocket" {
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return nil, nil, hs, ErrBadProtocol
 	}
-	hj, ok := writer.(http.Hijacker)
-	if !ok {
+	switch w := writer.(type) {
+	case http.Hijacker:
+		conn, rw, err = w.Hijack()
+	case http3.Hijacker:
+		httpStreamer := req.Body.(http3.HTTPStreamer) //nolint:errcheck,forcetypeassert // Should be fine unless quick change API.
+		conn = &http3StreamProxy{stream: httpStreamer.HTTPStream(), streamCreator: w.StreamCreator()}
+	default:
 		err = errors.New("http.ResponseWriter does not support hijack")
 		log.Error(err)
 		writer.WriteHeader(http.StatusInternalServerError)
-
-		return nil, nil, hs, err
 	}
-	conn, rw, err = hj.Hijack()
+
 	if err != nil {
 		return nil, nil, hs, errors.Wrapf(err, "failed to hijack http2")
 	}
@@ -123,7 +122,7 @@ func negotiateExtensions(
 }
 
 //nolint:gocognit,gocyclo,revive,cyclop // .
-func (u *H2Upgrader) syncWSProtocols(req *http.Request) (hs ws.Handshake, err error) {
+func (u *ConnectUpgrader) syncWSProtocols(req *http.Request) (hs ws.Handshake, err error) {
 	if check := u.Protocol; check != nil {
 		ps := req.Header[headerSecProtocolCanonical]
 		for i := 0; hs.Protocol == "" && err == nil && i < len(ps); i++ {

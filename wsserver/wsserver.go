@@ -16,7 +16,7 @@ import (
 	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
-	"github.com/ice-blockchain/wintr/wsserver/internal/http3webtransport"
+	"github.com/ice-blockchain/wintr/wsserver/internal/http3"
 	"github.com/ice-blockchain/wintr/wsserver/internal/websocket"
 )
 
@@ -24,12 +24,13 @@ func New(service Service, cfgKey string) Server {
 	var cfg internal.Config
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	s := &srv{cfg: &cfg, service: service}
-	s.h3server = http3webtransport.New(s.cfg, s.service, nil)
+	s.h3server = http3.New(s.cfg, s.service, nil)
 	s.wsServer = websocket.New(s.cfg, s.service, nil)
+
 	return s
 }
 
-func (s *srv) ListenAndServe(ctx context.Context, cancel context.CancelFunc) {
+func (s *srv) ListenAndServe(ctx context.Context, _ context.CancelFunc) {
 	go s.startServer(ctx, s.h3server)
 	go s.startServer(ctx, s.wsServer)
 	s.wait(ctx)
@@ -75,7 +76,8 @@ func (s *srv) shutDown() {
 		log.Info("state close succeeded")
 	}
 }
-func (s *srv) shutdownServer(ctx context.Context, server internal.Server) {
+
+func (*srv) shutdownServer(ctx context.Context, server internal.Server) {
 	log.Info("shutting down server...")
 
 	if err := server.Shutdown(ctx); err != nil && !errors.Is(err, io.EOF) {

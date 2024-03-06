@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package http3webtransport
+package http3
 
 import (
+	"net"
 	"net/http"
 	stdlibtime "time"
 
@@ -11,21 +12,26 @@ import (
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
-var development bool
-
 type (
 	srv struct {
 		server  *webtransport.Server
 		handler http.HandlerFunc
 		cfg     *internal.Config
 	}
-	wsAdapter struct {
-		conn         *webtransport.Session
+	webtransportAdapter struct {
 		stream       webtransport.Stream
+		closeChannel chan struct{}
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
+	}
+	websocketAdapter struct {
+		conn         net.Conn
 		closeChannel chan struct{}
+		writeTimeout stdlibtime.Duration
+		readTimeout  stdlibtime.Duration
 	}
 )
 
-const acceptStreamTimeout = 30 * stdlibtime.Second
+const (
+	acceptStreamTimeout = 30 * stdlibtime.Second
+)

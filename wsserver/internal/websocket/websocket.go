@@ -17,12 +17,12 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
+	cws "github.com/ice-blockchain/wintr/wsserver/internal/connect-ws-upgrader"
 	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2upgrader"
 )
 
 //nolint:gochecknoglobals,grouper // We need single instance to avoid spending extra mem
-var h2Upgrader = &h2upgrader.H2Upgrader{}
+var h2Upgrader = &cws.ConnectUpgrader{}
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
 	s := &srv{cfg: cfg}
