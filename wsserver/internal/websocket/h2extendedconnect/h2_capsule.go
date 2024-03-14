@@ -1,10 +1,11 @@
 package http
 
 import (
+	"strconv"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/quicvarint"
-	"strconv"
 )
 
 // RFC 9297: https://datatracker.ietf.org/doc/rfc9297/

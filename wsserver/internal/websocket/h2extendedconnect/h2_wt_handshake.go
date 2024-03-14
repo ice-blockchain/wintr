@@ -4,17 +4,19 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	stdlibtime "time"
+
 	"github.com/hashicorp/go-multierror"
-	"github.com/ice-blockchain/wintr/log"
 	"github.com/pkg/errors"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/quicvarint"
 	"github.com/quic-go/webtransport-go"
-	"io"
-	"net/http"
-	"strconv"
-	stdlibtime "time"
+
+	"github.com/ice-blockchain/wintr/log"
 )
 
 const (

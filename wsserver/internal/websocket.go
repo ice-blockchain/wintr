@@ -1,15 +1,19 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package internal
 
 import (
 	"context"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/hashicorp/go-multierror"
-	"github.com/ice-blockchain/wintr/time"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	stdlibtime "time"
+
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+
+	"github.com/ice-blockchain/wintr/time"
 )
 
 func NewWebSocketAdapter(ctx context.Context, conn net.Conn, readTimeout, writeTimeout stdlibtime.Duration) (WS, context.Context) {
@@ -19,6 +23,7 @@ func NewWebSocketAdapter(ctx context.Context, conn net.Conn, readTimeout, writeT
 		readTimeout:  readTimeout,
 		writeTimeout: writeTimeout,
 	}
+
 	return wt, NewCustomCancelContext(ctx, wt.closeChannel)
 }
 

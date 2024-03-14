@@ -10,11 +10,9 @@ import (
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/log"
-	"github.com/ice-blockchain/wintr/time"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	cws "github.com/ice-blockchain/wintr/wsserver/internal/connect-ws-upgrader"
 )
@@ -29,8 +27,12 @@ func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h2
 	} else if req.Method == http.MethodConnect && req.Proto == websocketProtocol {
 		conn, _, _, err = h2Upgrader.Upgrade(req, writer)
 	}
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to upgrade to websocket over http1/2: %v, upgrade: %v", req.Proto, req.Header.Get("Upgrade"))
+	}
 	wsocket, ctx := internal.NewWebSocketAdapter(req.Context(), conn, s.cfg.WSServer.ReadTimeout, s.cfg.WSServer.WriteTimeout)
 	go s.ping(ctx, conn)
+
 	return wsocket, ctx, nil
 }
 
@@ -47,20 +49,4 @@ func (*srv) ping(ctx context.Context, conn net.Conn) {
 			return
 		}
 	}
-}
-
-func (w *wsConnection) WriteMessage(messageType int, data []byte) error {
-	var err error
-	if w.writeTimeout > 0 {
-		err = multierror.Append(nil, w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)))
-	}
-	err = multierror.Append(err,
-		wsutil.WriteServerMessage(w.conn, ws.OpCode(messageType), data),
-	).ErrorOrNil()
-
-	if flusher, ok := w.conn.(http.Flusher); err == nil && ok {
-		flusher.Flush()
-	}
-
-	return errors.Wrapf(err, "failed to write data to websocket")
 }

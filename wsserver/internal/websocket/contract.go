@@ -3,7 +3,6 @@
 package websocket
 
 import (
-	"net"
 	"net/http"
 	stdlibtime "time"
 
@@ -16,12 +15,6 @@ type (
 		server  *h2ec.Server
 		handler http.HandlerFunc
 		cfg     *internal.Config
-	}
-	wsConnection struct {
-		conn         net.Conn
-		closeChannel chan struct{}
-		writeTimeout stdlibtime.Duration
-		readTimeout  stdlibtime.Duration
 	}
 )
 

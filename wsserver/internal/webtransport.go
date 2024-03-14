@@ -1,12 +1,16 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package internal
 
 import (
 	"context"
-	"github.com/ice-blockchain/wintr/time"
-	"github.com/pkg/errors"
-	"github.com/quic-go/webtransport-go"
 	"io"
 	stdlibtime "time"
+
+	"github.com/pkg/errors"
+	"github.com/quic-go/webtransport-go"
+
+	"github.com/ice-blockchain/wintr/time"
 )
 
 func NewWebTransportAdapter(ctx context.Context, stream webtransport.Stream, readTimeout, writeTimeout stdlibtime.Duration) (WS, context.Context) {
@@ -19,6 +23,7 @@ func NewWebTransportAdapter(ctx context.Context, stream webtransport.Stream, rea
 
 	return wt, NewCustomCancelContext(ctx, wt.closeChannel)
 }
+
 func (w *WebtransportAdapter) WriteMessage(_ int, data []byte) (err error) {
 	if w.writeTimeout > 0 {
 		_ = w.stream.SetWriteDeadline(time.Now().Add(w.writeTimeout)) //nolint:errcheck // .
@@ -39,5 +44,6 @@ func (w *WebtransportAdapter) ReadMessage() (messageType int, readValue []byte, 
 		_ = w.stream.SetReadDeadline(time.Now().Add(w.readTimeout)) //nolint:errcheck // .
 	}
 	readValue, err = io.ReadAll(w.stream)
+
 	return 1, readValue, errors.Wrapf(err, "failed to read data from webtransport stream")
 }

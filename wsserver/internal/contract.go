@@ -4,10 +4,11 @@ package internal
 
 import (
 	"context"
-	"github.com/quic-go/webtransport-go"
 	"io"
 	"net"
 	stdlibtime "time"
+
+	"github.com/quic-go/webtransport-go"
 )
 
 type (
@@ -45,7 +46,6 @@ type (
 
 	WebtransportAdapter struct {
 		stream       webtransport.Stream
-		session      webtransport.Session
 		closeChannel chan struct{}
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration

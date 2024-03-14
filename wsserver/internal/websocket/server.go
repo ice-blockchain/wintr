@@ -1,14 +1,18 @@
+// SPDX-License-Identifier: ice License 1.0
+
 package websocket
 
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+
+	"github.com/pkg/errors"
+
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
-	"github.com/pkg/errors"
-	"net"
-	"net/http"
 )
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
