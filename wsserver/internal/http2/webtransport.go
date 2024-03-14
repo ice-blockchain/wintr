@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package websocket
+package http2
 
 import (
 	"context"
 	"net/http"
 
+	h2ec "github.com/ice-cronus/go/src/net/http"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
-	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 )
 
 func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) (h2wt internal.WS, ctx context.Context, err error) {

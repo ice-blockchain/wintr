@@ -43,7 +43,7 @@ func (s *srv) ListenAndServeTLS(_ context.Context, certFile, keyFile string) err
 	}
 	s.server = wtserver
 
-	return s.server.ListenAndServeTLS(certFile, keyFile) //nolint:wrapcheck // .
+	return errors.Wrap(s.server.ListenAndServeTLS(certFile, keyFile), "failed to start http3/udp server")
 }
 
 //nolint:revive // .

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package websocket
+package http2
 
 import (
 	"net/http"
 	stdlibtime "time"
 
+	h2ec "github.com/ice-cronus/go/src/net/http"
+
 	"github.com/ice-blockchain/wintr/wsserver/internal"
-	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 )
 
 type (

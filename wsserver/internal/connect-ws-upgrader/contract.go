@@ -17,10 +17,8 @@ type (
 	}
 )
 
-var (
-	ErrBadPath     = errors.New(":scheme and :path is required")
-	ErrBadProtocol = errors.New(":protocol must be websocket")
-)
+//nolint:grouper // .
+var ErrBadProtocol = errors.New(":protocol must be websocket")
 
 const (
 	headerSecVersionCanonical    = "Sec-Websocket-Version"

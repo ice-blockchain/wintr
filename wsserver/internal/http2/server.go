@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package websocket
+package http2
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"net"
 	"net/http"
 
+	h2ec "github.com/ice-cronus/go/src/net/http"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
-	h2ec "github.com/ice-blockchain/wintr/wsserver/internal/websocket/h2extendedconnect"
 )
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
@@ -31,7 +31,7 @@ func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) e
 		},
 	}
 
-	return s.server.ListenAndServeTLS(certFile, keyFile) //nolint:contextcheck,wrapcheck // .
+	return errors.Wrap(s.server.ListenAndServeTLS(certFile, keyFile), "failed to start http2/tcp server")
 }
 
 //nolint:funlen,revive // .

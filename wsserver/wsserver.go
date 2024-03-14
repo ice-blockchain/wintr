@@ -16,8 +16,8 @@ import (
 	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
+	"github.com/ice-blockchain/wintr/wsserver/internal/http2"
 	"github.com/ice-blockchain/wintr/wsserver/internal/http3"
-	"github.com/ice-blockchain/wintr/wsserver/internal/websocket"
 )
 
 func New(service Service, cfgKey string) Server {
@@ -25,12 +25,13 @@ func New(service Service, cfgKey string) Server {
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	s := &srv{cfg: &cfg, service: service}
 	s.h3server = http3.New(s.cfg, s.service, nil)
-	s.wsServer = websocket.New(s.cfg, s.service, nil)
+	s.wsServer = http2.New(s.cfg, s.service, nil)
 
 	return s
 }
 
-func (s *srv) ListenAndServe(ctx context.Context, _ context.CancelFunc) {
+func (s *srv) ListenAndServe(ctx context.Context, cancel context.CancelFunc) {
+	s.service.Init(ctx, cancel)
 	go s.startServer(ctx, s.h3server)
 	go s.startServer(ctx, s.wsServer)
 	s.wait(ctx)

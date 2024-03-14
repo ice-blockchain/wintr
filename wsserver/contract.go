@@ -17,6 +17,7 @@ type (
 
 	Service interface {
 		internal.WSHandler
+		Init(ctx context.Context, cancel context.CancelFunc)
 		Close(ctx context.Context) error
 	}
 	WSReader = internal.WSReader
