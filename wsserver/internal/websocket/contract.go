@@ -26,5 +26,7 @@ type (
 )
 
 const (
-	websocketProtocol = "websocket"
+	websocketProtocol    = "websocket"
+	webtransportProtocol = "webtransport"
+	acceptStreamTimeout  = 30 * stdlibtime.Second
 )

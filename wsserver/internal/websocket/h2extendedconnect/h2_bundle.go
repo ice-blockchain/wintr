@@ -3431,23 +3431,25 @@ func (s http2Setting) Valid() error {
 type http2SettingID uint16
 
 const (
-	http2SettingHeaderTableSize       http2SettingID = 0x1
-	http2SettingEnablePush            http2SettingID = 0x2
-	http2SettingMaxConcurrentStreams  http2SettingID = 0x3
-	http2SettingInitialWindowSize     http2SettingID = 0x4
-	http2SettingMaxFrameSize          http2SettingID = 0x5
-	http2SettingMaxHeaderListSize     http2SettingID = 0x6
-	http2SettingEnableConnectProtocol http2SettingID = 0x8
+	http2SettingHeaderTableSize         http2SettingID = 0x1
+	http2SettingEnablePush              http2SettingID = 0x2
+	http2SettingMaxConcurrentStreams    http2SettingID = 0x3
+	http2SettingInitialWindowSize       http2SettingID = 0x4
+	http2SettingMaxFrameSize            http2SettingID = 0x5
+	http2SettingMaxHeaderListSize       http2SettingID = 0x6
+	http2SettingEnableConnectProtocol   http2SettingID = 0x8
+	http2SettingWebTransportMaxSessions                = 0x2b60
 )
 
 var http2settingName = map[http2SettingID]string{
-	http2SettingHeaderTableSize:       "HEADER_TABLE_SIZE",
-	http2SettingEnablePush:            "ENABLE_PUSH",
-	http2SettingMaxConcurrentStreams:  "MAX_CONCURRENT_STREAMS",
-	http2SettingInitialWindowSize:     "INITIAL_WINDOW_SIZE",
-	http2SettingMaxFrameSize:          "MAX_FRAME_SIZE",
-	http2SettingMaxHeaderListSize:     "MAX_HEADER_LIST_SIZE",
-	http2SettingEnableConnectProtocol: "ENABLE_CONNECT_PROTOCOL",
+	http2SettingHeaderTableSize:         "HEADER_TABLE_SIZE",
+	http2SettingEnablePush:              "ENABLE_PUSH",
+	http2SettingMaxConcurrentStreams:    "MAX_CONCURRENT_STREAMS",
+	http2SettingInitialWindowSize:       "INITIAL_WINDOW_SIZE",
+	http2SettingMaxFrameSize:            "MAX_FRAME_SIZE",
+	http2SettingMaxHeaderListSize:       "MAX_HEADER_LIST_SIZE",
+	http2SettingEnableConnectProtocol:   "ENABLE_CONNECT_PROTOCOL",
+	http2SettingWebTransportMaxSessions: "SETTINGS_WEBTRANSPORT_MAX_SESSIONS",
 }
 
 func (s http2SettingID) String() string {
@@ -3872,6 +3874,9 @@ var (
 
 // Server is an HTTP/2 server.
 type http2Server struct {
+	// https://datatracker.ietf.org/doc/draft-ietf-webtrans-http2/08/
+	WebTransportMaxSessions uint32
+
 	// MaxHandlers limits the number of http.Handler ServeHTTP goroutines
 	// which may run at a time over all connections.
 	// Negative or zero no limit.
@@ -4117,6 +4122,12 @@ func http2ConfigureServer(s *Server, conf *http2Server) error {
 		})
 	}
 	s.TLSNextProto[http2NextProtoTLS] = protoHandler
+	if s.WebTransportMaxSessions == 0 {
+		conf.WebTransportMaxSessions = conf.MaxConcurrentStreams
+	} else {
+		conf.WebTransportMaxSessions = s.WebTransportMaxSessions
+	}
+
 	return nil
 }
 
@@ -4216,6 +4227,7 @@ func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
 		serveG:                      http2newGoroutineLock(),
 		pushEnabled:                 true,
 		sawClientPreface:            opts.SawClientPreface,
+		webtransportSessions:        sync.Map{},
 	}
 
 	s.state.registerConn(sc)
@@ -4399,6 +4411,9 @@ type http2serverConn struct {
 
 	// Used by startGracefulShutdown.
 	shutdownOnce sync.Once
+
+	// Webtransport
+	webtransportSessions sync.Map
 }
 
 func (sc *http2serverConn) maxHeaderListSize() uint32 {
@@ -4699,6 +4714,7 @@ func (sc *http2serverConn) serve() {
 			{http2SettingHeaderTableSize, sc.srv.maxDecoderHeaderTableSize()},
 			{http2SettingInitialWindowSize, uint32(sc.srv.initialStreamRecvWindowSize())},
 			{http2SettingEnableConnectProtocol, sc.srv.enableConnectProtocol()},
+			{http2SettingWebTransportMaxSessions, sc.srv.WebTransportMaxSessions},
 		},
 	})
 	sc.unackedSettings++

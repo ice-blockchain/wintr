@@ -4,8 +4,10 @@ package internal
 
 import (
 	"context"
+	"github.com/quic-go/webtransport-go"
 	"io"
-	"time"
+	"net"
+	stdlibtime "time"
 )
 
 type (
@@ -32,13 +34,28 @@ type (
 
 	Config struct {
 		WSServer struct {
-			CertPath     string        `yaml:"certPath"`
-			KeyPath      string        `yaml:"keyPath"`
-			Port         uint16        `yaml:"port"`
-			WriteTimeout time.Duration `yaml:"writeTimeout"`
-			ReadTimeout  time.Duration `yaml:"readTimeout"`
+			CertPath     string              `yaml:"certPath"`
+			KeyPath      string              `yaml:"keyPath"`
+			Port         uint16              `yaml:"port"`
+			WriteTimeout stdlibtime.Duration `yaml:"writeTimeout"`
+			ReadTimeout  stdlibtime.Duration `yaml:"readTimeout"`
 		} `yaml:"wsServer"`
 		Development bool `yaml:"development"`
+	}
+
+	WebtransportAdapter struct {
+		stream       webtransport.Stream
+		session      webtransport.Session
+		closeChannel chan struct{}
+		writeTimeout stdlibtime.Duration
+		readTimeout  stdlibtime.Duration
+	}
+
+	WebsocketAdapter struct {
+		conn         net.Conn
+		closeChannel chan struct{}
+		writeTimeout stdlibtime.Duration
+		readTimeout  stdlibtime.Duration
 	}
 )
 

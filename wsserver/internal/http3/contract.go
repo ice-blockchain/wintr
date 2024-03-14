@@ -3,7 +3,6 @@
 package http3
 
 import (
-	"net"
 	"net/http"
 	stdlibtime "time"
 
@@ -17,18 +16,6 @@ type (
 		server  *webtransport.Server
 		handler http.HandlerFunc
 		cfg     *internal.Config
-	}
-	webtransportAdapter struct {
-		stream       webtransport.Stream
-		closeChannel chan struct{}
-		writeTimeout stdlibtime.Duration
-		readTimeout  stdlibtime.Duration
-	}
-	websocketAdapter struct {
-		conn         net.Conn
-		closeChannel chan struct{}
-		writeTimeout stdlibtime.Duration
-		readTimeout  stdlibtime.Duration
 	}
 )
 

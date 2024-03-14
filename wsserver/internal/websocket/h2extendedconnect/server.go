@@ -2728,6 +2728,8 @@ type Server struct {
 	// The service names are defined in RFC 6335 and assigned by IANA.
 	// See net.Dial for details of the address format.
 	Addr string
+	// https://datatracker.ietf.org/doc/draft-ietf-webtrans-http2/08/
+	WebTransportMaxSessions uint32
 
 	Handler Handler // handler to invoke, http.DefaultServeMux if nil
 
