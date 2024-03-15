@@ -22,6 +22,7 @@ type (
 	}
 	WSReader = internal.WSReader
 	WSWriter = internal.WSWriter
+	WS       = internal.WS
 )
 
 type (

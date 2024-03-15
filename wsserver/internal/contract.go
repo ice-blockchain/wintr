@@ -29,8 +29,10 @@ type (
 		WSReader
 	}
 	WSHandler interface {
-		Read(ctx context.Context, reader WSReader)
+		Read(ctx context.Context, reader WS)
 		Write(ctx context.Context, writer WSWriter)
+		// We have to add something to update context / WS (another wrapper) on app side to handle random challenge string for NIP-42
+		// and / or something else related to connection.
 	}
 
 	Config struct {
