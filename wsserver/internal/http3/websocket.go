@@ -19,7 +19,7 @@ var (
 	websocketupgrader = cws.ConnectUpgrader{}
 )
 
-func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h3ws internal.WS, ctx context.Context, err error) {
+func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h3ws internal.WSWithWriter, ctx context.Context, err error) {
 	conn, _, _, err := websocketupgrader.Upgrade(req, writer)
 	if err != nil {
 		err = errors.Wrapf(err, "upgrading http3/websocket failed")

@@ -4,6 +4,8 @@ package http2
 
 import (
 	"context"
+	"github.com/hashicorp/go-multierror"
+	"github.com/ice-blockchain/wintr/time"
 	"net"
 	"net/http"
 	stdlibtime "time"
@@ -20,7 +22,7 @@ import (
 //nolint:gochecknoglobals,grouper // We need single instance to avoid spending extra mem
 var h2Upgrader = &cws.ConnectUpgrader{}
 
-func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h2ws internal.WS, ctx context.Context, err error) {
+func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h2ws internal.WSWithWriter, ctx context.Context, err error) {
 	var conn net.Conn
 	if req.Header.Get("Upgrade") == websocketProtocol {
 		conn, _, _, err = ws.DefaultHTTPUpgrader.Upgrade(req, writer)
@@ -36,13 +38,16 @@ func (s *srv) handleWebsocket(writer http.ResponseWriter, req *http.Request) (h2
 	return wsocket, ctx, nil
 }
 
-func (*srv) ping(ctx context.Context, conn net.Conn) {
+func (s *srv) ping(ctx context.Context, conn net.Conn) {
 	ticker := stdlibtime.NewTicker(stdlibtime.Minute)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if err := wsutil.WriteServerMessage(conn, ws.OpPing, nil); err != nil {
+			if err := multierror.Append(
+				conn.SetWriteDeadline(time.Now().Add(s.cfg.WSServer.WriteTimeout)),
+				wsutil.WriteServerMessage(conn, ws.OpPing, nil),
+			).ErrorOrNil(); err != nil {
 				log.Error(errors.Wrapf(err, "failed to send ping message"))
 			}
 		case <-ctx.Done():

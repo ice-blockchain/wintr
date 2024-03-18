@@ -12,7 +12,7 @@ import (
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
-func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) (ws internal.WS, ctx context.Context, err error) {
+func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) (ws internal.WSWithWriter, ctx context.Context, err error) {
 	conn, err := s.server.Upgrade(writer, req)
 	if err != nil {
 		err = errors.Wrapf(err, "upgrading http3/webtransport failed")

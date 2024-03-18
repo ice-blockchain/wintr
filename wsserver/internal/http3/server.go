@@ -49,7 +49,7 @@ func (s *srv) ListenAndServeTLS(_ context.Context, certFile, keyFile string) err
 //nolint:revive // .
 func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		var ws internal.WS
+		var ws internal.WSWithWriter
 		var err error
 		var ctx context.Context
 		if req.Method == http.MethodConnect && req.Proto == "webtransport" {
@@ -67,8 +67,8 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 			defer func() {
 				log.Error(ws.Close(), "failed to close http3 stream")
 			}()
-			go wsHandler.Write(ctx, ws) //nolint:contextcheck // It is new context.
-			wsHandler.Read(ctx, ws)     //nolint:contextcheck // It is new context.
+			go ws.Write(ctx)
+			wsHandler.Read(ctx, ws) //nolint:contextcheck // It is new context.
 
 			return
 		} else if handler != nil {

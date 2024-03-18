@@ -13,7 +13,7 @@ import (
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
-func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) (h2wt internal.WS, ctx context.Context, err error) {
+func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) (h2wt internal.WSWithWriter, ctx context.Context, err error) {
 	if upgrader, ok := writer.(h2ec.WebTransportUpgrader); ok {
 		var session h2ec.Session
 		session, err = upgrader.UpgradeWebTransport()

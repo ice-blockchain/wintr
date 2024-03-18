@@ -28,9 +28,15 @@ type (
 		WSWriter
 		WSReader
 	}
+	WSWithWriter interface {
+		WS
+		WSWriterRoutine
+	}
+	WSWriterRoutine interface {
+		Write(ctx context.Context)
+	}
 	WSHandler interface {
 		Read(ctx context.Context, reader WS)
-		Write(ctx context.Context, writer WSWriter)
 		// We have to add something to update context / WS (another wrapper) on app side to handle random challenge string for NIP-42
 		// and / or something else related to connection.
 	}
@@ -49,12 +55,14 @@ type (
 	WebtransportAdapter struct {
 		stream       webtransport.Stream
 		closeChannel chan struct{}
+		out          chan []byte
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
 	}
 
 	WebsocketAdapter struct {
 		conn         net.Conn
+		out          chan wsWrite
 		closeChannel chan struct{}
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
@@ -65,5 +73,9 @@ type (
 	customCancelContext struct {
 		context.Context //nolint:containedctx // Custom implementation.
 		ch              <-chan struct{}
+	}
+	wsWrite struct {
+		opCode int
+		data   []byte
 	}
 )

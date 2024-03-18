@@ -37,7 +37,7 @@ func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) e
 //nolint:funlen,revive // .
 func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		var wsocket internal.WS
+		var wsocket internal.WSWithWriter
 		var ctx context.Context
 		var err error
 		if req.Header.Get("Upgrade") == websocketProtocol || (req.Method == http.MethodConnect && req.Proto == websocketProtocol) {
@@ -56,7 +56,7 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 				defer func() {
 					log.Error(wsocket.Close(), "failed to close websocket conn")
 				}()
-				go wsHandler.Write(ctx, wsocket)
+				go wsocket.Write(ctx)
 				wsHandler.Read(ctx, wsocket)
 			}()
 
