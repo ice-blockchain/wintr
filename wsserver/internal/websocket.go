@@ -4,7 +4,6 @@ package internal
 
 import (
 	"context"
-	"github.com/ice-blockchain/wintr/log"
 	"net"
 	"net/http"
 	stdlibtime "time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
+	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
 
@@ -29,7 +29,7 @@ func NewWebSocketAdapter(ctx context.Context, conn net.Conn, readTimeout, writeT
 	return wt, NewCustomCancelContext(ctx, wt.closeChannel)
 }
 
-func (w *WebsocketAdapter) writeMessage(messageType int, data []byte) error {
+func (w *WebsocketAdapter) writeMessageToWebsocket(messageType int, data []byte) error {
 	var err error
 	if w.writeTimeout > 0 {
 		err = multierror.Append(nil, w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)))
@@ -59,9 +59,10 @@ func (w *WebsocketAdapter) Write(ctx context.Context) {
 		if ctx.Err() != nil {
 			break
 		}
-		log.Error(w.writeMessage(msg.opCode, msg.data), "failed to send message to webtransport")
+		log.Error(w.writeMessageToWebsocket(msg.opCode, msg.data), "failed to send message to webtransport")
 	}
 }
+
 func (w *WebsocketAdapter) ReadMessage() (messageType int, p []byte, err error) {
 	if w.readTimeout > 0 {
 		_ = w.conn.SetReadDeadline(time.Now().Add(w.readTimeout)) //nolint:errcheck // It is not crucial if we ignore it here.
@@ -85,6 +86,7 @@ func (w *WebsocketAdapter) ReadMessage() (messageType int, p []byte, err error) 
 func (w *WebsocketAdapter) Close() error {
 	close(w.closeChannel)
 	close(w.out)
+
 	return multierror.Append( //nolint:wrapcheck // .
 		wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, "")),
 		w.conn.Close(),

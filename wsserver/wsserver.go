@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
 	appcfg "github.com/ice-blockchain/wintr/config"
@@ -24,10 +25,33 @@ func New(service Service, cfgKey string) Server {
 	var cfg internal.Config
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	s := &srv{cfg: &cfg, service: service}
-	s.h3server = http3.New(s.cfg, s.service, nil)
-	s.wsServer = http2.New(s.cfg, s.service, nil)
+	s.setupRouter()
+	s.h3server = http3.New(s.cfg, s.service, s.router)
+	s.wsServer = http2.New(s.cfg, s.service, s.router)
 
 	return s
+}
+
+func (s *srv) setupRouter() {
+	if !s.cfg.Development {
+		gin.SetMode(gin.ReleaseMode)
+		s.router = gin.New()
+		s.router.Use(gin.Recovery())
+	} else {
+		gin.ForceConsoleColor()
+		s.router = gin.Default()
+	}
+	log.Info(fmt.Sprintf("GIN Mode: %v\n", gin.Mode()))
+	s.router.RemoteIPHeaders = []string{"cf-connecting-ip", "X-Real-IP", "X-Forwarded-For"}
+	s.router.TrustedPlatform = gin.PlatformCloudflare
+	s.router.HandleMethodNotAllowed = true
+	s.router.RedirectFixedPath = true
+	s.router.RemoveExtraSlash = true
+	s.router.UseRawPath = true
+
+	log.Info("registering routes...")
+	s.service.RegisterRoutes(s.router)
+	log.Info(fmt.Sprintf("%v routes registered", len(s.router.Routes())))
 }
 
 func (s *srv) ListenAndServe(ctx context.Context, cancel context.CancelFunc) {

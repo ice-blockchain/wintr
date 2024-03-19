@@ -4,17 +4,17 @@ package http2
 
 import (
 	"context"
-	"github.com/hashicorp/go-multierror"
-	"github.com/ice-blockchain/wintr/time"
 	"net"
 	"net/http"
 	stdlibtime "time"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/log"
+	"github.com/ice-blockchain/wintr/time"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 	cws "github.com/ice-blockchain/wintr/wsserver/internal/connect-ws-upgrader"
 )

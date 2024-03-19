@@ -4,13 +4,13 @@ package internal
 
 import (
 	"context"
-	"github.com/ice-blockchain/wintr/log"
 	"io"
 	stdlibtime "time"
 
 	"github.com/pkg/errors"
 	"github.com/quic-go/webtransport-go"
 
+	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/time"
 )
 
@@ -31,7 +31,8 @@ func (w *WebtransportAdapter) WriteMessage(_ int, data []byte) (err error) {
 
 	return nil
 }
-func (w *WebtransportAdapter) writeMessage(data []byte) error {
+
+func (w *WebtransportAdapter) writeMessageToStream(data []byte) error {
 	if w.writeTimeout > 0 {
 		_ = w.stream.SetWriteDeadline(time.Now().Add(w.writeTimeout)) //nolint:errcheck // .
 	}
@@ -45,13 +46,14 @@ func (w *WebtransportAdapter) Write(ctx context.Context) {
 		if ctx.Err() != nil {
 			break
 		}
-		log.Error(w.writeMessage(msg), "failed to send message to webtransport")
+		log.Error(w.writeMessageToStream(msg), "failed to send message to webtransport")
 	}
 }
 
 func (w *WebtransportAdapter) Close() error {
 	close(w.closeChannel)
 	close(w.out)
+
 	return errors.Wrap(w.stream.Close(), "failed to close http3/webtransport stream")
 }
 

@@ -6,10 +6,12 @@ import (
 	"context"
 	"os"
 
+	"github.com/ice-blockchain/wintr/server"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
 
 type (
+	Router = server.Router
 	Server interface {
 		// ListenAndServe starts everything and blocks indefinitely.
 		ListenAndServe(ctx context.Context, cancel context.CancelFunc)
@@ -19,6 +21,7 @@ type (
 		internal.WSHandler
 		Init(ctx context.Context, cancel context.CancelFunc)
 		Close(ctx context.Context) error
+		RegisterRoutes(r *Router)
 	}
 	WSReader = internal.WSReader
 	WSWriter = internal.WSWriter
@@ -29,6 +32,7 @@ type (
 	srv struct {
 		h3server internal.Server
 		wsServer internal.Server
+		router   *Router
 		cfg      *internal.Config
 		quit     chan<- os.Signal
 		service  Service

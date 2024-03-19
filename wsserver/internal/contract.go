@@ -75,7 +75,7 @@ type (
 		ch              <-chan struct{}
 	}
 	wsWrite struct {
-		opCode int
 		data   []byte
+		opCode int
 	}
 )

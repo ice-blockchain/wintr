@@ -67,7 +67,7 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 			defer func() {
 				log.Error(ws.Close(), "failed to close http3 stream")
 			}()
-			go ws.Write(ctx)
+			go ws.Write(ctx)        //nolint:contextcheck // It is new context.
 			wsHandler.Read(ctx, ws) //nolint:contextcheck // It is new context.
 
 			return
