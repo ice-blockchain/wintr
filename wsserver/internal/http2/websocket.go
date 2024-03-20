@@ -44,8 +44,12 @@ func (s *srv) ping(ctx context.Context, conn net.Conn) {
 	for {
 		select {
 		case <-ticker.C:
+			var dErr error
+			if (s.cfg.WSServer.WriteTimeout) > 0 {
+				dErr = conn.SetWriteDeadline(time.Now().Add(s.cfg.WSServer.WriteTimeout))
+			}
 			if err := multierror.Append(
-				conn.SetWriteDeadline(time.Now().Add(s.cfg.WSServer.WriteTimeout)),
+				dErr,
 				wsutil.WriteServerMessage(conn, ws.OpPing, nil),
 			).ErrorOrNil(); err != nil {
 				log.Error(errors.Wrapf(err, "failed to send ping message"))

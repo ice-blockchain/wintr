@@ -261,6 +261,14 @@ github.com/ice-blockchain/go-tarantool-client v0.0.0-20230327200757-4fc71fa3f7bb
 github.com/ice-blockchain/go-tarantool-client v0.0.0-20230327200757-4fc71fa3f7bb/go.mod h1:ZsQU7i3mxhgBBu43Oev7WPFbIjP4TniN/b1UPNGbrq8=
 github.com/ice-cronus/go/src v0.0.0-20240314140312-aebfd4f43afe h1:G/acfJffleXcXt5qWUm1/iEcOyzIJ1QBk/te7ZWBhoE=
 github.com/ice-cronus/go/src v0.0.0-20240314140312-aebfd4f43afe/go.mod h1:5wcWe+Y4LAOkSewb/huLBD1IwvuB5kGW5xGOvY4Pbas=
+github.com/ice-cronus/go/src v0.0.0-20240320142318-9269245e59d8 h1:WffApavkvoXIFltHDT/8oxYOHohXd5OpmRPcjDO8SOw=
+github.com/ice-cronus/go/src v0.0.0-20240320142318-9269245e59d8/go.mod h1:5wcWe+Y4LAOkSewb/huLBD1IwvuB5kGW5xGOvY4Pbas=
+github.com/ice-cronus/go/src v0.0.0-20240320143711-448114417303 h1:6xHZcWiIXpjV9O7AwW1cxB49qo0td/e5APQTC6h/J+A=
+github.com/ice-cronus/go/src v0.0.0-20240320143711-448114417303/go.mod h1:5wcWe+Y4LAOkSewb/huLBD1IwvuB5kGW5xGOvY4Pbas=
+github.com/ice-cronus/go/src v0.0.0-20240320144813-405dcba987e2 h1:s5Cqu3JEWQZ+qFjv6LyEC8yaDeEjCIh7sF3tZDHNq4k=
+github.com/ice-cronus/go/src v0.0.0-20240320144813-405dcba987e2/go.mod h1:5wcWe+Y4LAOkSewb/huLBD1IwvuB5kGW5xGOvY4Pbas=
+github.com/ice-cronus/go/src v0.0.0-20240320150523-0c63fb0dfe40 h1:QQQqDWHAtx0tDaNxC15NcTILSl5hmNWKCygEFygV/V0=
+github.com/ice-cronus/go/src v0.0.0-20240320150523-0c63fb0dfe40/go.mod h1:5wcWe+Y4LAOkSewb/huLBD1IwvuB5kGW5xGOvY4Pbas=
 github.com/imroc/req/v3 v3.43.1 h1:tsWAhvxik4egtHAvMlxcjaWJtHlJL8EpBqJMOm5rmyQ=
 github.com/imroc/req/v3 v3.43.1/go.mod h1:SQIz5iYop16MJxbo8ib+4LnostGCok8NQf8ToyQc2xA=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
