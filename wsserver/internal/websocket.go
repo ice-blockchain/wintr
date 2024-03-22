@@ -30,19 +30,30 @@ func NewWebSocketAdapter(ctx context.Context, conn net.Conn, readTimeout, writeT
 }
 
 func (w *WebsocketAdapter) writeMessageToWebsocket(messageType int, data []byte) error {
-	var err error
-	if w.writeTimeout > 0 {
-		err = multierror.Append(nil, w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)))
-	}
-	err = multierror.Append(err,
-		wsutil.WriteServerMessage(w.conn, ws.OpCode(messageType), data),
-	).ErrorOrNil()
+	select {
+	case <-w.closeChannel:
+		return nil
+	default:
+		var err error
+		if w.writeTimeout > 0 {
+			err = multierror.Append(nil, w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)))
+		}
+		w.closeMx.Lock()
+		if w.closed {
+			w.closeMx.Unlock()
+			return nil
+		}
+		w.closeMx.Unlock()
+		err = multierror.Append(err,
+			wsutil.WriteServerMessage(w.conn, ws.OpCode(messageType), data),
+		).ErrorOrNil()
 
-	if flusher, ok := w.conn.(http.Flusher); err == nil && ok {
-		flusher.Flush()
-	}
+		if flusher, ok := w.conn.(http.Flusher); err == nil && ok {
+			flusher.Flush()
+		}
 
-	return errors.Wrapf(err, "failed to write data to websocket")
+		return errors.Wrapf(err, "failed to write data to websocket")
+	}
 }
 
 func (w *WebsocketAdapter) WriteMessage(messageType int, data []byte) error {
@@ -84,9 +95,16 @@ func (w *WebsocketAdapter) ReadMessage() (messageType int, p []byte, err error) 
 }
 
 func (w *WebsocketAdapter) Close() error {
+	w.closeMx.Lock()
+	if w.closed {
+		w.closeMx.Unlock()
+
+		return nil
+	}
+	w.closed = true
 	close(w.closeChannel)
 	close(w.out)
-
+	w.closeMx.Unlock()
 	return multierror.Append( //nolint:wrapcheck // .
 		wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, "")),
 		w.conn.Close(),

@@ -3,10 +3,14 @@
 package connectwsupgrader
 
 import (
+	"github.com/quic-go/quic-go/http3"
 	"net"
 	stdlibtime "time"
 )
 
+func NewHttp3Proxy(stream http3.Stream, sc http3.StreamCreator) net.Conn {
+	return &http3StreamProxy{stream: stream, streamCreator: sc}
+}
 func (h *http3StreamProxy) Read(b []byte) (n int, err error) {
 	return h.stream.Read(b) //nolint:wrapcheck // Proxy.
 }

@@ -3,9 +3,11 @@
 package internal
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"net"
+	"sync"
 	stdlibtime "time"
 
 	"github.com/quic-go/webtransport-go"
@@ -54,7 +56,10 @@ type (
 
 	WebtransportAdapter struct {
 		stream       webtransport.Stream
+		reader       *bufio.Reader
 		closeChannel chan struct{}
+		closed       bool
+		closeMx      sync.Mutex
 		out          chan []byte
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
@@ -64,6 +69,8 @@ type (
 		conn         net.Conn
 		out          chan wsWrite
 		closeChannel chan struct{}
+		closed       bool
+		closeMx      sync.Mutex
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
 	}

@@ -20,5 +20,5 @@ type (
 )
 
 const (
-	acceptStreamTimeout = 30 * stdlibtime.Second
+	acceptStreamTimeout = 60 * stdlibtime.Second
 )

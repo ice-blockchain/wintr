@@ -5,6 +5,7 @@ package http3
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,8 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
+
+//var count atomic.Uint64
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
 	s := &srv{cfg: cfg}
@@ -31,7 +34,11 @@ func (s *srv) ListenAndServeTLS(_ context.Context, certFile, keyFile string) err
 			Port:    int(s.cfg.WSServer.Port),
 			Handler: s.handler,
 			QuicConfig: &quic.Config{
-				Tracer: qlog.DefaultTracer,
+				Tracer:                qlog.DefaultTracer,
+				HandshakeIdleTimeout:  acceptStreamTimeout,
+				MaxIdleTimeout:        acceptStreamTimeout,
+				MaxIncomingStreams:    math.MaxInt64,
+				MaxIncomingUniStreams: math.MaxInt64,
 			},
 		},
 	}
@@ -64,12 +71,14 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 			return
 		}
 		if ws != nil {
-			defer func() {
-				log.Error(ws.Close(), "failed to close http3 stream")
+			//log.Debug("conn accepted %v", count.Add(1))
+			go func() {
+				defer func() {
+					log.Error(ws.Close(), "failed to close http3 stream")
+				}()
+				go ws.Write(ctx)        //nolint:contextcheck // It is new context.
+				wsHandler.Read(ctx, ws) //nolint:contextcheck // It is new context.
 			}()
-			go ws.Write(ctx)        //nolint:contextcheck // It is new context.
-			wsHandler.Read(ctx, ws) //nolint:contextcheck // It is new context.
-
 			return
 		} else if handler != nil {
 			handler.ServeHTTP(writer, req)
