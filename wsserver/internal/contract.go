@@ -5,6 +5,8 @@ package internal
 import (
 	"bufio"
 	"context"
+	"github.com/pkg/errors"
+	"github.com/quic-go/quic-go"
 	"io"
 	"net"
 	"sync"
@@ -60,6 +62,8 @@ type (
 		closeChannel chan struct{}
 		closed       bool
 		closeMx      sync.Mutex
+		wrErr        error
+		wrErrMx      sync.Mutex
 		out          chan []byte
 		writeTimeout stdlibtime.Duration
 		readTimeout  stdlibtime.Duration
@@ -69,6 +73,8 @@ type (
 		conn         net.Conn
 		out          chan wsWrite
 		closeChannel chan struct{}
+		wrErr        error
+		wrErrMx      sync.Mutex
 		closed       bool
 		closeMx      sync.Mutex
 		writeTimeout stdlibtime.Duration
@@ -85,4 +91,13 @@ type (
 		data   []byte
 		opCode int
 	}
+)
+
+var (
+	errClientDisconnected = errors.New("client disconnected")
+	errStreamClosed       = errors.New("http2: stream closed")
+)
+
+const (
+	sessionCloseErrorCode quic.StreamErrorCode = 0x170d7b68
 )

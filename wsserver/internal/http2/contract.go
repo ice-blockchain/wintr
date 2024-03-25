@@ -6,7 +6,7 @@ import (
 	"net/http"
 	stdlibtime "time"
 
-	h2ec "github.com/ice-cronus/go/src/net/http"
+	h2ec "github.com/ice-blockchain/go/src/net/http"
 
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )

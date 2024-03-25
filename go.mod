@@ -2,6 +2,8 @@ module github.com/ice-blockchain/wintr
 
 go 1.22
 
+replace github.com/ice-blockchain/go/src => ../go/src
+
 require (
 	cosmossdk.io/math v1.3.0
 	dario.cat/mergo v1.0.0
@@ -20,13 +22,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ice-blockchain/go-tarantool-client v0.0.0-20230327200757-4fc71fa3f7bb
-	github.com/ice-cronus/go/src v0.0.0-20240320150523-0c63fb0dfe40
+	github.com/ice-blockchain/go/src v0.0.0-20240326073614-4cb394106ee1
 	github.com/imroc/req/v3 v3.43.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.42.0
-	github.com/quic-go/webtransport-go v0.6.0
+	github.com/quic-go/webtransport-go v0.7.0
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/zerolog v1.32.0
 	github.com/sendgrid/rest v2.6.9+incompatible
@@ -40,7 +42,7 @@ require (
 	github.com/twmb/franz-go v1.16.1
 	github.com/twmb/franz-go/pkg/kadm v1.11.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.22.1-0.20240320112724-d73acffdc949
 	google.golang.org/api v0.170.0
 )
 

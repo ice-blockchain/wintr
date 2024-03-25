@@ -5,7 +5,9 @@ package internal
 import (
 	"bufio"
 	"context"
+	"github.com/quic-go/quic-go"
 	"io"
+	"strings"
 	stdlibtime "time"
 
 	"github.com/pkg/errors"
@@ -29,6 +31,13 @@ func NewWebTransportAdapter(ctx context.Context, stream webtransport.Stream, rea
 }
 
 func (w *WebtransportAdapter) WriteMessage(_ int, data []byte) (err error) {
+	w.wrErrMx.Lock()
+	var sErr *quic.StreamError
+	if errors.As(w.wrErr, &sErr) && sErr.ErrorCode == sessionCloseErrorCode {
+		w.wrErrMx.Unlock()
+		return w.Close()
+	}
+	w.wrErrMx.Unlock()
 	w.out <- data
 
 	return nil
@@ -51,6 +60,9 @@ func (w *WebtransportAdapter) writeMessageToStream(data []byte) error {
 		}
 		w.closeMx.Unlock()
 		_, err := w.stream.Write(data)
+		w.wrErrMx.Lock()
+		w.wrErr = err
+		w.wrErrMx.Unlock()
 
 		return errors.Wrapf(err, "failed to write data to webtransport stream")
 	}
@@ -58,7 +70,8 @@ func (w *WebtransportAdapter) writeMessageToStream(data []byte) error {
 
 func (w *WebtransportAdapter) Write(ctx context.Context) {
 	for msg := range w.out {
-		if ctx.Err() != nil {
+		var sErr *quic.StreamError
+		if ctx.Err() != nil || (errors.As(w.wrErr, &sErr) && strings.Contains(sErr.Error(), "stream error 386759528")) {
 			break
 		}
 		log.Error(w.writeMessageToStream(msg), "failed to send message to webtransport")

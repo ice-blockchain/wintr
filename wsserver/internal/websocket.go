@@ -4,8 +4,10 @@ package internal
 
 import (
 	"context"
+	h2ec "github.com/ice-blockchain/go/src/net/http"
 	"net"
 	"net/http"
+	"syscall"
 	stdlibtime "time"
 
 	"github.com/gobwas/ws"
@@ -44,8 +46,15 @@ func (w *WebsocketAdapter) writeMessageToWebsocket(messageType int, data []byte)
 			return nil
 		}
 		w.closeMx.Unlock()
+		wErr := wsutil.WriteServerMessage(w.conn, ws.OpCode(messageType), data)
+		w.wrErrMx.Lock()
+		w.wrErr = wErr
+		w.wrErrMx.Unlock()
+		if isConnClosedErr(wErr) {
+			wErr = nil
+		}
 		err = multierror.Append(err,
-			wsutil.WriteServerMessage(w.conn, ws.OpCode(messageType), data),
+			wErr,
 		).ErrorOrNil()
 
 		if flusher, ok := w.conn.(http.Flusher); err == nil && ok {
@@ -57,9 +66,20 @@ func (w *WebsocketAdapter) writeMessageToWebsocket(messageType int, data []byte)
 }
 
 func (w *WebsocketAdapter) WriteMessage(messageType int, data []byte) error {
-	w.out <- wsWrite{
-		opCode: messageType,
-		data:   data,
+	select {
+	case <-w.closeChannel:
+		return nil
+	default:
+		w.wrErrMx.Lock()
+		if isConnClosedErr(w.wrErr) {
+			w.wrErrMx.Unlock()
+			return w.Close()
+		}
+		w.wrErrMx.Unlock()
+		w.out <- wsWrite{
+			opCode: messageType,
+			data:   data,
+		}
 	}
 
 	return nil
@@ -67,10 +87,10 @@ func (w *WebsocketAdapter) WriteMessage(messageType int, data []byte) error {
 
 func (w *WebsocketAdapter) Write(ctx context.Context) {
 	for msg := range w.out {
-		if ctx.Err() != nil {
+		if ctx.Err() != nil || isConnClosedErr(w.wrErr) {
 			break
 		}
-		log.Error(w.writeMessageToWebsocket(msg.opCode, msg.data), "failed to send message to webtransport")
+		log.Error(w.writeMessageToWebsocket(msg.opCode, msg.data), "failed to send message to websocket")
 	}
 }
 
@@ -105,8 +125,25 @@ func (w *WebsocketAdapter) Close() error {
 	close(w.closeChannel)
 	close(w.out)
 	w.closeMx.Unlock()
+	var wErr error
+	if w.wrErr == nil || !isConnClosedErr(w.wrErr) {
+		wErr = wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, ""))
+	}
+	clErr := w.conn.Close()
+	if clErr != nil && isConnClosedErr(clErr) {
+		clErr = nil
+	}
+
 	return multierror.Append( //nolint:wrapcheck // .
-		wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, "")),
-		w.conn.Close(),
+		wErr,
+		clErr,
 	).ErrorOrNil()
+}
+
+func isConnClosedErr(err error) bool {
+	return err != nil &&
+		(errors.Is(err, syscall.EPIPE) ||
+			errors.Is(err, syscall.ECONNRESET) ||
+			errors.Is(err, h2ec.Http2errClientDisconnected) ||
+			errors.Is(err, h2ec.Http2errStreamClosed))
 }

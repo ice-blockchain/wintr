@@ -5,11 +5,10 @@ package http2
 import (
 	"context"
 	"fmt"
+	h2ec "github.com/ice-blockchain/go/src/net/http"
+	"github.com/pkg/errors"
 	"net"
 	"net/http"
-
-	h2ec "github.com/ice-cronus/go/src/net/http"
-	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
@@ -34,8 +33,6 @@ func (s *srv) ListenAndServeTLS(ctx context.Context, certFile, keyFile string) e
 	return errors.Wrap(s.server.ListenAndServeTLS(certFile, keyFile), "failed to start http2/tcp server")
 }
 
-//var count atomic.Uint64
-
 //nolint:funlen,revive // .
 func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
@@ -54,7 +51,6 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 			return
 		}
 		if wsocket != nil {
-			//log.Debug("conn accepted %v", count.Add(1))
 			go func() {
 				defer func() {
 					log.Error(wsocket.Close(), "failed to close websocket conn")

@@ -21,4 +21,5 @@ type (
 
 const (
 	acceptStreamTimeout = 60 * stdlibtime.Second
+	maxIdleTimeout      = 7 * 24 * stdlibtime.Hour
 )

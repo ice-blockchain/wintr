@@ -5,20 +5,17 @@ package http3
 import (
 	"context"
 	"fmt"
-	"math"
-	"net/http"
-
 	"github.com/pkg/errors"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/qlog"
 	"github.com/quic-go/webtransport-go"
+	"math"
+	"net/http"
 
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/wsserver/internal"
 )
-
-//var count atomic.Uint64
 
 func New(cfg *internal.Config, wshandler internal.WSHandler, handler http.Handler) internal.Server {
 	s := &srv{cfg: cfg}
@@ -36,7 +33,7 @@ func (s *srv) ListenAndServeTLS(_ context.Context, certFile, keyFile string) err
 			QuicConfig: &quic.Config{
 				Tracer:                qlog.DefaultTracer,
 				HandshakeIdleTimeout:  acceptStreamTimeout,
-				MaxIdleTimeout:        acceptStreamTimeout,
+				MaxIdleTimeout:        maxIdleTimeout,
 				MaxIncomingStreams:    math.MaxInt64,
 				MaxIncomingUniStreams: math.MaxInt64,
 			},
@@ -71,7 +68,6 @@ func (s *srv) handle(wsHandler internal.WSHandler, handler http.Handler) http.Ha
 			return
 		}
 		if ws != nil {
-			//log.Debug("conn accepted %v", count.Add(1))
 			go func() {
 				defer func() {
 					log.Error(ws.Close(), "failed to close http3 stream")
