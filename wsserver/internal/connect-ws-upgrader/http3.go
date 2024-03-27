@@ -3,6 +3,7 @@
 package connectwsupgrader
 
 import (
+	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"net"
 	stdlibtime "time"
@@ -20,6 +21,7 @@ func (h *http3StreamProxy) Write(b []byte) (n int, err error) {
 }
 
 func (h *http3StreamProxy) Close() error {
+	h.stream.CancelRead(quic.StreamErrorCode(http3.ErrCodeNoError))
 	return h.stream.Close() //nolint:wrapcheck // Proxy.
 }
 

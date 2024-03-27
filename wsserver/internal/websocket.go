@@ -7,6 +7,7 @@ import (
 	h2ec "github.com/ice-blockchain/go/src/net/http"
 	"net"
 	"net/http"
+	"strings"
 	"syscall"
 	stdlibtime "time"
 
@@ -113,7 +114,11 @@ func (w *WebsocketAdapter) ReadMessage() (messageType int, p []byte, err error) 
 
 	return int(typ), msgBytes, err
 }
-
+func (w *WebsocketAdapter) Closed() bool {
+	w.closeMx.Lock()
+	defer w.closeMx.Unlock()
+	return w.closed
+}
 func (w *WebsocketAdapter) Close() error {
 	w.closeMx.Lock()
 	if w.closed {
@@ -123,11 +128,13 @@ func (w *WebsocketAdapter) Close() error {
 	}
 	w.closed = true
 	close(w.closeChannel)
-	close(w.out)
 	w.closeMx.Unlock()
 	var wErr error
 	if w.wrErr == nil || !isConnClosedErr(w.wrErr) {
 		wErr = wsutil.WriteServerMessage(w.conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, ""))
+		if wErr != nil && isConnClosedErr(wErr) {
+			wErr = nil
+		}
 	}
 	clErr := w.conn.Close()
 	if clErr != nil && isConnClosedErr(clErr) {
@@ -145,5 +152,8 @@ func isConnClosedErr(err error) bool {
 		(errors.Is(err, syscall.EPIPE) ||
 			errors.Is(err, syscall.ECONNRESET) ||
 			errors.Is(err, h2ec.Http2errClientDisconnected) ||
-			errors.Is(err, h2ec.Http2errStreamClosed))
+			errors.Is(err, h2ec.Http2errStreamClosed) ||
+			strings.Contains(err.Error(), "convert stream error 386759528") ||
+			strings.Contains(err.Error(), "canceled by remote with error code 256") ||
+			strings.Contains(err.Error(), "use of closed network connection"))
 }

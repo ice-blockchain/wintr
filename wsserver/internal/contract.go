@@ -58,6 +58,7 @@ type (
 
 	WebtransportAdapter struct {
 		stream       webtransport.Stream
+		session      *webtransport.Session
 		reader       *bufio.Reader
 		closeChannel chan struct{}
 		closed       bool

@@ -27,7 +27,7 @@ func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) 
 		acceptCtx, acceptCancel := context.WithTimeout(req.Context(), acceptStreamTimeout)
 		stream := session.AcceptStream(acceptCtx)
 		acceptCancel()
-		h2wt, ctx = internal.NewWebTransportAdapter(req.Context(), stream, s.cfg.WSServer.ReadTimeout, s.cfg.WSServer.WriteTimeout)
+		h2wt, ctx = internal.NewWebTransportAdapter(req.Context(), nil, stream, s.cfg.WSServer.ReadTimeout, s.cfg.WSServer.WriteTimeout)
 
 		return h2wt, ctx, nil
 	}

@@ -22,7 +22,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ice-blockchain/go-tarantool-client v0.0.0-20230327200757-4fc71fa3f7bb
-	github.com/ice-blockchain/go/src v0.0.0-20240326073614-4cb394106ee1
+	github.com/ice-blockchain/go/src v0.0.0-20240327120309-7f8d9d7c9e3c
 	github.com/imroc/req/v3 v3.43.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/joho/godotenv v1.5.1

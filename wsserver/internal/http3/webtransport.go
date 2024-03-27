@@ -32,7 +32,7 @@ func (s *srv) handleWebTransport(writer http.ResponseWriter, req *http.Request) 
 		return nil, nil, err
 	}
 	acceptCancel()
-	wt, ctx := internal.NewWebTransportAdapter(conn.Context(), stream, s.cfg.WSServer.ReadTimeout, s.cfg.WSServer.WriteTimeout)
+	wt, ctx := internal.NewWebTransportAdapter(conn.Context(), conn, stream, s.cfg.WSServer.ReadTimeout, s.cfg.WSServer.WriteTimeout)
 
 	return wt, ctx, nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/qlog"
 	"github.com/quic-go/webtransport-go"
-	"math"
 	"net/http"
 
 	"github.com/ice-blockchain/wintr/log"
@@ -34,8 +33,8 @@ func (s *srv) ListenAndServeTLS(_ context.Context, certFile, keyFile string) err
 				Tracer:                qlog.DefaultTracer,
 				HandshakeIdleTimeout:  acceptStreamTimeout,
 				MaxIdleTimeout:        maxIdleTimeout,
-				MaxIncomingStreams:    math.MaxInt64,
-				MaxIncomingUniStreams: math.MaxInt64,
+				MaxIncomingStreams:    maxStreamsCount,
+				MaxIncomingUniStreams: maxStreamsCount,
 			},
 		},
 	}
