@@ -41,7 +41,7 @@ func getNotificationFeedActivities(ctx context.Context, client *getstreamio.Clie
 	}
 
 	res := make([]*internal.Parcel, 0, len(resp.Results))
-	for c := 0; c < len(resp.Results); c++ {
+	for c := range len(resp.Results) {
 		notifResults := &resp.Results[c]
 		for i := range notifResults.Activities {
 			respActivity := notifResults.Activities[i]
@@ -70,7 +70,7 @@ func getFlatFeedActivities(ctx context.Context, client *getstreamio.Client, feed
 		return nil, errors.Wrapf(err, "unable to get activities for %v", feed.ID())
 	}
 	res := make([]*internal.Parcel, 0, len(resp.Results))
-	for c := 0; c < len(resp.Results); c++ {
+	for c := range len(resp.Results) {
 		respActivity := &resp.Results[c]
 		parcel := new(internal.Parcel)
 		parcel.Action = respActivity.Verb

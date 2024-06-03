@@ -66,7 +66,7 @@ func GetSMSCode(ctx context.Context, tb testing.TB, toNumber string, parse func(
 				return code
 			}
 		}
-		time.Sleep(100 * time.Millisecond) //nolint:gomnd // Not a magic.
+		time.Sleep(100 * time.Millisecond) //nolint:mnd,gomnd // Not a magic.
 	}
 	require.Fail(tb, "SMS code was not sent")
 
@@ -93,7 +93,7 @@ func ClearSMSQueue(phoneNumber string) error {
 		if err := twilioClient.Api.DeleteMessage(*smsList[i].Sid, nil); err != nil {
 			//nolint:errorlint // errors.As(err,*twilioclient.TwilioRestError) doesn't seem to work.
 			if tErr, ok := err.(*twilioclient.TwilioRestError); ok && tErr.Code == 20009 && tErr.Status == 409 {
-				time.Sleep(5 * time.Second) //nolint:gomnd // .
+				time.Sleep(5 * time.Second) //nolint:mnd,gomnd // .
 				err = twilioClient.Api.DeleteMessage(*smsList[i].Sid, nil)
 			}
 			if err == nil {

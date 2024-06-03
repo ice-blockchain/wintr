@@ -159,13 +159,13 @@ func TestClientBroadcastRetry(t *testing.T) { //nolint:paralleltest // We're tes
 	const rateLimit = 120
 	wg := new(sync.WaitGroup)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireBroadcast(t, wg)
 	}
 	wg.Wait()
 	stdlibtime.Sleep(40 * stdlibtime.Second)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireBroadcast(t, wg)
 	}
 	wg.Wait()
@@ -203,13 +203,13 @@ func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing 
 	const rateLimit = 1000
 	wg := new(sync.WaitGroup)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireSend(t, wg)
 	}
 	wg.Wait()
 	stdlibtime.Sleep(40 * stdlibtime.Second)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireSend(t, wg)
 	}
 	wg.Wait()

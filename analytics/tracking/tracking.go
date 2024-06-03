@@ -68,7 +68,7 @@ func (t *tracking) TrackAction(ctx context.Context, userID string, action *Actio
 }
 
 func (t *tracking) SetUserAttributes(ctx context.Context, userID string, attributes map[string]any) error {
-	url := t.cfg.Tracking.BaseURL + "/v1/customer/" + t.cfg.Tracking.Credentials.AppID //nolint:goconst // .
+	url := t.cfg.Tracking.BaseURL + "/v1/customer/" + t.cfg.Tracking.Credentials.AppID
 	body := make(map[string]any, 1+1+1)
 	body["type"] = "customer"
 	body["customer_id"] = userID
@@ -129,7 +129,7 @@ func (t *tracking) post(ctx context.Context, url string, body any) error { //nol
 	return nil
 }
 
-//nolint:gomnd // Static config.
+//nolint:mnd,gomnd // Static config.
 func (t *tracking) buildHTTPRequest(ctx context.Context) *req.Request {
 	return req.
 		SetContext(ctx).

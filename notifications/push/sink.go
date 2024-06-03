@@ -27,7 +27,7 @@ func (s *pushNotificationsCollectingSink) stop() {
 	if !s.closed {
 		if len(s.bufferedNotifications) > 0 {
 			log.Info(fmt.Sprintf("STOPPING with %v bufferedNotifications", len(s.bufferedNotifications)))
-			for i := 0; i < len(s.bufferedNotifications)/fcmSendAllBatchSize; i++ {
+			for i := range len(s.bufferedNotifications) / fcmSendAllBatchSize {
 				s.bufferedNotificationsChan <- s.bufferedNotifications[i*fcmSendAllBatchSize : (i+1)*fcmSendAllBatchSize]
 			}
 			remainingElements := len(s.bufferedNotifications) % fcmSendAllBatchSize
@@ -64,7 +64,7 @@ func (s *pushNotificationsCollectingSink) accept(notif *Notification[DeviceToken
 	}
 	if len(s.bufferedNotifications) >= fcmSendAllBatchSize || now.Sub(*s.resetAt.Time) >= fcmSendAllBufferingDeadline {
 		if len(s.bufferedNotifications) > 0 {
-			for i := 0; i < len(s.bufferedNotifications)/fcmSendAllBatchSize; i++ {
+			for i := range len(s.bufferedNotifications) / fcmSendAllBatchSize {
 				s.bufferedNotificationsChan <- s.bufferedNotifications[i*fcmSendAllBatchSize : (i+1)*fcmSendAllBatchSize]
 			}
 			remainingElements := len(s.bufferedNotifications) % fcmSendAllBatchSize

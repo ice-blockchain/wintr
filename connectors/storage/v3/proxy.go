@@ -696,12 +696,12 @@ func (l *lb) XAutoClaimJustID(ctx context.Context, a *redis.XAutoClaimArgs) *red
 	return l.instance().XAutoClaimJustID(ctx, a)
 }
 
-func (l *lb) XTrimMaxLen(ctx context.Context, key string, maxLen int64) *redis.IntCmd {
-	return l.instance().XTrimMaxLen(ctx, key, maxLen)
+func (l *lb) XTrimMaxLen(ctx context.Context, key string, maximumLen int64) *redis.IntCmd {
+	return l.instance().XTrimMaxLen(ctx, key, maximumLen)
 }
 
-func (l *lb) XTrimMaxLenApprox(ctx context.Context, key string, maxLen, limit int64) *redis.IntCmd {
-	return l.instance().XTrimMaxLenApprox(ctx, key, maxLen, limit)
+func (l *lb) XTrimMaxLenApprox(ctx context.Context, key string, maximumLen, limit int64) *redis.IntCmd {
+	return l.instance().XTrimMaxLenApprox(ctx, key, maximumLen, limit)
 }
 
 func (l *lb) XTrimMinID(ctx context.Context, key, minID string) *redis.IntCmd {
@@ -774,12 +774,12 @@ func (l *lb) ZCard(ctx context.Context, key string) *redis.IntCmd {
 	return l.instance().ZCard(ctx, key)
 }
 
-func (l *lb) ZCount(ctx context.Context, key, min, max string) *redis.IntCmd {
-	return l.instance().ZCount(ctx, key, min, max)
+func (l *lb) ZCount(ctx context.Context, key, minimum, maximum string) *redis.IntCmd {
+	return l.instance().ZCount(ctx, key, minimum, maximum)
 }
 
-func (l *lb) ZLexCount(ctx context.Context, key, min, max string) *redis.IntCmd {
-	return l.instance().ZLexCount(ctx, key, min, max)
+func (l *lb) ZLexCount(ctx context.Context, key, minimum, maximum string) *redis.IntCmd {
+	return l.instance().ZLexCount(ctx, key, minimum, maximum)
 }
 
 func (l *lb) ZIncrBy(ctx context.Context, key string, increment float64, member string) *redis.FloatCmd {
@@ -869,12 +869,12 @@ func (l *lb) ZRemRangeByRank(ctx context.Context, key string, start, stop int64)
 	return l.instance().ZRemRangeByRank(ctx, key, start, stop)
 }
 
-func (l *lb) ZRemRangeByScore(ctx context.Context, key, min, max string) *redis.IntCmd {
-	return l.instance().ZRemRangeByScore(ctx, key, min, max)
+func (l *lb) ZRemRangeByScore(ctx context.Context, key, minimum, maximum string) *redis.IntCmd {
+	return l.instance().ZRemRangeByScore(ctx, key, minimum, maximum)
 }
 
-func (l *lb) ZRemRangeByLex(ctx context.Context, key, min, max string) *redis.IntCmd {
-	return l.instance().ZRemRangeByLex(ctx, key, min, max)
+func (l *lb) ZRemRangeByLex(ctx context.Context, key, minimum, maximum string) *redis.IntCmd {
+	return l.instance().ZRemRangeByLex(ctx, key, minimum, maximum)
 }
 
 func (l *lb) ZRevRange(ctx context.Context, key string, start, stop int64) *redis.StringSliceCmd {
@@ -1264,8 +1264,8 @@ func (l *lb) ClusterDelSlots(ctx context.Context, slots ...int) *redis.StatusCmd
 	return l.instance().ClusterDelSlots(ctx, slots...)
 }
 
-func (l *lb) ClusterDelSlotsRange(ctx context.Context, min, max int) *redis.StatusCmd {
-	return l.instance().ClusterDelSlotsRange(ctx, min, max)
+func (l *lb) ClusterDelSlotsRange(ctx context.Context, minimum, maximum int) *redis.StatusCmd {
+	return l.instance().ClusterDelSlotsRange(ctx, minimum, maximum)
 }
 
 func (l *lb) ClusterSaveConfig(ctx context.Context) *redis.StatusCmd {
@@ -1284,8 +1284,8 @@ func (l *lb) ClusterAddSlots(ctx context.Context, slots ...int) *redis.StatusCmd
 	return l.instance().ClusterAddSlots(ctx, slots...)
 }
 
-func (l *lb) ClusterAddSlotsRange(ctx context.Context, min, max int) *redis.StatusCmd {
-	return l.instance().ClusterAddSlotsRange(ctx, min, max)
+func (l *lb) ClusterAddSlotsRange(ctx context.Context, mininum, maximum int) *redis.StatusCmd {
+	return l.instance().ClusterAddSlotsRange(ctx, mininum, maximum)
 }
 
 func (l *lb) GeoAdd(ctx context.Context, key string, geoLocation ...*redis.GeoLocation) *redis.IntCmd {
@@ -1476,8 +1476,8 @@ func (l *lb) CFReserveBucketSize(ctx context.Context, key string, capacity, buck
 	return l.instance().CFReserveBucketSize(ctx, key, capacity, bucketsize)
 }
 
-func (l *lb) CFReserveMaxIterations(ctx context.Context, key string, capacity, maxiterations int64) *redis.StatusCmd {
-	return l.instance().CFReserveMaxIterations(ctx, key, capacity, maxiterations)
+func (l *lb) CFReserveMaxIterations(ctx context.Context, key string, capacity, maximumiterations int64) *redis.StatusCmd {
+	return l.instance().CFReserveMaxIterations(ctx, key, capacity, maximumiterations)
 }
 
 func (l *lb) CFScanDump(ctx context.Context, key string, iterator int64) *redis.ScanDumpCmd {
@@ -1881,7 +1881,7 @@ func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
 	return l.instance().ObjectFreq(ctx, key)
 }
 
-func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd {
+func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive // Comes from interface.
 	return l.instance().BitFieldRO(ctx, key, values...)
 }
 

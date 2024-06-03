@@ -13,7 +13,7 @@ import (
 )
 
 func GenerateSecret() string {
-	key := make([]byte, 32+siv.NonceSize) //nolint:gomnd // 32 is the byte size, nothing magical about it.
+	key := make([]byte, 32+siv.NonceSize) //nolint:mnd,gomnd // 32 is the byte size, nothing magical about it.
 	_, err := io.ReadFull(rand.Reader, key)
 	log.Panic(err)
 

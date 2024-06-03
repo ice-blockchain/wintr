@@ -136,7 +136,7 @@ func (tr *testRunner) RunTests(m *testing.M) {
 	}()
 	//nolint:revive,staticcheck // String is good enough for tests.
 	value := context.WithValue(context.Background(), applicationYAMLKeyContextValueKey, tr.applicationYAMLKey)
-	//nolint:gomnd // It's not a magic number, it's the context deadline.
+	//nolint:mnd,gomnd // It's not a magic number, it's the context deadline.
 	ctx, cancel := context.WithTimeout(value, 30*time.Minute)
 	defer func() {
 		if e := recover(); e != nil {

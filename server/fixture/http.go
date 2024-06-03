@@ -97,7 +97,7 @@ func (tc *httpTestClient) doRequest(
 	defer func() { assert.NoError(tb, resp.Body.Close()) }()
 	require.NoError(tb, err)
 	assert.Equal(tb, "HTTP/2.0", resp.Proto)
-	//nolint:gomnd // It's not a magic number, it's the http major version.
+	//nolint:mnd,gomnd // It's not a magic number, it's the http major version.
 	assert.Equal(tb, 2, resp.ProtoMajor)
 	assert.Equal(tb, 0, resp.ProtoMinor)
 
@@ -127,7 +127,7 @@ func (tc *httpTestClient) testSwaggerRoot(ctx context.Context, tb testing.TB) {
 	assert.Equal(tb, http.StatusOK, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.NoError(tb, err)
-	require.Greater(tb, l, 0)
+	require.Positive(tb, l)
 	headers.Del("Date")
 	headers.Del("Content-Length")
 	require.Equal(tb, http.Header{"Content-Type": []string{"text/html; charset=utf-8"}}, headers)
@@ -188,7 +188,7 @@ func (*httpTestClient) AssertUnauthorized(tb testing.TB, expectedBody, body stri
 	assert.Equal(tb, http.StatusUnauthorized, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.NoError(tb, err)
-	assert.Greater(tb, l, 0)
+	assert.Positive(tb, l)
 	headers.Del("Date")
 	headers.Del("Content-Length")
 	assert.Equal(tb, http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, headers)

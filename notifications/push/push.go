@@ -81,7 +81,7 @@ func newClient(applicationYAMLKey string, fcmClient *fcm.Client, cfg *config) Cl
 			mx:                        new(sync.Mutex),
 		},
 	}
-	for i := 0; i < cfg.WintrPushNotifications.Concurrency; i++ {
+	for i := 0; i < cfg.WintrPushNotifications.Concurrency; i++ { //nolint:intrange // .
 		go cl.sink.startProcessing()
 	}
 	go cl.sink.monitorSlowProcessing()
@@ -151,7 +151,7 @@ func (p *push) BroadcastDelayed(ctx context.Context, notification *DelayedNotifi
 }
 
 func buildAndroidDataOnlyNotification(notification *DelayedNotification) *fcm.AndroidConfig {
-	dataOnlyNotification := make(map[string]string, len(notification.Data)+6) //nolint:gomnd // Extra fields.
+	dataOnlyNotification := make(map[string]string, len(notification.Data)+6) //nolint:mnd,gomnd // Extra fields.
 	for k, v := range notification.Data {
 		dataOnlyNotification[k] = v
 	}
@@ -189,12 +189,11 @@ func retry(ctx context.Context, op func() error) error {
 	//nolint:wrapcheck // No need, its just a proxy.
 	return backoff.RetryNotify(
 		op,
-		//nolint:gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
-			InitialInterval:     300 * stdlibtime.Millisecond,
-			RandomizationFactor: 0.5,
-			Multiplier:          2.5,
-			MaxInterval:         2 * stdlibtime.Second,
+			InitialInterval:     300 * stdlibtime.Millisecond, //nolint:mnd,gomnd // .
+			RandomizationFactor: 0.5,                          //nolint:mnd,gomnd // .
+			Multiplier:          2.5,                          //nolint:mnd,gomnd // .
+			MaxInterval:         2 * stdlibtime.Second,        //nolint:mnd,gomnd // .
 			MaxElapsedTime:      requestDeadline,
 			Stop:                backoff.Stop,
 			Clock:               backoff.SystemClock,

@@ -153,11 +153,11 @@ func (p *picture) doDeletePicture(ctx context.Context, name string) error {
 	return errors.Wrap(err, "delete picture request failed")
 }
 
-//nolint:gomnd // Static config.
+//nolint:mnd,gomnd // Static config.
 func (p *picture) pictureReq(ctx context.Context) *req.Request {
 	return req.
 		SetContext(ctx).
-		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second).
+		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second). //nolint:mnd,gomnd // .
 		SetRetryHook(func(resp *req.Response, err error) {
 			switch {
 			case err != nil:

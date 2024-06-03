@@ -69,12 +69,12 @@ func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing 
 	const rateLimit = 1
 	wg := new(sync.WaitGroup)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireSend(t, wg)
 	}
 	wg.Wait()
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ {
+	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
 		go requireSend(t, wg)
 	}
 	wg.Wait()
@@ -97,7 +97,7 @@ func requireSend(t *testing.T, wg *sync.WaitGroup) {
 		},
 	}
 	destinations := make([]Participant, 0, MaxBatchSize)
-	for i := 0; i < MaxBatchSize; i++ {
+	for i := range MaxBatchSize {
 		destinations = append(destinations, Participant{
 			Name:  fmt.Sprintf("n%v", i),
 			Email: fmt.Sprintf("foo%v@baz", i),

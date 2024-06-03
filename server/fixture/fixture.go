@@ -85,7 +85,7 @@ func (tc *testConnector) callMain(ctx context.Context) connectorsfixture.Context
 	go func() {
 		log.Error(errors.Wrapf(cmd.Wait(), "failed to wait for service start to finish for %v", tc.serviceName))
 	}()
-	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second) //nolint:gomnd // Nothing magical about it.
+	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second) //nolint:mnd,gomnd // Nothing magical about it.
 	defer cancel()
 	for !tc.started && startCtx.Err() == nil &&
 		!strings.Contains(cmd.ProcessState.String(), "exit") && !strings.Contains(cmd.ProcessState.String(), "signal") { //nolint:revive // Blocking call.

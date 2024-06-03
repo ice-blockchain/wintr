@@ -42,7 +42,7 @@ func TestClientVerifyPhoneNumber(t *testing.T) {
 	err := client.VerifyPhoneNumber(ctx, "+40721 555 524")
 	require.ErrorIs(t, err, ErrInvalidPhoneNumberFormat)
 	tErr := terror.As(err)
-	require.NotNil(t, tErr)
+	require.Error(t, tErr)
 	require.EqualValues(t, map[string]any{"phoneNumber": "+40721555524"}, tErr.Data)
 }
 
@@ -81,7 +81,7 @@ func TestClientFromPhoneNumbersRoundRobinLB(t *testing.T) {
 	const iterations = 10_000_000
 	wg := new(sync.WaitGroup)
 	wg.Add(iterations)
-	for i := 0; i < iterations; i++ {
+	for i := 0; i < iterations; i++ { //nolint:intrange // .
 		go func() {
 			defer wg.Done()
 			atomic.AddUint64(stats[client.(*sms).lb.PhoneNumber()], 1) //nolint:forcetypeassert // We know for sure.
