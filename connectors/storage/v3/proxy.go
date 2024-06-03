@@ -1881,6 +1881,10 @@ func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
 	return l.instance().ObjectFreq(ctx, key)
 }
 
+func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd {
+	return l.instance().BitFieldRO(ctx, key, values...)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))
