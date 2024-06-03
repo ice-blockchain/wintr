@@ -59,7 +59,7 @@ func AssertSymmetricMarshallingUnmarshalling[OBJ any](tb testing.TB, expectedUnm
 func zeroValueIgnoredFields(val any) {
 	vType := reflect.TypeOf(val).Elem()
 	vValue := reflect.ValueOf(val).Elem()
-	for ix := 0; ix < vType.NumField(); ix++ {
+	for ix := range vType.NumField() {
 		if vType.Field(ix).PkgPath != "" {
 			continue
 		}

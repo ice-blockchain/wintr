@@ -38,7 +38,7 @@ func New(ctx context.Context, applicationYAMLKey string) Client {
 	client, err := firebaseApp.Auth(ctx)
 	log.Panic(errors.Wrapf(err, "[%v] failed to build Firebase Auth client", applicationYAMLKey))
 
-	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 30*stdlibtime.Second) //nolint:gomnd // It's a one time call.
+	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 30*stdlibtime.Second) //nolint:mnd,gomnd // It's a one time call.
 	defer cancelEagerLoad()
 	t, err := client.VerifyIDTokenAndCheckRevoked(eagerLoadCtx, "invalid token")
 	if t != nil || !firebaseauth.IsIDTokenInvalid(err) {

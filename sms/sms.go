@@ -61,7 +61,6 @@ func (s *sms) verifyPhoneNumber(ctx context.Context, number string) error { //no
 func (s *sms) Send(ctx context.Context, parcel *Parcel) error {
 	return errors.Wrapf(retry(ctx, func() error {
 		if ctx.Err() != nil {
-			//nolint:wrapcheck // It's a proxy.
 			return backoff.Permanent(ctx.Err())
 		}
 		msg := new(twilioopenapi.CreateMessageParams).
@@ -70,7 +69,7 @@ func (s *sms) Send(ctx context.Context, parcel *Parcel) error {
 			SetBody(parcel.Message)
 		if parcel.SendAt != nil {
 			if parcel.SendAt.Sub(*time.Now().Time) < MinimumSchedulingDurationInAdvance {
-				return backoff.Permanent(ErrSchedulingDateTooEarly) //nolint:wrapcheck // Not needed.
+				return backoff.Permanent(ErrSchedulingDateTooEarly)
 			}
 			msg = msg.
 				SetMessagingServiceSid(s.lb.SchedulingMessageServiceSID()).
@@ -88,11 +87,10 @@ func retry(ctx context.Context, op func() error) error {
 	//nolint:wrapcheck // No need, its just a proxy.
 	return backoff.RetryNotify(
 		op,
-		//nolint:gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
-			InitialInterval:     100 * stdlibtime.Millisecond,
-			RandomizationFactor: 0.5,
-			Multiplier:          2.5,
+			InitialInterval:     100 * stdlibtime.Millisecond, //nolint:mnd,gomnd // .
+			RandomizationFactor: 0.5,                          //nolint:mnd,gomnd // .
+			Multiplier:          2.5,                          //nolint:mnd,gomnd // .
 			MaxInterval:         stdlibtime.Second,
 			MaxElapsedTime:      requestDeadline,
 			Stop:                backoff.Stop,

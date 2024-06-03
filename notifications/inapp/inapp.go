@@ -93,7 +93,6 @@ func (i *inApp) Send(ctx context.Context, parcel *Parcel, userIDs ...UserID) err
 	return errors.Wrapf(retry(ctx, func() error {
 		err := i.send(ctx, parcel, userIDs...)
 		if err != nil && !errors.Is(err, errPleaseRetry) {
-			//nolint:wrapcheck // It's a proxy.
 			return backoff.Permanent(err)
 		}
 
@@ -105,11 +104,10 @@ func retry(ctx context.Context, op func() error) error {
 	//nolint:wrapcheck // No need, its just a proxy.
 	return backoff.RetryNotify(
 		op,
-		//nolint:gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
-			InitialInterval:     100 * stdlibtime.Millisecond,
-			RandomizationFactor: 0.5,
-			Multiplier:          2.5,
+			InitialInterval:     100 * stdlibtime.Millisecond, //nolint:mnd,gomnd // .
+			RandomizationFactor: 0.5,                          //nolint:mnd,gomnd // .
+			Multiplier:          2.5,                          //nolint:mnd,gomnd // .
 			MaxInterval:         stdlibtime.Second,
 			MaxElapsedTime:      requestDeadline,
 			Stop:                backoff.Stop,

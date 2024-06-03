@@ -47,7 +47,7 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	return &DB{master: master, lb: &lb{replicas: replicas}}
 }
 
-//nolint:gomnd // Configuration.
+//nolint:mnd,gomnd // Configuration.
 func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
 	log.Panic(errors.Wrapf(err, "failed to parse pool config: %v", url)) //nolint:revive // Intended
@@ -176,7 +176,7 @@ func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
 
 			return err
 		},
-		//nolint:gomnd // Because those are static configs.
+		//nolint:mnd,gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
 			InitialInterval:     100 * stdlibtime.Millisecond,
 			RandomizationFactor: 0.5,

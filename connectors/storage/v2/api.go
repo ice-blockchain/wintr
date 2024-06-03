@@ -36,11 +36,11 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 		if err := parseDBError(pgx.BeginTxFunc(ctx, db.primary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
-			return nil, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return nil, backoff.Permanent(err)
 		}
 	})
 	if err != nil && (errors.Is(err, ErrSerializationFailure) || errors.Is(err, ErrTxAborted)) {
-		stdlibtime.Sleep(10 * stdlibtime.Millisecond) //nolint:gomnd // Not a magic number.
+		stdlibtime.Sleep(10 * stdlibtime.Millisecond) //nolint:mnd,gomnd // Not a magic number.
 
 		return DoInTransaction(ctx, db, fn)
 	}
@@ -53,7 +53,7 @@ func Get[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, e
 		if resp, err := get[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
-			return resp, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return resp, backoff.Permanent(err)
 		}
 	})
 }
@@ -75,7 +75,7 @@ func Select[T any](ctx context.Context, db Querier, sql string, args ...any) ([]
 		if resp, err := selectInternal[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
-			return resp, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return resp, backoff.Permanent(err)
 		}
 	})
 }
@@ -97,7 +97,7 @@ func Exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 		if resp, err := exec(ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return 0, err
 		} else { //nolint:revive // Nope.
-			return resp, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return resp, backoff.Permanent(err)
 		}
 	})
 }
@@ -119,7 +119,7 @@ func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 		if resp, err := execOne[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
-			return resp, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return resp, backoff.Permanent(err)
 		}
 	})
 }
@@ -141,7 +141,7 @@ func ExecMany[T any](ctx context.Context, db Querier, sql string, args ...any) (
 		if resp, err := execMany[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
-			return resp, backoff.Permanent(err) //nolint:wrapcheck // Not needed.
+			return resp, backoff.Permanent(err)
 		}
 	})
 }

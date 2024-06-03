@@ -51,7 +51,7 @@ func clientIce() iceauth.Client {
 }
 
 func CreateUser(role string) (uid, token string) {
-	createCtx, cancelCreateUser := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:gomnd // Not an issue here.
+	createCtx, cancelCreateUser := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:mnd,gomnd // Not an issue here.
 	defer cancelCreateUser()
 
 	uid, email, password := generateUser(createCtx, role)
@@ -75,7 +75,7 @@ func CreateUser(role string) (uid, token string) {
 }
 
 func DeleteUser(uid string) {
-	delCtx, cancelDeleteUser := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:gomnd // Not an issue here.
+	delCtx, cancelDeleteUser := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:mnd,gomnd // Not an issue here.
 	defer cancelDeleteUser()
 
 	log.Panic(clientFirebase().DeleteUser(delCtx, uid))
@@ -162,7 +162,7 @@ func newFirebaseClient() *firebaseauth.Client {
 	client, err := firebaseApp.Auth(ctx)
 	log.Panic(errors.Wrap(err, "[%v] failed to build Firebase Auth client"))
 
-	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 5*stdlibtime.Second) //nolint:gomnd // It's a one time call.
+	eagerLoadCtx, cancelEagerLoad := context.WithTimeout(ctx, 5*stdlibtime.Second) //nolint:mnd,gomnd // It's a one time call.
 	defer cancelEagerLoad()
 	t, err := client.VerifyIDTokenAndCheckRevoked(eagerLoadCtx, "invalid token")
 	if t != nil || !firebaseauth.IsIDTokenInvalid(err) {

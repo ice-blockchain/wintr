@@ -62,7 +62,6 @@ func (e *email) Send(ctx context.Context, parcel *Parcel, destinations ...Partic
 	return errors.Wrapf(retry(ctx, func() error {
 		err := e.send(ctx, parcel, destinations...)
 		if err != nil && !errors.Is(err, errPleaseRetry) {
-			//nolint:wrapcheck // It's a proxy.
 			return backoff.Permanent(err)
 		}
 
@@ -74,7 +73,7 @@ func retry(ctx context.Context, op func() error) error {
 	//nolint:wrapcheck // No need, its just a proxy.
 	return backoff.RetryNotify(
 		op,
-		//nolint:gomnd // Because those are static configs.
+		//nolint:mnd,gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
 			InitialInterval:     100 * stdlibtime.Millisecond,
 			RandomizationFactor: 0.5,

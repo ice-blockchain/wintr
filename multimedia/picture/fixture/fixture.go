@@ -57,7 +57,7 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(module + "_PICTURE_STORAGE_ACCESS_KEY") //nolint:goconst // .
+		cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv(module + "_PICTURE_STORAGE_ACCESS_KEY")
 		if cfg.WintrMultimediaPicture.Credentials.AccessKey == "" {
 			cfg.WintrMultimediaPicture.Credentials.AccessKey = os.Getenv("PICTURE_STORAGE_ACCESS_KEY")
 		}
@@ -65,7 +65,7 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 	url := fmt.Sprintf("%s/%s", cfg.WintrMultimediaPicture.URLUpload, fileName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	require.NoError(tb, err)
-	req.Header.Set("AccessKey", cfg.WintrMultimediaPicture.Credentials.AccessKey)
+	req.Header.Set("AccessKey", cfg.WintrMultimediaPicture.Credentials.AccessKey) //nolint:canonicalheader // .
 	//nolint:gosec // Skip checking cert chain from CDN
 	httpClient := &http.Client{Transport: &http2.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 	resp, err := httpClient.Do(req)
@@ -114,7 +114,7 @@ func AssertPictureDeleted(ctx context.Context, tb testing.TB, applicationYAMLKey
 	url := fmt.Sprintf("%s/%s", cfg.WintrMultimediaPicture.URLUpload, fileName)
 	r, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	require.NoError(tb, err)
-	r.Header.Set("AccessKey", cfg.WintrMultimediaPicture.Credentials.AccessKey)
+	r.Header.Set("AccessKey", cfg.WintrMultimediaPicture.Credentials.AccessKey) //nolint:canonicalheader // .
 	//nolint:gosec // Skip checking cert chain from CDN
 	httpClient := &http.Client{Transport: &http2.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 	resp, err := httpClient.Do(r)

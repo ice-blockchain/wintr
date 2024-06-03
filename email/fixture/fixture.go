@@ -35,7 +35,7 @@ func AssertEmailConfirmationCode(ctx context.Context, tb testing.TB, toEmail, ex
 		if foundValidationCode {
 			break
 		}
-		time.Sleep(100 * time.Millisecond) //nolint:gomnd // Not a magic.
+		time.Sleep(100 * time.Millisecond) //nolint:mnd,gomnd // Not a magic.
 	}
 	if !foundValidationCode {
 		if len(verificationCodes) == 0 {
@@ -49,7 +49,7 @@ func AssertEmailConfirmationCode(ctx context.Context, tb testing.TB, toEmail, ex
 func GetEmailConfirmationCodes(ctx context.Context, tb testing.TB, toEmail string, parseMsg func(msg string) string) []string {
 	tb.Helper()
 	emailSplitted := strings.Split(toEmail, "@")
-	assert.Len(tb, emailSplitted, 2) //nolint:gomnd // Not a magic.
+	assert.Len(tb, emailSplitted, 2) //nolint:mnd,gomnd // Not a magic.
 	login, server := emailSplitted[0], emailSplitted[1]
 	mailboxContents := getMailbox(ctx, tb, login, server)
 	verificationCodes := make([]string, 0, len(mailboxContents))
@@ -64,7 +64,7 @@ func GetEmailConfirmationCodes(ctx context.Context, tb testing.TB, toEmail strin
 func TestingEmail(ctx context.Context, tb testing.TB) string {
 	tb.Helper()
 	body, status := do1SecMailRequest(ctx, tb, "https://www.1secmail.com/api/v1/?action=genRandomMailbox")
-	assert.Equal(tb, 200, status) //nolint:gomnd // Not a magic.
+	assert.Equal(tb, 200, status) //nolint:mnd,gomnd // Not a magic.
 	var emails []string
 	require.NoError(tb, json.UnmarshalContext(ctx, body, &emails))
 	assert.Len(tb, emails, 1)
@@ -80,9 +80,9 @@ func getMailbox(ctx context.Context, tb testing.TB, login, server string) []uint
 	url := fmt.Sprintf("https://www.1secmail.com/api/v1/?action=getMessages&login=%v&domain=%v", login, server)
 	for ctx.Err() == nil && len(messageListData) == 0 {
 		messageListBody, messageListStatus := do1SecMailRequest(ctx, tb, url)
-		assert.Equal(tb, 200, messageListStatus) //nolint:gomnd // Not a magic.
+		assert.Equal(tb, 200, messageListStatus) //nolint:mnd,gomnd // Not a magic.
 		require.NoError(tb, json.UnmarshalContext(ctx, messageListBody, &messageListData))
-		time.Sleep(100 * time.Millisecond) //nolint:gomnd // Not a magic.
+		time.Sleep(100 * time.Millisecond) //nolint:mnd,gomnd // Not a magic.
 	}
 	result := make([]uint64, 0, len(messageListData))
 	for _, mail := range messageListData {
@@ -96,7 +96,7 @@ func getMessageBody(ctx context.Context, tb testing.TB, login, server string, ms
 	tb.Helper()
 	url := fmt.Sprintf("https://www.1secmail.com/api/v1/?action=readMessage&login=%v&domain=%v&id=%v", login, server, msgID)
 	messageInfoBody, messageInfoStatus := do1SecMailRequest(ctx, tb, url)
-	assert.Equal(tb, 200, messageInfoStatus) //nolint:gomnd // Not a magic.
+	assert.Equal(tb, 200, messageInfoStatus) //nolint:mnd,gomnd // Not a magic.
 	var messageInfo struct {
 		Body string `json:"body"`
 	}
@@ -117,7 +117,7 @@ func do1SecMailRequest(ctx context.Context, tb testing.TB, url string) (respBody
 		require.NoError(tb, resp.Body.Close())
 	}()
 
-	assert.Equal(tb, 200, resp.StatusCode) //nolint:gomnd // That's not a magic number.
+	assert.Equal(tb, 200, resp.StatusCode) //nolint:mnd,gomnd // That's not a magic number.
 	b, err := io.ReadAll(resp.Body)
 	require.NoError(tb, err)
 

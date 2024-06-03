@@ -21,7 +21,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-//nolint:gomnd,gocognit,gocyclo,revive,cyclop // Configs.
+//nolint:mnd,gomnd,gocognit,gocyclo,revive,cyclop // Configs.
 func MustConnect(ctx context.Context, applicationYAMLKey string, overriddenPoolSize ...int) DB { //nolint:funlen // .
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
@@ -259,7 +259,7 @@ func collectFields(elem reflect.Type) (fields []string) {
 	if elem.Kind() != reflect.Struct {
 		return nil
 	}
-	for i := 0; i < elem.NumField(); i++ {
+	for i := range elem.NumField() {
 		if field := elem.Field(i); field.Anonymous {
 			embeddedElem := field.Type
 			if embeddedElem.Kind() == reflect.Ptr {
@@ -280,7 +280,7 @@ func DeserializeValue(value any, scan func(any) error) error { //nolint:gocognit
 		return err
 	}
 	typ, val := reflect.TypeOf(value).Elem(), reflect.ValueOf(value).Elem()
-	for ix := 0; ix < typ.NumField(); ix++ {
+	for ix := range typ.NumField() {
 		typeField := typ.Field(ix)
 		if !typeField.Anonymous {
 			continue
@@ -319,7 +319,7 @@ func SerializeValue(value any) []any {
 
 func serializeStructFields(value reflect.Value) (resp []any) { //nolint:funlen,gocognit,revive,cyclop // .
 	typ := value.Type()
-	for ix := 0; ix < typ.NumField(); ix++ {
+	for ix := range typ.NumField() {
 		typeField := typ.Field(ix)
 		if typeField.Anonymous {
 			field := value.Field(ix)

@@ -129,7 +129,7 @@ func (t *Time) unmarshallUint64(data []byte) {
 	millisOrNanos, err := strconv.Atoi(val)
 	log.Panic(err) //nolint:revive // That's the point.
 	t.Time = new(stdlibtime.Time)
-	if len(data) == 13 { //nolint:gomnd // There's no magic here, there are 13 digits in a millisecond based timestamp.
+	if len(data) == 13 { //nolint:mnd,gomnd,gomnd // There's no magic here, there are 13 digits in a millisecond based timestamp.
 		*t.Time = stdlibtime.UnixMilli(int64(millisOrNanos)).UTC()
 	} else {
 		*t.Time = stdlibtime.Unix(0, int64(millisOrNanos)).UTC()

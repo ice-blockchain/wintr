@@ -84,8 +84,8 @@ func (req *Request[REQ, RESP]) processTags() {
 	const enabled = "true"
 	fieldCount := elem.NumField()
 	req.requiredFields = make([]string, 0, fieldCount)
-	req.bindings = make(map[requestBinding]struct{}, 5) //nolint:gomnd // They're 5 possible values.
-	for i := 0; i < fieldCount; i++ {
+	req.bindings = make(map[requestBinding]struct{}, 5) //nolint:mnd,gomnd // They're 5 possible values.
+	for i := range fieldCount {
 		field := elem.Field(i)
 		tag := field.Tag
 		if tag.Get("required") == enabled {

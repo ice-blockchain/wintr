@@ -16,7 +16,7 @@ import (
 func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.CancelFunc) {
 	cctx, ccancel := context.WithCancel(ctx)
 	mb.concurrentConsumer.cancel = ccancel
-	defer func() {
+	defer func() { //nolint:contextcheck // .
 		mb.shutdownConsumerGracefully()
 		cancel()
 	}()
@@ -33,7 +33,7 @@ func (mb *messageBroker) pollRecords(ctx context.Context) (shouldStop bool) {
 	if err := fetches.Err0(); err != nil && (errors.Is(err, ctx.Err()) || errors.Is(err, kgo.ErrClientClosed)) {
 		return true
 	}
-	fetches.EachTopic(func(fetchTopic kgo.FetchTopic) {
+	fetches.EachTopic(func(fetchTopic kgo.FetchTopic) { //nolint:contextcheck // .
 		partitionConsumers := mb.partitionConsumers(&fetchTopic)
 		if partitionConsumers == nil {
 			return
@@ -253,14 +253,14 @@ func (c *concurrentConsumer) OnPartitionsLost(ctx context.Context, cl *kgo.Clien
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.revokePartitions(ctx, lost)
-	cCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second) //nolint:gomnd // .
+	cCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second) //nolint:mnd,gomnd // .
 	defer cancel()
 	//nolint:contextcheck // Nope, we're trying to make sure commit happens, even if the parent context is cancelled.
 	log.Error(errors.Wrap(cl.CommitUncommittedOffsets(cCtx), "handleLostPartitions: failed to CommitUncommittedOffsets"))
 }
 
 func (c *concurrentConsumer) revokePartitions(cctx context.Context, lost map[string][]int32) {
-	ctx, cancel := context.WithTimeout(cctx, 25*time.Second) //nolint:gomnd // .
+	ctx, cancel := context.WithTimeout(cctx, 25*time.Second) //nolint:mnd,gomnd // .
 	defer cancel()
 	log.Info("some partitions lost/revoked", "lostOrRevoked", lost)
 	for topic, partitions := range lost {

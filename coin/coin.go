@@ -126,7 +126,7 @@ func (c *Coin) IsNil() bool {
 	return c == nil || c.Amount.IsNil()
 }
 
-//nolint:gomnd // Those are fixed numbers, nothing magical about em.
+//nolint:mnd,gomnd // Those are fixed numbers, nothing magical about em.
 func (c *Coin) setWord(wordPosition int, wordValue uint64) {
 	switch wordPosition {
 	case 0:
@@ -288,7 +288,7 @@ func (i *ICEFlake) ICE() (*ICE, error) {
 		return i.transformNumbersBiggerThan1ICE(string(bytes))
 	}
 	r := "0."
-	for ix := 0; ix < e9-len(bytes); ix++ {
+	for ix := 0; ix < e9-len(bytes); ix++ { //nolint:intrange // .
 		r += "0"
 	}
 	ice := ICE(r + strings.TrimRight(string(bytes), "0"))
@@ -305,7 +305,7 @@ func (i *ICEFlake) transformNumbersBiggerThan1ICE(val string) (*ICE, error) {
 		rest := make([]rune, 0, e9)
 		var hasNonZeroTrailing bool
 		for digitIx := len(digits) - 1; digitIx >= 0; digitIx-- {
-			if digits[digitIx] != 48 { //nolint:gomnd // Not magical at all, that's 0 in ASCII.
+			if digits[digitIx] != 48 { //nolint:mnd,gomnd // Not magical at all, that's 0 in ASCII.
 				hasNonZeroTrailing = true
 			}
 			if hasNonZeroTrailing {
@@ -370,7 +370,7 @@ func (i *ICE) ICEFlake() (*ICEFlake, error) {
 		return ParseAmount(val + e9Zeros)
 	}
 	missingZeros := e9 - len(val[ix+1:])
-	for j := 0; j < missingZeros; j++ {
+	for j := 0; j < missingZeros; j++ { //nolint:intrange // .
 		val += "0"
 	}
 	res := val[:ix] + val[ix+1:]
@@ -424,7 +424,7 @@ func formatGroups(dotIx int, r string) string {
 	var val, group string
 	for j := dotIx - 1; j >= 0; j-- {
 		group = string(r[j]) + group
-		if len(group) == 3 { //nolint:gomnd // Its not a magic number, it's the number of elements in a group.
+		if len(group) == 3 { //nolint:mnd,gomnd // Its not a magic number, it's the number of elements in a group.
 			val = "," + group + val
 			group = ""
 		}
