@@ -49,7 +49,7 @@ type (
 
 const (
 	bufferSizeForEachProcessingGoroutine             = 10
-	fcmSendAllBatchSize                              = 500
+	fcmSendAllBatchSize                              = 250
 	requestDeadline                                  = 25 * stdlibtime.Second
 	fcmSendAllBufferingDeadline                      = 1 * stdlibtime.Second
 	fcmSendAllSlowProcessingMonitoringTickerDeadline = 3 * fcmSendAllBufferingDeadline
