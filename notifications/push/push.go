@@ -69,6 +69,7 @@ func New(applicationYAMLKey string) Client { //nolint:funlen,gocognit,revive // 
 	return newClient(applicationYAMLKey, fcmClient, &cfg)
 }
 
+//nolint:funlen // .
 func newClient(applicationYAMLKey string, fcmClient *fcm.Client, cfg *config) Client {
 	cl := &push{
 		applicationYAMLKey: applicationYAMLKey,
@@ -80,11 +81,14 @@ func newClient(applicationYAMLKey string, fcmClient *fcm.Client, cfg *config) Cl
 			wg:                        new(sync.WaitGroup),
 			mx:                        new(sync.Mutex),
 		},
+		cfg: cfg,
 	}
-	for i := 0; i < cfg.WintrPushNotifications.Concurrency; i++ { //nolint:intrange // .
-		go cl.sink.startProcessing()
+	if cfg.WintrPushNotifications.BufferingEnabled {
+		for i := 0; i < cfg.WintrPushNotifications.Concurrency; i++ { //nolint:intrange // .
+			go cl.sink.startProcessing()
+		}
+		go cl.sink.monitorSlowProcessing()
 	}
-	go cl.sink.monitorSlowProcessing()
 
 	responder := make(chan error)
 	cl.Send(context.Background(), &Notification[DeviceToken]{
@@ -110,6 +114,7 @@ func (p *push) Close() error {
 	return nil
 }
 
+//nolint:funlen // .
 func (p *push) Send(ctx context.Context, notif *Notification[DeviceToken], responseChan chan<- error) {
 	if ctx.Err() != nil {
 		if responseChan != nil {
@@ -118,7 +123,48 @@ func (p *push) Send(ctx context.Context, notif *Notification[DeviceToken], respo
 
 		return
 	}
+	if !p.cfg.WintrPushNotifications.BufferingEnabled {
+		fcmMessage := &fcm.Message{
+			Data:  notif.Data,
+			Token: string(notif.Target),
+			Notification: &fcm.Notification{
+				Title:    notif.Title,
+				Body:     notif.Body,
+				ImageURL: notif.ImageURL,
+			},
+		}
+		go func() {
+			err := p.send(ctx, fcmMessage)
+			if responseChan != nil {
+				if err != nil {
+					responseChan <- err
+				} else {
+					responseChan <- nil
+				}
+			}
+		}()
+
+		return
+	}
+
 	p.sink.accept(notif, responseChan) //nolint:contextcheck // Don't need it, for now.
+}
+
+//nolint:revive // .
+func (p *push) send(ctx context.Context, message *fcm.Message) error {
+	_, err := p.client.Send(ctx, message)
+	if err != nil {
+		if fcm.IsInvalidArgument(err) || fcm.IsUnregistered(err) || fcm.IsSenderIDMismatch(err) {
+			return ErrInvalidDeviceToken
+		} else {
+			rErr := errors.Wrapf(err, "fcm send failed for %#v", message)
+			log.Error(rErr)
+
+			return rErr
+		}
+	}
+
+	return nil
 }
 
 func (p *push) Broadcast(ctx context.Context, notification *Notification[SubscriptionTopic]) error {

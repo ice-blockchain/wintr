@@ -68,7 +68,7 @@ func (b *notificationBatch) respond() {
 
 func (b *notificationBatch) fcmSendAll(ctx context.Context) error { //nolint:funlen // Because it would be worse to break it.
 	messages, deviceIndices := buildFCMMessages(b.notifications, b.devicesWithInvalidTokens, b.devicesNotified)
-	batchR, err := b.sink.client.SendEach(ctx, messages)
+	batchR, err := b.sink.client.SendAll(ctx, messages) //nolint:staticcheck // We know.
 	if err != nil {
 		if errors.Is(err, ctx.Err()) {
 			//nolint:wrapcheck // no need, its terminal and internal.
