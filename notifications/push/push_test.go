@@ -102,7 +102,7 @@ func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	wg := new(sync.WaitGroup)
-	const concurrency = 50_000
+	const concurrency = 100_000
 	wg.Add(concurrency)
 	responder := make(chan error, concurrency)
 	for i := 0; i < concurrency; i++ { //nolint:intrange // .
@@ -136,7 +136,7 @@ func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	wg := new(sync.WaitGroup)
-	const concurrency = 50_000
+	const concurrency = 100_000
 	wg.Add(concurrency)
 	responder := make(chan error, concurrency)
 	for iter := range concurrency {
