@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 	"testing"
 	stdlibtime "time"
@@ -18,13 +17,8 @@ import (
 )
 
 const (
-	testApplicationYAMLKey = "self"
-)
-
-// .
-var (
-	//nolint:gochecknoglobals // It's a stateless singleton for tests.
-	client Client
+	testApplicationYAMLKeyBuffered    = "buffered"
+	testApplicationYAMLKeyNonBuffered = "self"
 )
 
 const (
@@ -33,15 +27,15 @@ const (
 	testBody  = "This is a ice.io simple push notification from wintr/notifications/push tests "
 )
 
-func TestMain(m *testing.M) {
-	client = New(testApplicationYAMLKey)
-	os.Exit(m.Run())
-}
-
-func TestClientSend(t *testing.T) {
+func TestNonBufferedClientSend(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyNonBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
+
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
 		Target:   DeviceToken(testToken + uuid.NewString()),
@@ -50,14 +44,41 @@ func TestClientSend(t *testing.T) {
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
 	responder := make(chan error)
-	client.Send(ctx, n1, responder)
+	isolatedClient.Send(ctx, n1, responder)
 	require.ErrorIs(t, <-responder, ErrInvalidDeviceToken)
+	close(responder)
+}
+
+func TestBufferedClientSend(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
+
+	n1 := &Notification[DeviceToken]{
+		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
+		Target:   DeviceToken(testToken + uuid.NewString()),
+		Title:    testTitle,
+		Body:     testBody + uuid.NewString(),
+		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
+	}
+	responder := make(chan error)
+	isolatedClient.Send(ctx, n1, responder)
+	require.ErrorIs(t, <-responder, ErrInvalidDeviceToken)
+	close(responder)
 }
 
 func TestClientSendClosedResponder(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
 		Target:   DeviceToken(testToken + uuid.NewString()),
@@ -67,7 +88,7 @@ func TestClientSendClosedResponder(t *testing.T) {
 	}
 	responder := make(chan error)
 	close(responder)
-	client.Send(ctx, n1, responder)
+	isolatedClient.Send(ctx, n1, responder)
 	stdlibtime.Sleep(fcmSendAllSlowProcessingMonitoringTickerDeadline + 5*stdlibtime.Second)
 	<-ctx.Done()
 }
@@ -76,6 +97,10 @@ func TestClientSendNoResponder(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
 		Target:   DeviceToken(testToken + uuid.NewString()),
@@ -83,14 +108,14 @@ func TestClientSendNoResponder(t *testing.T) {
 		Body:     testBody + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
-	client.Send(ctx, n1, nil)
+	isolatedClient.Send(ctx, n1, nil)
 	stdlibtime.Sleep(fcmSendAllSlowProcessingMonitoringTickerDeadline + 5*stdlibtime.Second)
 	<-ctx.Done()
 }
 
 func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
-	isolatedClient := New(testApplicationYAMLKey)
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	defer func() {
 		log.Panic(isolatedClient.Close())
 	}()
@@ -127,7 +152,7 @@ func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 
 func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
-	isolatedClient := New(testApplicationYAMLKey)
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	n1 := &Notification[DeviceToken]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
 		Target:   DeviceToken(testToken + uuid.NewString()),
@@ -165,10 +190,14 @@ func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 	require.Equal(t, concurrency, errCount)
 }
 
-func TestClientBroadcast(t *testing.T) {
+func TestNonBufferedClientBroadcast(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
 	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyNonBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
 
 	n1 := &Notification[SubscriptionTopic]{
 		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
@@ -177,10 +206,33 @@ func TestClientBroadcast(t *testing.T) {
 		Body:     "This is a ice.io broadcast-ed notification from wintr/notifications/push tests " + uuid.NewString(),
 		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 	}
-	require.NoError(t, client.Broadcast(ctx, n1))
+	require.NoError(t, isolatedClient.Broadcast(ctx, n1))
 }
 
-func BenchmarkClientSend(b *testing.B) {
+func TestBufferedClientBroadcast(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
+
+	n1 := &Notification[SubscriptionTopic]{
+		Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
+		Target:   "testing",
+		Title:    "ice.io Test Broadcast",
+		Body:     "This is a ice.io broadcast-ed notification from wintr/notifications/push tests " + uuid.NewString(),
+		ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
+	}
+	require.NoError(t, isolatedClient.Broadcast(ctx, n1))
+}
+
+func BenchmarkBufferedClientSend(b *testing.B) {
+	isolatedClient := New(testApplicationYAMLKeyBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
 	b.SetParallelism(1000)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -192,7 +244,29 @@ func BenchmarkClientSend(b *testing.B) {
 				ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 			}
 			responder := make(chan error)
-			client.Send(context.Background(), n1, responder)
+			isolatedClient.Send(context.Background(), n1, responder)
+			require.ErrorIs(b, <-responder, ErrInvalidDeviceToken)
+		}
+	})
+}
+
+func BenchmarkNonBufferedClientSend(b *testing.B) {
+	isolatedClient := New(testApplicationYAMLKeyNonBuffered)
+	defer func() {
+		log.Panic(isolatedClient.Close())
+	}()
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			n1 := &Notification[DeviceToken]{
+				Data:     map[string]string{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
+				Target:   DeviceToken(testToken + uuid.NewString()),
+				Title:    testTitle,
+				Body:     "This is a ice.io simple push notification from wintr/notifications/push benchmarks " + uuid.NewString(),
+				ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
+			}
+			responder := make(chan error)
+			isolatedClient.Send(context.Background(), n1, responder)
 			require.ErrorIs(b, <-responder, ErrInvalidDeviceToken)
 		}
 	})

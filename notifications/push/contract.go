@@ -69,6 +69,7 @@ type (
 	push struct {
 		client             *fcm.Client
 		sink               *pushNotificationsCollectingSink
+		cfg                *config
 		applicationYAMLKey string
 	}
 	pushNotificationsCollectingSink struct {
@@ -98,7 +99,8 @@ type (
 				FilePath    string `yaml:"filePath"`
 				FileContent string `yaml:"fileContent"`
 			} `yaml:"credentials" mapstructure:"credentials"`
-			Concurrency int `yaml:"concurrency"`
+			Concurrency      int  `yaml:"concurrency"`
+			BufferingEnabled bool `yaml:"bufferingEnabled"`
 		} `yaml:"wintr/notifications/push" mapstructure:"wintr/notifications/push"` //nolint:tagliatelle // Nope.
 	}
 )

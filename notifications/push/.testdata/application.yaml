@@ -6,3 +6,7 @@ logger:
   level: debug
 self:
   wintr/notifications/push:
+    bufferingEnabled: false
+buffered:
+  wintr/notifications/push:
+    bufferingEnabled: true
