@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: ice License 1.0
+
+development: true
+logger:
+  encoder: console
+  level: debug
+self:
+  wintr/notifications/telegram:
+    credentials:
+      token: 
+    baseUrl: https://api.telegram.org
+    linkPreviewOptions:
+      isDisabled: false
