@@ -102,6 +102,7 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 	return string(val), err
 }
 
+//nolint:funlen // .
 func (t *telegramNotification) post(ctx context.Context, url, body string) error {
 	newReq := t.buildHTTPRequest(ctx)
 	newReq = newReq.SetBodyJsonString(body)
@@ -116,10 +117,12 @@ func (t *telegramNotification) post(ctx context.Context, url, body string) error
 			switch resp.GetStatusCode() {
 			case 400: //nolint:gomnd,mnd // .
 				rErr = ErrTelegramNotificationBadRequest
+			case 403: //nolint:gomnd,mnd // .
+				rErr = ErrTelegramNotificationForbidden
 			case 404: //nolint:gomnd,mnd // .
 				rErr = ErrTelegramNotificationChatNotFound
 			default:
-				rErr = ErrTelegramNotificationUnexpected
+				return errors.Wrapf(rErr, "notifications/telegram post `%v` failed, unexpected error, body:%#v, response: %v", url, body, respBody)
 			}
 
 			return errors.Wrapf(rErr, "notifications/telegram post `%v` failed, body:%#v, response: %v", url, body, respBody)
@@ -151,8 +154,9 @@ func (*telegramNotification) buildHTTPRequest(ctx context.Context) *req.Request 
 		}).
 		SetRetryCount(25).
 		SetRetryCondition(func(resp *req.Response, err error) bool {
-			return (err != nil && (resp.GetStatusCode() == http.StatusTooManyRequests || resp.GetStatusCode() >= http.StatusInternalServerError) ||
-				resp.IsErrorState() && resp.GetStatusCode() == http.StatusTooManyRequests)
+			return (err != nil ||
+				(resp.IsErrorState() && resp.GetStatusCode() != http.StatusBadRequest &&
+					resp.GetStatusCode() != http.StatusForbidden && resp.GetStatusCode() != http.StatusNotFound))
 		}).
 		SetContentType("application/json").
 		SetHeader("Accept", "application/json")

@@ -33,7 +33,7 @@ const (
 var (
 	ErrTelegramNotificationChatNotFound = errors.New("chat not found")
 	ErrTelegramNotificationBadRequest   = errors.New("bad request")
-	ErrTelegramNotificationUnexpected   = errors.New("unexpected")
+	ErrTelegramNotificationForbidden    = errors.New("forbidden")
 )
 
 type (
