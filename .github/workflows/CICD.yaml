@@ -285,6 +285,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           GCP_FIREBASE_AUTH_API_KEY: ${{ secrets.GCP_FIREBASE_AUTH_API_KEY }}
           TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN: ${{ secrets.TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN }}
+          TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID: ${{ secrets.TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID }}
         run: |
           cd ${{ matrix.package }}
           make -f ${{ github.workspace }}/Makefile benchmark@ci/cd
