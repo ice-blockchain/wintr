@@ -13,7 +13,7 @@ import (
 
 type (
 	Client interface {
-		Send(ctx context.Context, notif *Notification, err chan<- error)
+		Send(ctx context.Context, notif *Notification) error
 	}
 	Notification struct {
 		ChatID              string `json:"chatId,omitempty"`
@@ -28,14 +28,12 @@ type (
 
 const (
 	requestDeadline = 25 * stdlibtime.Second
-	contentType     = "application/json"
 )
 
 var (
-	ErrTelegramNotificationChatNotFound    = errors.New("chat not found")
-	ErrTelegramNotificationBadRequest      = errors.New("bad request")
-	ErrTelegramNotificationTooManyAttempts = errors.New("too many attempts")
-	ErrTelegramNotificationUnexpected      = errors.New("unexpected")
+	ErrTelegramNotificationChatNotFound = errors.New("chat not found")
+	ErrTelegramNotificationBadRequest   = errors.New("bad request")
+	ErrTelegramNotificationUnexpected   = errors.New("unexpected")
 )
 
 type (
@@ -53,18 +51,10 @@ type (
 		} `json:"link_preview_options"` //nolint:tagliatelle // It's telegram API.
 		DisableNotification bool `json:"disable_notification" example:"true"` //nolint:tagliatelle // It's telegram API.
 	}
-	telegramAPIResponse struct {
-		Description string `json:"description" example:"too many attempts"`
-		Parameters  struct {
-			RetryAfter int64 `json:"retry_after" example:"4"` //nolint:tagliatelle // .
-		} `json:"parameters"`
-		ErrorCode int64 `json:"error_code" example:"400"` //nolint:tagliatelle // .
-		Ok        bool  `json:"ok" example:"true"`
-	}
 	config struct {
 		WintrTelegramNotifications struct {
 			Credentials struct {
-				Token string `yaml:"token"`
+				BotToken string `yaml:"botToken"`
 			} `yaml:"credentials" mapstructure:"credentials"`
 			ParseMode          string `yaml:"parseMode"`
 			BaseURL            string `yaml:"baseUrl"`

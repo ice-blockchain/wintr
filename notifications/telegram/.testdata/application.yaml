@@ -7,7 +7,8 @@ logger:
 self:
   wintr/notifications/telegram:
     credentials:
-      token: 
+      botToken: 
     baseUrl: https://api.telegram.org
     linkPreviewOptions:
       isDisabled: false
+    parseMode: HTML

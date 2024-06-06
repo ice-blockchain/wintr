@@ -5,29 +5,35 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
+	stdlibtime "time"
 
 	"github.com/goccy/go-json"
+	"github.com/imroc/req/v3"
 	"github.com/pkg/errors"
 
 	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
-	"github.com/ice-blockchain/wintr/terror"
 )
+
+func init() { //nolint:gochecknoinits // It's the only way to tweak the client.
+	req.DefaultClient().SetJsonMarshal(json.Marshal)
+	req.DefaultClient().SetJsonUnmarshal(json.Unmarshal)
+	req.DefaultClient().GetClient().Timeout = requestDeadline
+}
 
 //nolint:funlen // .
 func New(applicationYAMLKey string) Client {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
-	if cfg.WintrTelegramNotifications.Credentials.Token == "" {
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
-		cfg.WintrTelegramNotifications.Credentials.Token = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_CREDENTIALS_TOKEN")
+		cfg.WintrTelegramNotifications.Credentials.BotToken = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN")
 	}
-	if cfg.WintrTelegramNotifications.Credentials.Token == "" {
-		cfg.WintrTelegramNotifications.Credentials.Token = os.Getenv("TELEGRAM_NOTIFICATIONS_CREDENTIALS_TOKEN")
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" {
+		cfg.WintrTelegramNotifications.Credentials.BotToken = os.Getenv("TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN")
 	}
 	if cfg.WintrTelegramNotifications.BaseURL == "" {
 		cfg.WintrTelegramNotifications.BaseURL = os.Getenv("TELEGRAM_NOTIFICATIONS_BASE_URL")
@@ -47,62 +53,29 @@ func New(applicationYAMLKey string) Client {
 	cl := &telegramNotification{
 		cfg: &cfg,
 	}
-	responder := make(chan error)
-	cl.Send(context.Background(), &Notification{ChatID: "test", Text: "test", BotToken: cfg.WintrTelegramNotifications.Credentials.Token}, responder)
-	err := <-responder
-	if err != nil && !errors.Is(err, ErrTelegramNotificationBadRequest) {
+	if err := cl.Send(
+		context.Background(), &Notification{ChatID: "test", Text: "test", BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken},
+	); err != nil && !errors.Is(err, ErrTelegramNotificationBadRequest) {
 		log.Panic(err)
 	}
-	close(responder)
 
 	return cl
 }
 
-//nolint:funlen,gocognit,revive // .
-func (t *telegramNotification) Send(ctx context.Context, notif *Notification, responseChan chan<- error) {
+func (t *telegramNotification) Send(ctx context.Context, notif *Notification) error {
 	if ctx.Err() != nil {
-		if responseChan != nil {
-			responseChan <- errors.Wrap(ctx.Err(), "context error")
-		}
-
-		return
+		return errors.Wrap(ctx.Err(), "context error")
 	}
-	go func(ctx context.Context) {
-		sendMsgCtx, cancel := context.WithTimeout(ctx, requestDeadline)
-		defer cancel()
-		msg, err := t.buildTelegramMessage(notif)
-		if err != nil {
-			if responseChan != nil {
-				responseChan <- errors.Wrapf(err, "can't build telegram message for:%#v", notif)
-			}
-		}
-		resp, sErr := t.send(sendMsgCtx, notif.BotToken, msg)
-		if sErr != nil {
-			if responseChan != nil {
-				responseChan <- errors.Wrapf(sErr, "can't call send() function for:%#v", notif)
-			}
+	msg, err := t.buildTelegramMessage(notif)
+	if err != nil {
+		return errors.Wrapf(err, "can't build telegram message for:%#v", notif)
+	}
+	url := fmt.Sprintf("%v/bot%v/sendMessage", t.cfg.WintrTelegramNotifications.BaseURL, notif.BotToken)
+	if sErr := t.post(ctx, url, msg); sErr != nil {
+		return errors.Wrapf(sErr, "can't call send() function for:%#v", notif)
+	}
 
-			return
-		}
-		var rErr error
-		if !resp.Ok {
-			switch resp.ErrorCode {
-			case 400: //nolint:gomnd,mnd // .
-				rErr = ErrTelegramNotificationBadRequest
-			case 404: //nolint:gomnd,mnd // .
-				rErr = ErrTelegramNotificationChatNotFound
-			case 429: //nolint:gomnd,mnd // .
-				rErr = terror.New(ErrTelegramNotificationTooManyAttempts, map[string]any{"retry_after": resp.Parameters.RetryAfter})
-			default:
-				rErr = ErrTelegramNotificationUnexpected
-			}
-		}
-		if responseChan != nil {
-			responseChan <- errors.Wrapf(rErr, "can't send telegram message:%#v, errorCode:%v, description:%v", notif, resp.ErrorCode, resp.Description)
-		} else {
-			log.Error(rErr)
-		}
-	}(ctx)
+	return nil
 }
 
 func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVal string, err error) {
@@ -129,31 +102,58 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 	return string(val), err
 }
 
-//nolint:revive // .
-func (t *telegramNotification) send(ctx context.Context, botToken, jsonVal string) (tResp *telegramAPIResponse, err error) {
-	if ctx.Err() != nil {
-		return nil, errors.Wrap(ctx.Err(), "context error")
+func (t *telegramNotification) post(ctx context.Context, url, body string) error {
+	newReq := t.buildHTTPRequest(ctx)
+	newReq = newReq.SetBodyJsonString(body)
+	resp, err := newReq.Post(url)
+	if err != nil || resp.IsErrorState() {
+		if err == nil {
+			respBody, pErr := resp.ToString()
+			if pErr != nil {
+				return errors.Wrapf(pErr, "notifications/telegram post `%v` failed, body:%#v, [1]unable to read response body", url, body)
+			}
+			var rErr error
+			switch resp.GetStatusCode() {
+			case 400: //nolint:gomnd,mnd // .
+				rErr = ErrTelegramNotificationBadRequest
+			case 404: //nolint:gomnd,mnd // .
+				rErr = ErrTelegramNotificationChatNotFound
+			default:
+				rErr = ErrTelegramNotificationUnexpected
+			}
+
+			return errors.Wrapf(rErr, "notifications/telegram post `%v` failed, body:%#v, response: %v", url, body, respBody)
+		}
+
+		return errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v", url, body)
 	}
-	reader := strings.NewReader(jsonVal)
-	apiURL := fmt.Sprintf("%v/bot%v/sendMessage", t.cfg.WintrTelegramNotifications.BaseURL, botToken)
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, reader)
-	if err != nil {
-		return nil, errors.Wrap(err, "can't send telegram push notification")
-	}
-	request.Header.Set("Content-Type", contentType)
-	resp, err := new(http.Client).Do(request)
-	if err != nil {
-		return nil, errors.Wrap(err, "can't send request")
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "can't read body")
-	}
-	var response telegramAPIResponse
-	if err = json.Unmarshal(body, &response); err != nil {
-		return nil, errors.Wrapf(err, "can't parse telegram body:%v", string(body))
+	if _, err = resp.ToString(); err != nil {
+		return errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v, [2]unable to read response body", url, body)
 	}
 
-	return &response, nil
+	return nil
+}
+
+//nolint:mnd,gomnd // Static config.
+func (*telegramNotification) buildHTTPRequest(ctx context.Context) *req.Request {
+	return req.
+		SetContext(ctx).
+		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second). //nolint:mnd,gomnd // .
+		SetRetryHook(func(resp *req.Response, err error) {
+			switch {
+			case err != nil:
+				log.Error(errors.Wrapf(err, "failed to send telegram notification, retrying... "))
+			case resp.GetStatusCode() == http.StatusTooManyRequests:
+				log.Error(errors.New("rate limit for telegram notification reached, retrying... "))
+			case resp.GetStatusCode() >= http.StatusInternalServerError:
+				log.Error(errors.New("failed to send telegram notification[internal server error], retrying... "))
+			}
+		}).
+		SetRetryCount(25).
+		SetRetryCondition(func(resp *req.Response, err error) bool {
+			return (err != nil && (resp.GetStatusCode() == http.StatusTooManyRequests || resp.GetStatusCode() >= http.StatusInternalServerError) ||
+				resp.IsErrorState() && resp.GetStatusCode() == http.StatusTooManyRequests)
+		}).
+		SetContentType("application/json").
+		SetHeader("Accept", "application/json")
 }

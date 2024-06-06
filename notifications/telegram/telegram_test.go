@@ -4,7 +4,6 @@ package telegram
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -14,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	appcfg "github.com/ice-blockchain/wintr/config"
-	"github.com/ice-blockchain/wintr/terror"
 )
 
 const (
@@ -40,12 +38,9 @@ func TestClientSend_Success_WithPreview(t *testing.T) {
 		ChatID:          testChatID,
 		Text:            "<b>test message</b>",
 		PreviewImageURL: testPreviewImageURL,
-		BotToken:        cfg.WintrTelegramNotifications.Credentials.Token,
+		BotToken:        cfg.WintrTelegramNotifications.Credentials.BotToken,
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.NoError(t, <-responder)
-	close(responder)
+	require.NoError(t, client.Send(ctx, notif))
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
@@ -58,12 +53,9 @@ func TestClientSend_Success_WithoutPreview(t *testing.T) {
 	notif := &Notification{
 		ChatID:   testChatID,
 		Text:     "<b>test message</b>",
-		BotToken: cfg.WintrTelegramNotifications.Credentials.Token,
+		BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.NoError(t, <-responder)
-	close(responder)
+	require.NoError(t, client.Send(ctx, notif))
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
@@ -80,10 +72,7 @@ func TestClientSend_Failure_NoBotInfo(t *testing.T) {
 		PreviewImageURL: "https://ice-staging.b-cdn.net/profile/default-profile-picture-1.png",
 		BotToken:        "",
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.ErrorIs(t, <-responder, ErrTelegramNotificationChatNotFound)
-	close(responder)
+	require.ErrorIs(t, client.Send(ctx, notif), ErrTelegramNotificationChatNotFound)
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
@@ -100,12 +89,9 @@ func TestClientSend_Failure_TooLongMessage(t *testing.T) {
 	notif := &Notification{
 		ChatID:   testChatID,
 		Text:     longText,
-		BotToken: cfg.WintrTelegramNotifications.Credentials.Token,
+		BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.ErrorIs(t, <-responder, ErrTelegramNotificationBadRequest)
-	close(responder)
+	require.ErrorIs(t, client.Send(ctx, notif), ErrTelegramNotificationBadRequest)
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
@@ -118,12 +104,9 @@ func TestClientSend_Failure_EmptyMessage(t *testing.T) {
 	notif := &Notification{
 		ChatID:   testChatID,
 		Text:     "",
-		BotToken: cfg.WintrTelegramNotifications.Credentials.Token,
+		BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.ErrorIs(t, <-responder, ErrTelegramNotificationBadRequest)
-	close(responder)
+	require.ErrorIs(t, client.Send(ctx, notif), ErrTelegramNotificationBadRequest)
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
@@ -137,18 +120,17 @@ func TestClientSend_Failure_NoChatId(t *testing.T) {
 	notif := &Notification{
 		ChatID:   "",
 		Text:     "<b>test message</b>",
-		BotToken: cfg.WintrTelegramNotifications.Credentials.Token,
+		BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 	}
-	responder := make(chan error)
-	client.Send(ctx, notif, responder)
-	require.ErrorIs(t, <-responder, ErrTelegramNotificationBadRequest)
-	close(responder)
+	require.ErrorIs(t, client.Send(ctx, notif), ErrTelegramNotificationBadRequest)
 }
 
-//nolint:funlen,paralleltest // Not to have unpredictable too many attempts error.
-func TestClientSendConcurrency_Failure_TooManyAttempts(t *testing.T) {
+//nolint:paralleltest // Not to have unpredictable too many attempts error.
+func TestClientSendConcurrency_Success_TooManyAttempts(t *testing.T) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*stdlibtime.Second)
+	defer cancel()
 
 	client := New(testApplicationYAML)
 	wg := new(sync.WaitGroup)
@@ -159,32 +141,57 @@ func TestClientSendConcurrency_Failure_TooManyAttempts(t *testing.T) {
 		notif := &Notification{
 			ChatID:   testChatID,
 			Text:     fmt.Sprintf("<b>test message %v</b>", i+1),
-			BotToken: cfg.WintrTelegramNotifications.Credentials.Token,
+			BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 		}
 		go func() {
 			defer wg.Done()
-			innerResponder := make(chan error)
-			client.Send(context.Background(), notif, innerResponder)
-			responder <- <-innerResponder
-			close(innerResponder)
+			responder <- client.Send(ctx, notif)
 		}()
 	}
 	wg.Wait()
 	close(responder)
-
-	okCounter, tooManyRequestCounter := 0, 0
 	for err := range responder {
-		if err != nil {
-			if errors.Is(err, ErrTelegramNotificationTooManyAttempts) {
-				tooManyRequestCounter++
-				if tErr := terror.As(err); tErr != nil {
-					require.Greater(t, tErr.Data["retry_after"], int64(0))
-				}
-			}
-		} else {
-			okCounter++
-		}
+		require.NoError(t, err)
 	}
-	require.Greater(t, okCounter, 30)
-	require.Greater(t, tooManyRequestCounter, 0)
+}
+
+func BenchmarkBufferedClientSendWithPreview(b *testing.B) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+
+	client := New(testApplicationYAML)
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			notif := &Notification{
+				ChatID:          testChatID,
+				Text:            "<b>test message</b>",
+				PreviewImageURL: testPreviewImageURL,
+				BotToken:        cfg.WintrTelegramNotifications.Credentials.BotToken,
+			}
+			require.NoError(b, client.Send(ctx, notif))
+		}
+	})
+}
+
+func BenchmarkBufferedClientSendNoPreview(b *testing.B) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+
+	client := New(testApplicationYAML)
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			notif := &Notification{
+				ChatID:   testChatID,
+				Text:     "<b>test message</b>",
+				BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
+			}
+			require.NoError(b, client.Send(ctx, notif))
+		}
+	})
 }
