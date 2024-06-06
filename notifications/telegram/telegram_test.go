@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	stdlibtime "time"
@@ -23,8 +24,18 @@ const (
 // .
 var (
 	//nolint:gochecknoglobals // Because its loaded once, at runtime.
-	testChatID = os.Getenv("TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID")
+	testChatID string
 )
+
+func TestMain(m *testing.M) {
+	module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(testApplicationYAML, "-", "_"), "/", "_"))
+	testChatID = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID")
+	if testChatID == "" {
+		testChatID = os.Getenv("TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID")
+	}
+
+	os.Exit(m.Run())
+}
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
 func TestClientSend_Success_WithPreview(t *testing.T) {

@@ -24,30 +24,38 @@ func init() { //nolint:gochecknoinits // It's the only way to tweak the client.
 	req.DefaultClient().GetClient().Timeout = requestDeadline
 }
 
-//nolint:funlen // .
+//nolint:funlen,gocognit,revive // .
 func New(applicationYAMLKey string) Client {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" {
 		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
 		cfg.WintrTelegramNotifications.Credentials.BotToken = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN")
-	}
-	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" {
-		cfg.WintrTelegramNotifications.Credentials.BotToken = os.Getenv("TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN")
+		if cfg.WintrTelegramNotifications.Credentials.BotToken == "" {
+			cfg.WintrTelegramNotifications.Credentials.BotToken = os.Getenv("TELEGRAM_NOTIFICATIONS_CREDENTIALS_BOT_TOKEN")
+		}
 	}
 	if cfg.WintrTelegramNotifications.BaseURL == "" {
-		cfg.WintrTelegramNotifications.BaseURL = os.Getenv("TELEGRAM_NOTIFICATIONS_BASE_URL")
+		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
+		cfg.WintrTelegramNotifications.BaseURL = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_BASE_URL")
 		if cfg.WintrTelegramNotifications.BaseURL == "" {
-			cfg.WintrTelegramNotifications.BaseURL = "https://api.telegram.org"
+			cfg.WintrTelegramNotifications.BaseURL = os.Getenv("TELEGRAM_NOTIFICATIONS_BASE_URL")
+			if cfg.WintrTelegramNotifications.BaseURL == "" {
+				cfg.WintrTelegramNotifications.BaseURL = "https://api.telegram.org"
+			}
 		}
 		if strings.HasSuffix(strings.TrimSpace(cfg.WintrTelegramNotifications.BaseURL), "/") {
 			cfg.WintrTelegramNotifications.BaseURL = cfg.WintrTelegramNotifications.BaseURL[:len(cfg.WintrTelegramNotifications.BaseURL)-1]
 		}
 	}
 	if cfg.WintrTelegramNotifications.ParseMode == "" {
-		cfg.WintrTelegramNotifications.ParseMode = os.Getenv("TELEGRAM_NOTIFICATIONS_PARSE_MODE")
+		module := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(applicationYAMLKey, "-", "_"), "/", "_"))
+		cfg.WintrTelegramNotifications.ParseMode = os.Getenv(module + "_TELEGRAM_NOTIFICATIONS_PARSE_MODE")
 		if cfg.WintrTelegramNotifications.ParseMode == "" {
-			cfg.WintrTelegramNotifications.ParseMode = "HTML"
+			cfg.WintrTelegramNotifications.ParseMode = os.Getenv("TELEGRAM_NOTIFICATIONS_PARSE_MODE")
+			if cfg.WintrTelegramNotifications.ParseMode == "" {
+				cfg.WintrTelegramNotifications.ParseMode = "HTML"
+			}
 		}
 	}
 	cl := &telegramNotification{
