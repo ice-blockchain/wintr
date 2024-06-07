@@ -6,8 +6,6 @@ logger:
   level: debug
 self:
   wintr/notifications/telegram:
-    credentials:
-      botToken: 
     baseUrl: https://api.telegram.org
     linkPreviewOptions:
       isDisabled: false
