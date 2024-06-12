@@ -20,6 +20,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
+//nolint:funlen // .
 func New(ctx context.Context, applicationYAMLKey string) Client {
 	cfg := new(config)
 	appcfg.MustLoadFromKey(applicationYAMLKey, cfg)
@@ -32,6 +33,11 @@ func New(ctx context.Context, applicationYAMLKey string) Client {
 	}
 	if cfg.WintrAuthFirebase.Credentials.FilePath != "" {
 		credentialsOption = firebaseoption.WithCredentialsFile(cfg.WintrAuthFirebase.Credentials.FilePath)
+	}
+	if credentialsOption == nil {
+		log.Info("firebase auth client is not initialized, because it is not configured")
+
+		return nil
 	}
 	firebaseApp, err := firebase.NewApp(ctx, nil, credentialsOption)
 	log.Panic(errors.Wrapf(err, "[%v] failed to build Firebase app ", applicationYAMLKey)) //nolint:revive // That's intended.
