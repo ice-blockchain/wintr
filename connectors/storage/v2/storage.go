@@ -56,9 +56,15 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	poolConfig.ConnConfig.StatementCacheCapacity = 1024
 	poolConfig.ConnConfig.DescriptionCacheCapacity = 1024
 	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * stdlibtime.Second
-	poolConfig.HealthCheckPeriod = 30 * stdlibtime.Second
-	poolConfig.MaxConnIdleTime = stdlibtime.Minute
-	poolConfig.MaxConnLifetimeJitter = stdlibtime.Minute
+	if !strings.Contains(strings.ToLower(url), "pool_max_conn_idle_time") {
+		poolConfig.MaxConnIdleTime = stdlibtime.Minute
+	}
+	log.Info(fmt.Sprintf("poolConfig.MaxConnIdleTime=%v", poolConfig.MaxConnIdleTime))
+	if !strings.Contains(strings.ToLower(url), "pool_health_check_period") {
+		poolConfig.HealthCheckPeriod = 30 * stdlibtime.Second
+	}
+	log.Info(fmt.Sprintf("poolConfig.HealthCheckPeriod=%v", poolConfig.HealthCheckPeriod))
+	poolConfig.MaxConnLifetimeJitter = 10 * stdlibtime.Minute
 	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
 	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
 	poolConfig.MinConns = 1
