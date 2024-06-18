@@ -63,7 +63,7 @@ func New(applicationYAMLKey string) Client {
 	}
 	if err := cl.Send(
 		context.Background(), &Notification{ChatID: "test", Text: "test", BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken},
-	); err != nil && !errors.Is(err, ErrTelegramNotificationBadRequest) {
+	); err != nil && !errors.Is(err, ErrTelegramNotificationChatNotFound) {
 		log.Panic(err)
 	}
 
