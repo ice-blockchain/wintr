@@ -174,7 +174,7 @@ func (*telegramNotification) buildHTTPRequest(ctx context.Context) *req.Request 
 				log.Error(errors.New("failed to send telegram notification[internal server error], retrying... "))
 			}
 		}).
-		SetRetryCount(10).
+		SetRetryCount(25).
 		SetRetryCondition(func(resp *req.Response, err error) bool {
 			return (err != nil ||
 				(resp.IsErrorState() && resp.GetStatusCode() != http.StatusBadRequest &&
