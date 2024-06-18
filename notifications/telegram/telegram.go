@@ -86,6 +86,7 @@ func (t *telegramNotification) Send(ctx context.Context, notif *Notification) er
 	return nil
 }
 
+//nolint:funlen // .
 func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVal string, err error) {
 	ts := telegramMessage{
 		ChatID:    notif.ChatID,
@@ -101,6 +102,19 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 			ShowAboveText: true,
 		},
 		DisableNotification: notif.DisableNotification,
+	}
+	if len(notif.Buttons) > 0 {
+		for ix := range notif.Buttons {
+			ts.ReplyMarkup.InlineKeyboard = append(ts.ReplyMarkup.InlineKeyboard, []struct {
+				Text string `json:"text" example:"some text"`
+				URL  string `json:"url" example:"https://ice.io"`
+			}{
+				{
+					Text: notif.Buttons[ix].Text,
+					URL:  notif.Buttons[ix].URL,
+				},
+			})
+		}
 	}
 	val, err := json.Marshal(ts)
 	if err != nil {
@@ -160,7 +174,7 @@ func (*telegramNotification) buildHTTPRequest(ctx context.Context) *req.Request 
 				log.Error(errors.New("failed to send telegram notification[internal server error], retrying... "))
 			}
 		}).
-		SetRetryCount(25).
+		SetRetryCount(10).
 		SetRetryCondition(func(resp *req.Response, err error) bool {
 			return (err != nil ||
 				(resp.IsErrorState() && resp.GetStatusCode() != http.StatusBadRequest &&

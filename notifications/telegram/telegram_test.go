@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
-func TestClientSend_Success_WithPreview(t *testing.T) {
+func TestClientSend_Success_WithPreviewAndButton(t *testing.T) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
@@ -50,15 +50,24 @@ func TestClientSend_Success_WithPreview(t *testing.T) {
 	client := New(testApplicationYAML)
 	notif := &Notification{
 		ChatID:          testChatID,
-		Text:            "<b>test message</b>",
+		Text:            "<b>test message</b> <a href=\"https://ice.io\">check ice page</a>",
 		PreviewImageURL: testPreviewImageURL,
 		BotToken:        cfg.WintrTelegramNotifications.Credentials.BotToken,
+		Buttons: []struct {
+			Text string `json:"text,omitempty"`
+			URL  string `json:"url,omitempty"`
+		}{
+			{
+				Text: "test button",
+				URL:  "https://ice.io",
+			},
+		},
 	}
 	require.NoError(t, client.Send(ctx, notif))
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.
-func TestClientSend_Success_WithoutPreview(t *testing.T) {
+func TestClientSend_Success_WithoutPreviewAndButton(t *testing.T) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
