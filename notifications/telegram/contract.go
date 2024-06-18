@@ -16,11 +16,15 @@ type (
 		Send(ctx context.Context, notif *Notification) error
 	}
 	Notification struct {
-		ChatID              string `json:"chatId,omitempty"`
-		Text                string `json:"text,omitempty"`
-		PreviewImageURL     string `json:"previewImageUrl,omitempty"`
-		BotToken            string `json:"botToken,omitempty"`
-		DisableNotification bool   `json:"disableNotification,omitempty"`
+		ChatID          string `json:"chatId,omitempty"`
+		Text            string `json:"text,omitempty"`
+		PreviewImageURL string `json:"previewImageUrl,omitempty"`
+		BotToken        string `json:"botToken,omitempty"`
+		Buttons         []struct {
+			Text string `json:"text,omitempty"`
+			URL  string `json:"url,omitempty"`
+		}
+		DisableNotification bool `json:"disableNotification,omitempty"`
 	}
 )
 
@@ -49,6 +53,12 @@ type (
 			IsDisabled    bool   `json:"is_disabled" example:"false"`    //nolint:tagliatelle // It's telegram API.
 			ShowAboveText bool   `json:"show_above_text" example:"true"` //nolint:tagliatelle // It's telegram API.
 		} `json:"link_preview_options"` //nolint:tagliatelle // It's telegram API.
+		ReplyMarkup struct {
+			InlineKeyboard [][]struct {
+				Text string `json:"text" example:"some text"`
+				URL  string `json:"url" example:"https://ice.io"`
+			} `json:"inline_keyboard,omitempty"` //nolint:tagliatelle // It's telegram API.
+		} `json:"reply_markup,omitempty"` //nolint:tagliatelle // It's telegram API.
 		DisableNotification bool `json:"disable_notification" example:"true"` //nolint:tagliatelle // It's telegram API.
 	}
 	config struct {

@@ -63,7 +63,7 @@ func New(applicationYAMLKey string) Client {
 	}
 	if err := cl.Send(
 		context.Background(), &Notification{ChatID: "test", Text: "test", BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken},
-	); err != nil && !errors.Is(err, ErrTelegramNotificationBadRequest) {
+	); err != nil && !errors.Is(err, ErrTelegramNotificationChatNotFound) {
 		log.Panic(err)
 	}
 
@@ -86,6 +86,7 @@ func (t *telegramNotification) Send(ctx context.Context, notif *Notification) er
 	return nil
 }
 
+//nolint:funlen // .
 func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVal string, err error) {
 	ts := telegramMessage{
 		ChatID:    notif.ChatID,
@@ -101,6 +102,19 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 			ShowAboveText: true,
 		},
 		DisableNotification: notif.DisableNotification,
+	}
+	if len(notif.Buttons) > 0 {
+		for ix := range notif.Buttons {
+			ts.ReplyMarkup.InlineKeyboard = append(ts.ReplyMarkup.InlineKeyboard, []struct {
+				Text string `json:"text" example:"some text"`
+				URL  string `json:"url" example:"https://ice.io"`
+			}{
+				{
+					Text: notif.Buttons[ix].Text,
+					URL:  notif.Buttons[ix].URL,
+				},
+			})
+		}
 	}
 	val, err := json.Marshal(ts)
 	if err != nil {
