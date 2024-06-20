@@ -151,6 +151,18 @@ func (t *Time) unmarshallString(bytes []byte) error {
 	return nil
 }
 
+func (t *Time) String() string {
+	if t == nil || t.Time == nil {
+		return ""
+	}
+	b, _ := t.Time.MarshalText() //nolint:errcheck // .
+	if len(b) == 0 {
+		return "<nil>"
+	}
+
+	return string(b)
+}
+
 func (t *Time) IsNil() bool {
 	return t == nil || t.Time == nil
 }
