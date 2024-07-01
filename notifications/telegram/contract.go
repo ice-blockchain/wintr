@@ -14,6 +14,7 @@ import (
 type (
 	Client interface {
 		Send(ctx context.Context, notif *Notification) error
+		GetUpdates(ctx context.Context, arg *GetUpdatesArg) (updates []*Update, err error)
 	}
 	Notification struct {
 		ChatID          string `json:"chatId,omitempty"`
@@ -24,7 +25,27 @@ type (
 			Text string `json:"text,omitempty"`
 			URL  string `json:"url,omitempty"`
 		}
-		DisableNotification bool `json:"disableNotification,omitempty"`
+		ReplyMessageID      int64 `json:"replyMessageId,omitempty"`
+		DisableNotification bool  `json:"disableNotification,omitempty"`
+	}
+	GetUpdatesArg struct {
+		BotToken       string   `json:"botToken,omitempty"`
+		AllowedUpdates []string `json:"allowedUpdates,omitempty"`
+		Limit          int64    `json:"limit,omitempty"`
+		Offset         int64    `json:"offset,omitempty"`
+	}
+	Update struct {
+		Message struct {
+			Text string `json:"text,omitempty"`
+			From struct {
+				Username string `json:"username,omitempty"`
+				ID       int64  `json:"id,omitempty"`
+				IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
+			} `json:"from,omitempty"`
+			MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
+			Date      int64 `json:"date,omitempty"`
+		} `json:"message,omitempty"`
+		UpdateID int64 `json:"update_id,omitempty"` //nolint:tagliatelle // It's telegram API.
 	}
 )
 
@@ -38,6 +59,7 @@ var (
 	ErrTelegramNotificationChatNotFound = errors.New("chat not found")
 	ErrTelegramNotificationBadRequest   = errors.New("bad request")
 	ErrTelegramNotificationForbidden    = errors.New("forbidden")
+	ErrTelegramBotConflict              = errors.New("conflict")
 )
 
 type (
@@ -59,7 +81,15 @@ type (
 				URL  string `json:"url" example:"https://ice.io"`
 			} `json:"inline_keyboard,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"reply_markup,omitempty"` //nolint:tagliatelle // It's telegram API.
+		ReplyParameters struct {
+			MessageID int64 `json:"message_id"` //nolint:tagliatelle // It's telegram API.
+		} `json:"reply_parameters"` //nolint:tagliatelle // It's telegram API.
 		DisableNotification bool `json:"disable_notification" example:"true"` //nolint:tagliatelle // It's telegram API.
+	}
+	getUpdatesMessage struct {
+		AllowedUpdates []string `json:"allowed_updates,omitempty"` //nolint:tagliatelle // It's telegram API.
+		Limit          int64    `json:"limit,omitempty"`
+		Offset         int64    `json:"offset,omitempty"`
 	}
 	config struct {
 		WintrTelegramNotifications struct {

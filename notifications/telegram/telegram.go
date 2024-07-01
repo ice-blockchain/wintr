@@ -79,11 +79,40 @@ func (t *telegramNotification) Send(ctx context.Context, notif *Notification) er
 		return errors.Wrapf(err, "can't build telegram message for:%#v", notif)
 	}
 	url := fmt.Sprintf("%v/bot%v/sendMessage", t.cfg.WintrTelegramNotifications.BaseURL, notif.BotToken)
-	if sErr := t.post(ctx, url, msg); sErr != nil {
+	if _, sErr := t.post(ctx, url, msg); sErr != nil {
 		return errors.Wrapf(sErr, "can't call send() function for:%#v", notif)
 	}
 
 	return nil
+}
+
+func (t *telegramNotification) GetUpdates(ctx context.Context, arg *GetUpdatesArg) (updates []*Update, err error) {
+	if ctx.Err() != nil {
+		return nil, errors.Wrap(ctx.Err(), "context error")
+	}
+	ts := getUpdatesMessage{
+		AllowedUpdates: arg.AllowedUpdates,
+		Limit:          arg.Limit,
+		Offset:         arg.Offset,
+	}
+	val, err := json.Marshal(ts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "can't send telegram push notification:%#v", arg)
+	}
+	url := fmt.Sprintf("%v/bot%v/getUpdates", t.cfg.WintrTelegramNotifications.BaseURL, arg.BotToken)
+	resp, sErr := t.post(ctx, url, string(val))
+	if sErr != nil {
+		return nil, errors.Wrapf(sErr, "can't call getUpdates function for:%#v", arg)
+	}
+	var parsed struct {
+		Result []*Update `json:"result"`
+		OK     bool      `json:"ok"`
+	}
+	if err = json.Unmarshal([]byte(resp), &parsed); err != nil {
+		return nil, errors.Wrapf(err, "unmarshalling response for telegram failed, response: %v", resp)
+	}
+
+	return parsed.Result, nil
 }
 
 //nolint:funlen // .
@@ -116,6 +145,9 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 			})
 		}
 	}
+	if notif.ReplyMessageID > 0 {
+		ts.ReplyParameters.MessageID = notif.ReplyMessageID
+	}
 	val, err := json.Marshal(ts)
 	if err != nil {
 		return "", errors.Wrapf(err, "can't send telegram push notification:%#v", notif)
@@ -125,7 +157,7 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 }
 
 //nolint:funlen // .
-func (t *telegramNotification) post(ctx context.Context, url, body string) error {
+func (t *telegramNotification) post(ctx context.Context, url, body string) (response string, err error) {
 	newReq := t.buildHTTPRequest(ctx)
 	newReq = newReq.SetBodyJsonString(body)
 	resp, err := newReq.Post(url)
@@ -133,7 +165,7 @@ func (t *telegramNotification) post(ctx context.Context, url, body string) error
 		if err == nil {
 			respBody, pErr := resp.ToString()
 			if pErr != nil {
-				return errors.Wrapf(pErr, "notifications/telegram post `%v` failed, body:%#v, [1]unable to read response body", url, body)
+				return "", errors.Wrapf(pErr, "notifications/telegram post `%v` failed, body:%#v, [1]unable to read response body", url, body)
 			}
 			var rErr error
 			switch resp.GetStatusCode() {
@@ -143,20 +175,22 @@ func (t *telegramNotification) post(ctx context.Context, url, body string) error
 				rErr = ErrTelegramNotificationForbidden
 			case 404: //nolint:gomnd,mnd // .
 				rErr = ErrTelegramNotificationChatNotFound
+			case 409: //nolint:gomnd,mnd // .
+				rErr = ErrTelegramBotConflict
 			default:
-				return errors.Wrapf(rErr, "notifications/telegram post `%v` failed, unexpected error, body:%#v, response: %v", url, body, respBody)
+				return "", errors.Wrapf(rErr, "notifications/telegram post `%v` failed, unexpected error, body:%#v, response: %v", url, body, respBody)
 			}
 
-			return errors.Wrapf(rErr, "notifications/telegram post `%v` failed, body:%#v, response: %v", url, body, respBody)
+			return "", errors.Wrapf(rErr, "notifications/telegram post `%v` failed, body:%#v, response: %v", url, body, respBody)
 		}
 
-		return errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v", url, body)
+		return "", errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v", url, body)
 	}
-	if _, err = resp.ToString(); err != nil {
-		return errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v, [2]unable to read response body", url, body)
+	if response, err = resp.ToString(); err != nil {
+		return "", errors.Wrapf(err, "notifications/telegram post `%v` failed, body:%#v, [2]unable to read response body", url, body)
 	}
 
-	return nil
+	return response, nil
 }
 
 //nolint:mnd,gomnd // Static config.

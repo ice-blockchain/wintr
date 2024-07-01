@@ -199,6 +199,87 @@ func TestClientSendConcurrency_Success_TooManyAttempts(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // Not to have unpredictable too many attempts error.
+func TestClientGetUpdates_Success(t *testing.T) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
+		t.Skip()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	client := New(testApplicationYAML)
+	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
+		BotToken:       cfg.WintrTelegramNotifications.Credentials.BotToken,
+		AllowedUpdates: []string{"message"},
+		Limit:          1,
+		Offset:         0,
+	})
+	require.NoError(t, err)
+	require.Empty(t, upd)
+}
+
+//nolint:paralleltest // Not to have unpredictable too many attempts error.
+func TestClientGetUpdates_Success_WrongOffset(t *testing.T) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
+		t.Skip()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	client := New(testApplicationYAML)
+	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
+		BotToken:       cfg.WintrTelegramNotifications.Credentials.BotToken,
+		AllowedUpdates: []string{"message"},
+		Limit:          1,
+		Offset:         11111111111111111,
+	})
+	require.NoError(t, err)
+	require.Empty(t, upd)
+}
+
+//nolint:paralleltest // Not to have unpredictable too many attempts error.
+func TestClientGetUpdates_Success_WrongAllowedUpdates(t *testing.T) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
+		t.Skip()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	client := New(testApplicationYAML)
+	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
+		BotToken:       cfg.WintrTelegramNotifications.Credentials.BotToken,
+		AllowedUpdates: []string{"wrong"},
+		Limit:          1,
+		Offset:         0,
+	})
+	require.NoError(t, err)
+	require.Empty(t, upd)
+}
+
+//nolint:paralleltest // Not to have unpredictable too many attempts error.
+func TestClientGetUpdates_Failure_NoBotTokenProvided(t *testing.T) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
+		t.Skip()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	client := New(testApplicationYAML)
+	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
+		BotToken:       "",
+		AllowedUpdates: []string{"message"},
+		Limit:          1,
+		Offset:         0,
+	})
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrTelegramNotificationChatNotFound)
+	require.Empty(t, upd)
+}
+
 func BenchmarkBufferedClientSendWithPreview(b *testing.B) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
@@ -243,6 +324,29 @@ func BenchmarkBufferedClientSendNoPreview(b *testing.B) {
 				BotToken: cfg.WintrTelegramNotifications.Credentials.BotToken,
 			}
 			require.NoError(b, client.Send(ctx, notif))
+		}
+	})
+}
+
+func BenchmarkGetUpdates(b *testing.B) {
+	var cfg config
+	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	defer cancel()
+	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
+		b.Skip()
+	}
+	client := New(testApplicationYAML)
+	b.SetParallelism(1000)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := client.GetUpdates(ctx, &GetUpdatesArg{
+				BotToken:       cfg.WintrTelegramNotifications.Credentials.BotToken,
+				AllowedUpdates: []string{"message"},
+				Limit:          1,
+				Offset:         0,
+			})
+			require.NoError(b, err)
 		}
 	})
 }
