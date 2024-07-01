@@ -28,9 +28,10 @@ type (
 	ContentType string
 
 	Participant struct {
-		SendAt *time.Time
-		Name   string
-		Email  string
+		SendAt             *time.Time
+		SubstitutionFields map[string]string
+		Name               string
+		Email              string
 	}
 
 	Body struct {
@@ -39,9 +40,9 @@ type (
 	}
 
 	Parcel struct {
+		From    Participant
 		Body    *Body
 		Subject string
-		From    Participant
 	}
 
 	Client interface {

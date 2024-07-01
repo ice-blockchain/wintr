@@ -3,6 +3,8 @@
 package storage
 
 import (
+	"context"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 )
@@ -25,6 +27,10 @@ type (
 		master *pgxpool.Pool
 		lb     *lb
 	}
+	Lock interface {
+		Obtain(ctx context.Context) (bool, error)
+		Unlock(ctx context.Context) error
+	}
 )
 
 // Private API.
@@ -45,5 +51,9 @@ type (
 			ReplicaURLs []string `yaml:"replicaURLs" mapstructure:"replicaURLs"` //nolint:tagliatelle // Nope.
 			RunDDL      bool     `yaml:"runDDL" mapstructure:"runDDL"`           //nolint:tagliatelle // Nope.
 		} `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
+	}
+	lock struct {
+		conn *pgxpool.Conn
+		id   int64
 	}
 )

@@ -125,6 +125,7 @@ func (p *Parcel) sendgridEmail(destinations ...Participant) *mail.SGMailV3 {
 		if participant.SendAt != nil {
 			personalization.SetSendAt(int(participant.SendAt.Unix()))
 		}
+		personalization.Substitutions = participant.SubstitutionFields
 		mailObj.AddPersonalizations(personalization)
 	}
 

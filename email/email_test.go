@@ -39,7 +39,7 @@ func TestClientSend(t *testing.T) {
 	p1 := &Parcel{
 		Body: &Body{
 			Type: TextHTML,
-			Data: "<strong>123456</strong>",
+			Data: "<strong>-conf_code-</strong>",
 		},
 		Subject: "Testing wintr/email",
 		From: Participant{
@@ -50,16 +50,18 @@ func TestClientSend(t *testing.T) {
 	testingEmail1 := fixture.TestingEmail(ctx, t)
 	testingEmail2 := fixture.TestingEmail(ctx, t)
 	require.NoError(t, client.Send(ctx, p1, Participant{
-		Name:  "n1",
-		Email: testingEmail1,
+		Name:               "n1",
+		Email:              testingEmail1,
+		SubstitutionFields: map[string]string{"-conf_code-": "123456"},
 	},
 		Participant{
-			Name:   "n2",
-			Email:  testingEmail2,
-			SendAt: time.New(time.Now().Add(2 * stdlibtime.Second)),
+			Name:               "n2",
+			Email:              testingEmail2,
+			SendAt:             time.New(time.Now().Add(2 * stdlibtime.Second)),
+			SubstitutionFields: map[string]string{"-conf_code-": "654321"},
 		}))
 	fixture.AssertEmailConfirmationCode(ctx, t, testingEmail1, "123456", func(msg string) string { return string([]byte(msg)[8:14]) })
-	fixture.AssertEmailConfirmationCode(ctx, t, testingEmail2, "123456", func(msg string) string { return string([]byte(msg)[8:14]) })
+	fixture.AssertEmailConfirmationCode(ctx, t, testingEmail2, "654321", func(msg string) string { return string([]byte(msg)[8:14]) })
 }
 
 func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing ratelimit, we have 2 tests that need to not run in parallel.
