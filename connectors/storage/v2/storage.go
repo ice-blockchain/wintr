@@ -43,8 +43,9 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
 		}
 	}
+	db := &DB{master: master, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
-	return &DB{master: master, lb: &lb{replicas: replicas}}
+	return db
 }
 
 //nolint:mnd,gomnd // Configuration.
@@ -66,7 +67,9 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	log.Info(fmt.Sprintf("poolConfig.HealthCheckPeriod=%v", poolConfig.HealthCheckPeriod))
 	poolConfig.MaxConnLifetimeJitter = 10 * stdlibtime.Minute
 	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
-	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
+	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error {
+		return doAfterConnect(cctx, timeout, conn)
+	}
 	poolConfig.MinConns = 1
 	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
 	log.Panic(errors.Wrapf(err, "failed to start pool for config: %v", url))
@@ -117,7 +120,19 @@ func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error {
 	return nil
 }
 
+func (db *DB) registerLock(conn *pgxpool.Conn, lock *advisoryLockMutex) {
+	db.locksMx.Lock()
+	defer db.locksMx.Unlock()
+	db.acquiredLocks[lock.id] = conn
+}
+
 func (db *DB) Close() error {
+	db.locksMx.Lock()
+	defer db.locksMx.Unlock()
+	for lockID, conn := range db.acquiredLocks {
+		conn.Release()
+		delete(db.acquiredLocks, lockID)
+	}
 	if db.master != nil {
 		db.master.Close()
 	}

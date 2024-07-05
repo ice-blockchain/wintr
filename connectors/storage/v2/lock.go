@@ -9,33 +9,51 @@ import (
 	"github.com/zeebo/xxh3"
 )
 
-func NewLock(ctx context.Context, db *DB, lockID string) (Lock, error) {
-	conn, err := db.primary().Acquire(ctx)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to acquire connection to DB")
-	}
+func NewMutex(db *DB, lockID string) Mutex {
 	lockIDHash := int64(xxh3.HashString(lockID))
-	l := &lock{conn: conn, id: lockIDHash}
+	l := &advisoryLockMutex{conn: nil, db: db, id: lockIDHash}
 
-	return l, nil
+	return l
 }
 
-func (l *lock) Obtain(ctx context.Context) (bool, error) {
+func (l *advisoryLockMutex) Lock(ctx context.Context) error {
 	isLockAquired := false
-	err := l.conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1);", l.id).Scan(&isLockAquired)
+	conn, err := l.db.primary().Acquire(ctx)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to pg_try_advisory_lock for lock %v", l.id)
+		return errors.Wrapf(err, "failed to acquire connection to DB")
 	}
+	l.conn = conn
+	if err = l.conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1);", l.id).Scan(&isLockAquired); err != nil {
+		return errors.Wrapf(err, "failed to pg_try_advisory_lock for advisoryLockMutex %v", l.id)
+	}
+	if !isLockAquired {
+		return ErrMutexNotLocked
+	}
+	l.db.registerLock(l.conn, l)
 
-	return isLockAquired, nil
+	return nil
 }
 
-func (l *lock) Unlock(ctx context.Context) error {
+func (l *advisoryLockMutex) Unlock(ctx context.Context) error {
 	_, err := l.conn.Exec(ctx, "SELECT pg_advisory_unlock($1);", l.id)
 	if err != nil {
-		return errors.Wrapf(err, "failed to pg_advisory_unlock for lock %v", l.id)
+		return errors.Wrapf(err, "failed to pg_advisory_unlock for advisoryLockMutex %v", l.id)
 	}
 	l.conn.Release()
+
+	return nil
+}
+
+func (l *advisoryLockMutex) EnsureLocked(ctx context.Context) error {
+	if l.conn == nil {
+		return ErrMutexNotLocked
+	}
+	if l.conn.Conn().IsClosed() {
+		return l.Lock(ctx)
+	}
+	if l.conn.Ping(ctx) != nil {
+		return l.Lock(ctx)
+	}
 
 	return nil
 }

@@ -59,7 +59,7 @@ const (
 // .
 var (
 	//nolint:gochecknoglobals // Because its loaded once, at runtime.
-	cfg            config
+	cfg            Config
 	errPleaseRetry = errors.New("please retry")
 )
 
@@ -68,11 +68,12 @@ type (
 		client *sendgrid.Client
 	}
 
-	config struct {
+	Config struct {
 		WintrEmail struct {
 			Credentials struct {
 				APIKey string `yaml:"apiKey" mapstructure:"apiKey"`
 			} `yaml:"credentials" mapstructure:"credentials"`
+			BatchSize int64 `yaml:"batchSize" mapstructure:"batchSize"`
 		} `yaml:"wintr/email" mapstructure:"wintr/email"` //nolint:tagliatelle // Nope.
 	}
 )
