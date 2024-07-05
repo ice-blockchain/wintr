@@ -43,8 +43,9 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
 		}
 	}
+	db := &DB{master: master, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
-	return &DB{master: master, lb: &lb{replicas: replicas}}
+	return db
 }
 
 //nolint:mnd,gomnd // Configuration.
@@ -117,7 +118,19 @@ func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error {
 	return nil
 }
 
+func (db *DB) registerLock(conn *pgxpool.Conn, lock *advisoryLockMutex) {
+	db.locksMx.Lock()
+	defer db.locksMx.Unlock()
+	db.acquiredLocks[lock.id] = conn
+}
+
 func (db *DB) Close() error {
+	db.locksMx.Lock()
+	for lockID, conn := range db.acquiredLocks {
+		conn.Release()
+		delete(db.acquiredLocks, lockID)
+	}
+	db.locksMx.Unlock()
 	if db.master != nil {
 		db.master.Close()
 	}
@@ -126,6 +139,9 @@ func (db *DB) Close() error {
 			replica.Close()
 		}
 	}
+	db.closedMx.Lock()
+	defer db.closedMx.Unlock()
+	db.closed = true
 
 	return nil
 }

@@ -3,6 +3,9 @@
 package storage
 
 import (
+	"context"
+	"sync"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 )
@@ -18,12 +21,22 @@ var (
 	ErrSerializationFailure = errors.New("serialization failure")
 	ErrTxAborted            = errors.New("transaction aborted")
 	ErrExclusionViolation   = errors.New("exclusion violation")
+	ErrMutexNotLocked       = errors.New("not locked")
 )
 
 type (
 	DB struct {
-		master *pgxpool.Pool
-		lb     *lb
+		master        *pgxpool.Pool
+		lb            *lb
+		acquiredLocks map[int64]*pgxpool.Conn
+		locksMx       sync.Mutex
+		closed        bool
+		closedMx      sync.Mutex
+	}
+	Mutex interface {
+		Lock(ctx context.Context) error
+		Unlock(ctx context.Context) error
+		EnsureLocked(ctx context.Context) error
 	}
 )
 
@@ -45,5 +58,10 @@ type (
 			ReplicaURLs []string `yaml:"replicaURLs" mapstructure:"replicaURLs"` //nolint:tagliatelle // Nope.
 			RunDDL      bool     `yaml:"runDDL" mapstructure:"runDDL"`           //nolint:tagliatelle // Nope.
 		} `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
+	}
+	advisoryLockMutex struct {
+		conn *pgxpool.Conn
+		db   *DB
+		id   int64
 	}
 )
