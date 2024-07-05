@@ -36,7 +36,7 @@ require (
 	github.com/twmb/franz-go/pkg/kadm v1.12.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/zeebo/xxh3 v1.0.2
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.27.0
 	google.golang.org/api v0.187.0
 )
 
