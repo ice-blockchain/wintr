@@ -67,9 +67,7 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	log.Info(fmt.Sprintf("poolConfig.HealthCheckPeriod=%v", poolConfig.HealthCheckPeriod))
 	poolConfig.MaxConnLifetimeJitter = 10 * stdlibtime.Minute
 	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
-	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error {
-		return doAfterConnect(cctx, timeout, conn)
-	}
+	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
 	poolConfig.MinConns = 1
 	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
 	log.Panic(errors.Wrapf(err, "failed to start pool for config: %v", url))
@@ -128,11 +126,11 @@ func (db *DB) registerLock(conn *pgxpool.Conn, lock *advisoryLockMutex) {
 
 func (db *DB) Close() error {
 	db.locksMx.Lock()
-	defer db.locksMx.Unlock()
 	for lockID, conn := range db.acquiredLocks {
 		conn.Release()
 		delete(db.acquiredLocks, lockID)
 	}
+	db.locksMx.Unlock()
 	if db.master != nil {
 		db.master.Close()
 	}
@@ -141,6 +139,9 @@ func (db *DB) Close() error {
 			replica.Close()
 		}
 	}
+	db.closedMx.Lock()
+	defer db.closedMx.Unlock()
+	db.closed = true
 
 	return nil
 }

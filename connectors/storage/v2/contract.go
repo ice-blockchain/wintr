@@ -30,6 +30,8 @@ type (
 		lb            *lb
 		acquiredLocks map[int64]*pgxpool.Conn
 		locksMx       sync.Mutex
+		closed        bool
+		closedMx      sync.Mutex
 	}
 	Mutex interface {
 		Lock(ctx context.Context) error

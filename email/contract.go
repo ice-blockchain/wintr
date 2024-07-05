@@ -73,7 +73,6 @@ type (
 			Credentials struct {
 				APIKey string `yaml:"apiKey" mapstructure:"apiKey"`
 			} `yaml:"credentials" mapstructure:"credentials"`
-			BatchSize int64 `yaml:"batchSize" mapstructure:"batchSize"`
 		} `yaml:"wintr/email" mapstructure:"wintr/email"` //nolint:tagliatelle // Nope.
 	}
 )
