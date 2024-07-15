@@ -351,6 +351,10 @@ func (l *lb) HScan(ctx context.Context, key string, cursor uint64, match string,
 	return l.instance().HScan(ctx, key, cursor, match, count)
 }
 
+func (l *lb) HScanNoValues(ctx context.Context, key string, cursor uint64, match string, count int64) *redis.ScanCmd {
+	return l.instance().HScanNoValues(ctx, key, cursor, match, count)
+}
+
 func (l *lb) ZScan(ctx context.Context, key string, cursor uint64, match string, count int64) *redis.ScanCmd {
 	return l.instance().ZScan(ctx, key, cursor, match, count)
 }
@@ -1883,6 +1887,174 @@ func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
 
 func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive // Comes from interface.
 	return l.instance().BitFieldRO(ctx, key, values...)
+}
+
+func (l *lb) FTAggregate(ctx context.Context, index, query string) *redis.MapStringInterfaceCmd {
+	return l.instance().FTAggregate(ctx, index, query)
+}
+
+func (l *lb) FT_List(ctx context.Context) *redis.StringSliceCmd { //nolint:stylecheck,revive // Comes from interface.
+	return l.instance().FT_List(ctx)
+}
+
+func (l *lb) FTAggregateWithArgs(ctx context.Context, index, query string, options *redis.FTAggregateOptions) *redis.AggregateCmd {
+	return l.instance().FTAggregateWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTAliasAdd(ctx context.Context, index, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasAdd(ctx, index, alias)
+}
+
+func (l *lb) FTAliasDel(ctx context.Context, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasDel(ctx, alias)
+}
+
+func (l *lb) FTAliasUpdate(ctx context.Context, index, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasUpdate(ctx, index, alias)
+}
+
+func (l *lb) FTAlter(ctx context.Context, index string, skipInitalScan bool, definition []any) *redis.StatusCmd {
+	return l.instance().FTAlter(ctx, index, skipInitalScan, definition)
+}
+
+func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd {
+	return l.instance().FTConfigGet(ctx, option)
+}
+
+func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd {
+	return l.instance().FTConfigSet(ctx, option, value)
+}
+
+func (l *lb) FTCreate(ctx context.Context, index string, options *redis.FTCreateOptions, schema ...*redis.FieldSchema) *redis.StatusCmd {
+	return l.instance().FTCreate(ctx, index, options, schema...)
+}
+
+func (l *lb) FTCursorDel(ctx context.Context, index string, cursorID int) *redis.StatusCmd {
+	return l.instance().FTCursorDel(ctx, index, cursorID)
+}
+
+func (l *lb) FTCursorRead(ctx context.Context, index string, cursorID, count int) *redis.MapStringInterfaceCmd {
+	return l.instance().FTCursorRead(ctx, index, cursorID, count)
+}
+
+func (l *lb) FTDictAdd(ctx context.Context, dict string, term ...any) *redis.IntCmd {
+	return l.instance().FTDictAdd(ctx, dict, term...)
+}
+
+func (l *lb) FTDictDel(ctx context.Context, dict string, term ...any) *redis.IntCmd {
+	return l.instance().FTDictDel(ctx, dict, term...)
+}
+
+func (l *lb) FTDictDump(ctx context.Context, dict string) *redis.StringSliceCmd {
+	return l.instance().FTDictDump(ctx, dict)
+}
+
+func (l *lb) FTDropIndex(ctx context.Context, index string) *redis.StatusCmd {
+	return l.instance().FTDropIndex(ctx, index)
+}
+
+func (l *lb) FTDropIndexWithArgs(ctx context.Context, index string, options *redis.FTDropIndexOptions) *redis.StatusCmd {
+	return l.instance().FTDropIndexWithArgs(ctx, index, options)
+}
+
+func (l *lb) FTExplain(ctx context.Context, index, query string) *redis.StringCmd {
+	return l.instance().FTExplain(ctx, index, query)
+}
+
+func (l *lb) FTExplainWithArgs(ctx context.Context, index, query string, options *redis.FTExplainOptions) *redis.StringCmd {
+	return l.instance().FTExplainWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTInfo(ctx context.Context, index string) *redis.FTInfoCmd {
+	return l.instance().FTInfo(ctx, index)
+}
+
+func (l *lb) FTSpellCheck(ctx context.Context, index, query string) *redis.FTSpellCheckCmd {
+	return l.instance().FTSpellCheck(ctx, index, query)
+}
+
+func (l *lb) FTSpellCheckWithArgs(ctx context.Context, index, query string, options *redis.FTSpellCheckOptions) *redis.FTSpellCheckCmd {
+	return l.instance().FTSpellCheckWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTSearch(ctx context.Context, index, query string) *redis.FTSearchCmd {
+	return l.instance().FTSearch(ctx, index, query)
+}
+
+func (l *lb) FTSearchWithArgs(ctx context.Context, index, query string, options *redis.FTSearchOptions) *redis.FTSearchCmd {
+	return l.instance().FTSearchWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTSynDump(ctx context.Context, index string) *redis.FTSynDumpCmd {
+	return l.instance().FTSynDump(ctx, index)
+}
+
+func (l *lb) FTSynUpdate(ctx context.Context, index string, synGroupID any, terms []any) *redis.StatusCmd {
+	return l.instance().FTSynUpdate(ctx, index, synGroupID, terms)
+}
+
+func (l *lb) FTSynUpdateWithArgs(ctx context.Context, index string, synGroupID any, options *redis.FTSynUpdateOptions, terms []any) *redis.StatusCmd {
+	return l.instance().FTSynUpdateWithArgs(ctx, index, synGroupID, options, terms)
+}
+
+func (l *lb) FTTagVals(ctx context.Context, index, field string) *redis.StringSliceCmd {
+	return l.instance().FTTagVals(ctx, index, field)
+}
+
+func (l *lb) HExpire(ctx context.Context, key string, expiration stdlibtime.Duration, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HExpire(ctx, key, expiration, fields...)
+}
+
+func (l *lb) HExpireWithArgs(
+	ctx context.Context, key string, expiration stdlibtime.Duration, expirationArgs redis.HExpireArgs, fields ...string,
+) *redis.IntSliceCmd {
+	return l.instance().HExpireWithArgs(ctx, key, expiration, expirationArgs, fields...)
+}
+
+func (l *lb) HPExpire(ctx context.Context, key string, expiration stdlibtime.Duration, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPExpire(ctx, key, expiration, fields...)
+}
+
+func (l *lb) HPExpireWithArgs(
+	ctx context.Context, key string, expiration stdlibtime.Duration, expirationArgs redis.HExpireArgs, fields ...string,
+) *redis.IntSliceCmd {
+	return l.instance().HPExpireWithArgs(ctx, key, expiration, expirationArgs, fields...)
+}
+
+func (l *lb) HExpireAt(ctx context.Context, key string, tm stdlibtime.Time, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HExpireAt(ctx, key, tm, fields...)
+}
+
+func (l *lb) HExpireAtWithArgs(ctx context.Context, key string, tm stdlibtime.Time, expirationArgs redis.HExpireArgs, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HExpireAtWithArgs(ctx, key, tm, expirationArgs, fields...)
+}
+
+func (l *lb) HPExpireAt(ctx context.Context, key string, tm stdlibtime.Time, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPExpireAt(ctx, key, tm, fields...)
+}
+
+func (l *lb) HPExpireAtWithArgs(ctx context.Context, key string, tm stdlibtime.Time, expirationArgs redis.HExpireArgs, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPExpireAtWithArgs(ctx, key, tm, expirationArgs, fields...)
+}
+
+func (l *lb) HPersist(ctx context.Context, key string, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPersist(ctx, key, fields...)
+}
+
+func (l *lb) HExpireTime(ctx context.Context, key string, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HExpireTime(ctx, key, fields...)
+}
+
+func (l *lb) HPExpireTime(ctx context.Context, key string, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPExpireTime(ctx, key, fields...)
+}
+
+func (l *lb) HTTL(ctx context.Context, key string, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HTTL(ctx, key, fields...)
+}
+
+func (l *lb) HPTTL(ctx context.Context, key string, fields ...string) *redis.IntSliceCmd {
+	return l.instance().HPTTL(ctx, key, fields...)
 }
 
 func (l *lb) Close() error {

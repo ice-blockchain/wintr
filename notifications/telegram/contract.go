@@ -11,20 +11,25 @@ import (
 
 // Public API.
 
+const (
+	BotCommandType = "bot_command"
+)
+
 type (
 	Client interface {
 		Send(ctx context.Context, notif *Notification) error
 		GetUpdates(ctx context.Context, arg *GetUpdatesArg) (updates []*Update, err error)
 	}
+	Button struct {
+		Text string `json:"text,omitempty"`
+		URL  string `json:"url,omitempty"`
+	}
 	Notification struct {
-		ChatID          string `json:"chatId,omitempty"`
-		Text            string `json:"text,omitempty"`
-		PreviewImageURL string `json:"previewImageUrl,omitempty"`
-		BotToken        string `json:"botToken,omitempty"`
-		Buttons         []struct {
-			Text string `json:"text,omitempty"`
-			URL  string `json:"url,omitempty"`
-		}
+		ChatID              string `json:"chatId,omitempty"`
+		Text                string `json:"text,omitempty"`
+		PreviewImageURL     string `json:"previewImageUrl,omitempty"`
+		BotToken            string `json:"botToken,omitempty"`
+		Buttons             []Button
 		ReplyMessageID      int64 `json:"replyMessageId,omitempty"`
 		DisableNotification bool  `json:"disableNotification,omitempty"`
 	}
@@ -36,6 +41,9 @@ type (
 	}
 	Update struct {
 		Message struct {
+			Entities []struct {
+				Type string `json:"type,omitempty"`
+			} `json:"entities,omitempty"`
 			Text string `json:"text,omitempty"`
 			From struct {
 				Username string `json:"username,omitempty"`

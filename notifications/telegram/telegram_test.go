@@ -53,10 +53,7 @@ func TestClientSend_Success_WithPreviewAndButton(t *testing.T) {
 		Text:            "<b>test message</b> <a href=\"https://ice.io\">check ice page</a>",
 		PreviewImageURL: testPreviewImageURL,
 		BotToken:        cfg.WintrTelegramNotifications.Credentials.BotToken,
-		Buttons: []struct {
-			Text string `json:"text,omitempty"`
-			URL  string `json:"url,omitempty"`
-		}{
+		Buttons: []Button{
 			{
 				Text: "test button",
 				URL:  "https://ice.io",
