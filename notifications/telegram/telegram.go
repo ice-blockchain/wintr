@@ -122,9 +122,9 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 		Text:      notif.Text,
 		ParseMode: t.cfg.WintrTelegramNotifications.ParseMode,
 		LinkPreviewOptions: struct {
-			URL           string `json:"url" example:"https://ice-staging.b-cdn.net/profile/default-profile-picture-1.png"`
-			IsDisabled    bool   `json:"is_disabled" example:"false"`    //nolint:tagliatelle // It's telegram API.
-			ShowAboveText bool   `json:"show_above_text" example:"true"` //nolint:tagliatelle // It's telegram API.
+			URL           string `json:"url,omitempty" example:"https://ice-staging.b-cdn.net/profile/default-profile-picture-1.png"`
+			IsDisabled    bool   `json:"is_disabled,omitempty" example:"false"`    //nolint:tagliatelle // It's telegram API.
+			ShowAboveText bool   `json:"show_above_text,omitempty" example:"true"` //nolint:tagliatelle // It's telegram API.
 		}{
 			IsDisabled:    t.cfg.WintrTelegramNotifications.LinkPreviewOptions.IsDisabled,
 			URL:           notif.PreviewImageURL,
@@ -135,12 +135,14 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 	if len(notif.Buttons) > 0 {
 		for ix := range notif.Buttons {
 			ts.ReplyMarkup.InlineKeyboard = append(ts.ReplyMarkup.InlineKeyboard, []struct {
-				Text string `json:"text" example:"some text"`
-				URL  string `json:"url" example:"https://ice.io"`
+				Text         string `json:"text" example:"some text"`
+				URL          string `json:"url,omitempty" example:"https://ice.io"`
+				CallbackData string `json:"callback_data,omitempty" example:"1"` //nolint:tagliatelle // It's telegram API.
 			}{
 				{
-					Text: notif.Buttons[ix].Text,
-					URL:  notif.Buttons[ix].URL,
+					Text:         notif.Buttons[ix].Text,
+					URL:          notif.Buttons[ix].URL,
+					CallbackData: notif.Buttons[ix].CallbackData,
 				},
 			})
 		}

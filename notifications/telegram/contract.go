@@ -21,17 +21,18 @@ type (
 		GetUpdates(ctx context.Context, arg *GetUpdatesArg) (updates []*Update, err error)
 	}
 	Button struct {
-		Text string `json:"text,omitempty"`
-		URL  string `json:"url,omitempty"`
+		Text         string `json:"text,omitempty"`
+		URL          string `json:"url,omitempty"`
+		CallbackData string `json:"callbackData,omitempty"`
 	}
 	Notification struct {
-		ChatID              string `json:"chatId,omitempty"`
-		Text                string `json:"text,omitempty"`
-		PreviewImageURL     string `json:"previewImageUrl,omitempty"`
-		BotToken            string `json:"botToken,omitempty"`
-		Buttons             []Button
-		ReplyMessageID      int64 `json:"replyMessageId,omitempty"`
-		DisableNotification bool  `json:"disableNotification,omitempty"`
+		ChatID              string   `json:"chatId,omitempty"`
+		Text                string   `json:"text,omitempty"`
+		PreviewImageURL     string   `json:"previewImageUrl,omitempty"`
+		BotToken            string   `json:"botToken,omitempty"`
+		Buttons             []Button `json:"buttons,omitempty"`
+		ReplyMessageID      int64    `json:"replyMessageId,omitempty"`
+		DisableNotification bool     `json:"disableNotification,omitempty"`
 	}
 	GetUpdatesArg struct {
 		BotToken       string   `json:"botToken,omitempty"`
@@ -39,21 +40,36 @@ type (
 		Limit          int64    `json:"limit,omitempty"`
 		Offset         int64    `json:"offset,omitempty"`
 	}
+	Message struct {
+		Entities []struct {
+			Type string `json:"type,omitempty"`
+		} `json:"entities,omitempty"`
+		Text string `json:"text,omitempty"`
+		From struct {
+			Username string `json:"username,omitempty"`
+			ID       int64  `json:"id,omitempty"`
+			IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
+		} `json:"from,omitempty"`
+		MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
+		Date      int64 `json:"date,omitempty"`
+	}
+	CallbackQuery struct {
+		Data     string `json:"data,omitempty"`
+		ID       string `json:"id,omitempty"`
+		Entities []struct {
+			Type string `json:"type,omitempty"`
+		} `json:"entities,omitempty"`
+		Text string `json:"text,omitempty"`
+		From struct {
+			Username string `json:"username,omitempty"`
+			ID       int64  `json:"id,omitempty"`
+			IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
+		} `json:"from,omitempty"`
+	}
 	Update struct {
-		Message struct {
-			Entities []struct {
-				Type string `json:"type,omitempty"`
-			} `json:"entities,omitempty"`
-			Text string `json:"text,omitempty"`
-			From struct {
-				Username string `json:"username,omitempty"`
-				ID       int64  `json:"id,omitempty"`
-				IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
-			} `json:"from,omitempty"`
-			MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
-			Date      int64 `json:"date,omitempty"`
-		} `json:"message,omitempty"`
-		UpdateID int64 `json:"update_id,omitempty"` //nolint:tagliatelle // It's telegram API.
+		Message       *Message       `json:"message,omitempty"`
+		CallbackQuery *CallbackQuery `json:"callback_query,omitempty"` //nolint:tagliatelle // It's telegram API.
+		UpdateID      int64          `json:"update_id,omitempty"`      //nolint:tagliatelle // It's telegram API.
 	}
 )
 
@@ -75,24 +91,25 @@ type (
 		cfg *config
 	}
 	telegramMessage struct {
-		ChatID             string `json:"chat_id" example:"111"` //nolint:tagliatelle // It's telegram API.
-		Text               string `json:"text" example:"hello world"`
-		ParseMode          string `json:"parse_mode" example:"HTML"` //nolint:tagliatelle // It's telegram API.
+		ChatID             string `json:"chat_id,omitempty" example:"111"` //nolint:tagliatelle // It's telegram API.
+		Text               string `json:"text,omitempty" example:"hello world"`
+		ParseMode          string `json:"parse_mode,omitempty" example:"HTML"` //nolint:tagliatelle // It's telegram API.
 		LinkPreviewOptions struct {
-			URL           string `json:"url" example:"https://ice-staging.b-cdn.net/profile/default-profile-picture-1.png"`
-			IsDisabled    bool   `json:"is_disabled" example:"false"`    //nolint:tagliatelle // It's telegram API.
-			ShowAboveText bool   `json:"show_above_text" example:"true"` //nolint:tagliatelle // It's telegram API.
+			URL           string `json:"url,omitempty" example:"https://ice-staging.b-cdn.net/profile/default-profile-picture-1.png"`
+			IsDisabled    bool   `json:"is_disabled,omitempty" example:"false"`    //nolint:tagliatelle // It's telegram API.
+			ShowAboveText bool   `json:"show_above_text,omitempty" example:"true"` //nolint:tagliatelle // It's telegram API.
 		} `json:"link_preview_options"` //nolint:tagliatelle // It's telegram API.
 		ReplyMarkup struct {
 			InlineKeyboard [][]struct {
-				Text string `json:"text" example:"some text"`
-				URL  string `json:"url" example:"https://ice.io"`
+				Text         string `json:"text" example:"some text"`
+				URL          string `json:"url,omitempty" example:"https://ice.io"`
+				CallbackData string `json:"callback_data,omitempty" example:"1"` //nolint:tagliatelle // It's telegram API.
 			} `json:"inline_keyboard,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"reply_markup,omitempty"` //nolint:tagliatelle // It's telegram API.
 		ReplyParameters struct {
-			MessageID int64 `json:"message_id"` //nolint:tagliatelle // It's telegram API.
+			MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"reply_parameters"` //nolint:tagliatelle // It's telegram API.
-		DisableNotification bool `json:"disable_notification" example:"true"` //nolint:tagliatelle // It's telegram API.
+		DisableNotification bool `json:"disable_notification,omitempty" example:"true"` //nolint:tagliatelle // It's telegram API.
 	}
 	getUpdatesMessage struct {
 		AllowedUpdates []string `json:"allowed_updates,omitempty"` //nolint:tagliatelle // It's telegram API.
