@@ -100,7 +100,7 @@ func GenerateIceTokens(userID, role string) (refreshToken, accessToken string, e
 		seq            = int64(0)
 		hashCode       = int64(0)
 	)
-	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role)
+	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role, nil)
 
 	return
 }

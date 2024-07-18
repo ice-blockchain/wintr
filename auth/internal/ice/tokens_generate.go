@@ -17,17 +17,19 @@ func (a *auth) GenerateTokens(
 	hashCode,
 	seq int64,
 	role string,
+	extra map[string]any,
 ) (refreshToken, accessToken string, err error) {
-	refreshToken, err = a.generateRefreshToken(now, userID, deviceUniqueID, email, seq)
+	refreshToken, err = a.generateRefreshToken(now, userID, deviceUniqueID, email, seq, extra)
 	if err != nil {
 		return "", "", errors.Wrapf(err, "failed to generate jwt refreshToken for userID:%v", userID)
 	}
-	accessToken, err = a.generateAccessToken(now, seq, hashCode, userID, deviceUniqueID, email, role)
+	accessToken, err = a.generateAccessToken(now, seq, hashCode, userID, deviceUniqueID, email, role, extra)
 
 	return refreshToken, accessToken, errors.Wrapf(err, "failed to generate jwt accessToken for userID:%v", userID)
 }
 
-func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, email string, seq int64) (string, error) {
+//nolint:revive // .
+func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, email string, seq int64, extra map[string]any) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
 			Issuer:    internal.RefreshJwtIssuer,
@@ -39,6 +41,7 @@ func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, emai
 		Email:          email,
 		Seq:            seq,
 		DeviceUniqueID: deviceUniqueID,
+		Claims:         extra,
 	})
 	refreshToken, err := a.signToken(token)
 
@@ -50,6 +53,7 @@ func (a *auth) generateAccessToken(
 	now *time.Time, refreshTokenSeq, hashCode int64,
 	userID, deviceUniqueID, email string,
 	role string,
+	extra map[string]any,
 ) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Token{
 		RegisteredClaims: &jwt.RegisteredClaims{
@@ -64,6 +68,7 @@ func (a *auth) generateAccessToken(
 		DeviceUniqueID: deviceUniqueID,
 		HashCode:       hashCode,
 		Seq:            refreshTokenSeq,
+		Claims:         extra,
 	})
 	tokenStr, err := a.signToken(token)
 

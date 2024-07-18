@@ -128,9 +128,13 @@ func (a *auth) GetUserUIDByEmail(ctx context.Context, email string) (string, err
 }
 
 func (a *auth) GenerateTokens( //nolint:revive // We need to have these parameters.
-	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string,
+	now *time.Time, userID, deviceUniqueID, email string, hashCode, seq int64, role string, extras ...map[string]any,
 ) (accessToken, refreshToken string, err error) {
-	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role)
+	var extra map[string]any
+	if len(extras) > 0 {
+		extra = extras[0]
+	}
+	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role, extra)
 	err = errors.Wrapf(err, "can't generate tokens for userID:%v, email:%v", userID, email)
 
 	return

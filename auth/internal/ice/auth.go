@@ -35,8 +35,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	if iceToken.Issuer != internal.AccessJwtIssuer {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
 	}
-	userID := iceToken.Subject
-
 	tok := &internal.Token{
 		Claims: map[string]any{
 			"email":          iceToken.Email,
@@ -45,10 +43,17 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 			"hashCode":       iceToken.HashCode,
 			"deviceUniqueID": iceToken.DeviceUniqueID,
 		},
-		UserID:   userID,
+		UserID:   iceToken.Subject,
 		Email:    iceToken.Email,
 		Role:     iceToken.Role,
 		Provider: internal.ProviderIce,
+	}
+	if len(iceToken.Claims) > 0 {
+		for k, v := range iceToken.Claims {
+			if _, alreadyPresented := tok.Claims[k]; !alreadyPresented {
+				tok.Claims[k] = v
+			}
+		}
 	}
 
 	return tok, nil
