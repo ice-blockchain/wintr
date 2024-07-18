@@ -156,7 +156,7 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 		deviceID = "00000000-0000-0000-0000-000000000001"
 		role     = "author"
 	)
-	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, role)
+	refreshToken, accessToken, err := client.GenerateTokens(now, userID, deviceID, email, hashCode, seq, role, map[string]any{"extra": "extra"})
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
@@ -170,6 +170,7 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 	assert.Equal(t, seq, verifiedAccessToken.Claims["seq"])
 	assert.Equal(t, role, verifiedAccessToken.Claims["role"])
 	assert.Equal(t, deviceID, verifiedAccessToken.Claims["deviceUniqueID"])
+	assert.Equal(t, "extra", verifiedAccessToken.Claims["extra"])
 	_, err = client.VerifyToken(ctx, refreshToken)
 	require.ErrorIs(t, err, ErrWrongTypeToken)
 }
