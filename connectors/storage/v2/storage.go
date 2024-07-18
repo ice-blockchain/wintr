@@ -23,21 +23,45 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
+//nolint:gochecknoinits // GlobalDB is single instance, we initialize it here.
+func init() {
+	var cfg storageCfg
+	appcfg.MustLoadFromKey(globalDBYamlKey, &cfg)
+	if cfg.PrimaryURL != "" {
+		initGlobalDBCtx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:gomnd,mnd // .
+		defer cancel()
+		globalDB = mustConnectWithCfg(initGlobalDBCtx, &cfg, "")
+	}
+}
+
+func GlobalDB() *DB {
+	if globalDB == nil {
+		log.Panic(errors.Errorf("global db is not initialized, check %v", globalDBYamlKey))
+	}
+
+	return globalDB
+}
+
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+
+	return mustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
+}
+
+func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
-	if cfg.WintrStorage.PrimaryURL != "" {
-		master = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, cfg.WintrStorage.PrimaryURL) //nolint:lll // .
+	if cfg.PrimaryURL != "" {
+		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL)
 	}
-	for ix, url := range cfg.WintrStorage.ReplicaURLs {
+	for ix, url := range cfg.ReplicaURLs {
 		if ix == 0 {
-			replicas = make([]*pgxpool.Pool, len(cfg.WintrStorage.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
+			replicas = make([]*pgxpool.Pool, len(cfg.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		replicas[ix] = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, url)
+		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
 	}
-	if master != nil && ddl != "" && cfg.WintrStorage.RunDDL {
+	if master != nil && ddl != "" && cfg.RunDDL {
 		for _, statement := range strings.Split(ddl, "----") {
 			_, err := master.Exec(ctx, statement)
 			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
