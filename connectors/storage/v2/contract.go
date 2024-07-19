@@ -47,7 +47,7 @@ var (
 )
 
 const (
-	globalDBYamlKey = "$wintr/connectors/storage/v2"
+	globalDBYamlKey = "global"
 )
 
 type (

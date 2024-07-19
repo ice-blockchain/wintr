@@ -25,26 +25,23 @@ import (
 
 //nolint:gochecknoinits // GlobalDB is single instance, we initialize it here.
 func init() {
-	var cfg storageCfg
+	var cfg config
 	appcfg.MustLoadFromKey(globalDBYamlKey, &cfg)
-	if cfg.PrimaryURL != "" {
-		initGlobalDBCtx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second) //nolint:gomnd,mnd // .
-		defer cancel()
-		globalDB = mustConnectWithCfg(initGlobalDBCtx, &cfg, "")
+	if cfg.WintrStorage.PrimaryURL != "" || len(cfg.WintrStorage.ReplicaURLs) > 0 {
+		globalDB = mustConnectWithCfg(context.Background(), &cfg.WintrStorage, "")
 	}
-}
-
-func GlobalDB() *DB {
-	if globalDB == nil {
-		log.Panic(errors.Errorf("global db is not initialized, check %v", globalDBYamlKey))
-	}
-
-	return globalDB
 }
 
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	if globalDB != nil && cfg.WintrStorage.PrimaryURL == "" && len(cfg.WintrStorage.ReplicaURLs) == 0 && !cfg.WintrStorage.RunDDL {
+		if globalDB.master != nil {
+			mustRunDDL(ctx, globalDB.master, ddl)
+		}
+
+		return globalDB
+	}
 
 	return mustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
 }
@@ -62,14 +59,18 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
 	}
 	if master != nil && ddl != "" && cfg.RunDDL {
-		for _, statement := range strings.Split(ddl, "----") {
-			_, err := master.Exec(ctx, statement)
-			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
-		}
+		mustRunDDL(ctx, master, ddl)
 	}
 	db := &DB{master: master, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
 	return db
+}
+
+func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
+	for _, statement := range strings.Split(ddl, "----") {
+		_, err := master.Exec(ctx, statement)
+		log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+	}
 }
 
 //nolint:mnd,gomnd // Configuration.
