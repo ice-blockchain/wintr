@@ -35,7 +35,7 @@ func init() {
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
-	if globalDB != nil && cfg.WintrStorage.PrimaryURL == "" && len(cfg.WintrStorage.ReplicaURLs) == 0 && !cfg.WintrStorage.RunDDL {
+	if globalDB != nil && !cfg.WintrStorage.IgnoreGlobal {
 		if globalDB.master != nil {
 			mustRunDDL(ctx, globalDB.master, ddl)
 		}
