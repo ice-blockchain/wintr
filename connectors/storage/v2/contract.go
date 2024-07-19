@@ -41,6 +41,14 @@ type (
 )
 
 // Private API.
+var (
+	//nolint:gochecknoglobals // .
+	globalDB *DB
+)
+
+const (
+	globalDBYamlKey = "global"
+)
 
 type (
 	lb struct {
@@ -48,16 +56,18 @@ type (
 		currentIndex uint64
 	}
 	config struct {
-		WintrStorage struct {
-			Credentials struct {
-				User     string `yaml:"user"`
-				Password string `yaml:"password"`
-			} `yaml:"credentials" mapstructure:"credentials"`
-			Timeout     string   `yaml:"timeout" mapstructure:"timeout"`
-			PrimaryURL  string   `yaml:"primaryURL" mapstructure:"primaryURL"`   //nolint:tagliatelle // Nope.
-			ReplicaURLs []string `yaml:"replicaURLs" mapstructure:"replicaURLs"` //nolint:tagliatelle // Nope.
-			RunDDL      bool     `yaml:"runDDL" mapstructure:"runDDL"`           //nolint:tagliatelle // Nope.
-		} `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
+		WintrStorage storageCfg `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
+	}
+	storageCfg struct {
+		Credentials struct {
+			User     string `yaml:"user"`
+			Password string `yaml:"password"`
+		} `yaml:"credentials" mapstructure:"credentials"`
+		Timeout      string   `yaml:"timeout" mapstructure:"timeout"`
+		PrimaryURL   string   `yaml:"primaryURL" mapstructure:"primaryURL"`     //nolint:tagliatelle // Nope.
+		ReplicaURLs  []string `yaml:"replicaURLs" mapstructure:"replicaURLs"`   //nolint:tagliatelle // Nope.
+		RunDDL       bool     `yaml:"runDDL" mapstructure:"runDDL"`             //nolint:tagliatelle // Nope.
+		IgnoreGlobal bool     `yaml:"ignoreGlobal" mapstructure:"ignoreGlobal"` //nolint:tagliatelle // Nope.
 	}
 	advisoryLockMutex struct {
 		conn *pgxpool.Conn

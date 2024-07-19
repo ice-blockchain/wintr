@@ -23,29 +23,54 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
+//nolint:gochecknoinits // GlobalDB is single instance, we initialize it here.
+func init() {
+	var cfg config
+	appcfg.MustLoadFromKey(globalDBYamlKey, &cfg)
+	if cfg.WintrStorage.PrimaryURL != "" || len(cfg.WintrStorage.ReplicaURLs) > 0 {
+		globalDB = mustConnectWithCfg(context.Background(), &cfg.WintrStorage, "")
+	}
+}
+
 func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
+	if globalDB != nil && !cfg.WintrStorage.IgnoreGlobal {
+		if globalDB.master != nil {
+			mustRunDDL(ctx, globalDB.master, ddl)
+		}
+
+		return globalDB
+	}
+
+	return mustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
+}
+
+func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 	var replicas []*pgxpool.Pool
 	var master *pgxpool.Pool
-	if cfg.WintrStorage.PrimaryURL != "" {
-		master = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, cfg.WintrStorage.PrimaryURL) //nolint:lll // .
+	if cfg.PrimaryURL != "" {
+		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL)
 	}
-	for ix, url := range cfg.WintrStorage.ReplicaURLs {
+	for ix, url := range cfg.ReplicaURLs {
 		if ix == 0 {
-			replicas = make([]*pgxpool.Pool, len(cfg.WintrStorage.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
+			replicas = make([]*pgxpool.Pool, len(cfg.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		replicas[ix] = mustConnectPool(ctx, cfg.WintrStorage.Timeout, cfg.WintrStorage.Credentials.User, cfg.WintrStorage.Credentials.Password, url)
+		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
 	}
-	if master != nil && ddl != "" && cfg.WintrStorage.RunDDL {
-		for _, statement := range strings.Split(ddl, "----") {
-			_, err := master.Exec(ctx, statement)
-			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
-		}
+	if master != nil && ddl != "" && cfg.RunDDL {
+		mustRunDDL(ctx, master, ddl)
 	}
 	db := &DB{master: master, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
 	return db
+}
+
+func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
+	for _, statement := range strings.Split(ddl, "----") {
+		_, err := master.Exec(ctx, statement)
+		log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+	}
 }
 
 //nolint:mnd,gomnd // Configuration.
