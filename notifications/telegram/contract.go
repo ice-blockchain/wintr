@@ -46,9 +46,10 @@ type (
 		} `json:"entities,omitempty"`
 		Text string `json:"text,omitempty"`
 		From struct {
-			Username string `json:"username,omitempty"`
-			ID       int64  `json:"id,omitempty"`
-			IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
+			LanguageCode string `json:"language_code,omitempty"` //nolint:tagliatelle // It's telegram API.
+			Username     string `json:"username,omitempty"`
+			ID           int64  `json:"id,omitempty"`
+			IsBot        bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"from,omitempty"`
 		MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
 		Date      int64 `json:"date,omitempty"`
@@ -61,9 +62,10 @@ type (
 		} `json:"entities,omitempty"`
 		Text string `json:"text,omitempty"`
 		From struct {
-			Username string `json:"username,omitempty"`
-			ID       int64  `json:"id,omitempty"`
-			IsBot    bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
+			Username     string `json:"username,omitempty"`
+			LanguageCode string `json:"language_code,omitempty"` //nolint:tagliatelle // It's telegram API.
+			ID           int64  `json:"id,omitempty"`
+			IsBot        bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"from,omitempty"`
 	}
 	Update struct {
