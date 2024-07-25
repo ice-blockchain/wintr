@@ -1,0 +1,7 @@
+development: true
+logger:
+  encoder: console
+  level: debug
+self:
+  wintr/totp:
+    issuer: ice.io
