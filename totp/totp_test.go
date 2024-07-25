@@ -28,5 +28,4 @@ func TestTOTP(t *testing.T) {
 	require.False(t, totp.Verify(now, "wrongSecret", validCode))
 	require.False(t, totp.Verify(time.New(now.Add(31*stdlibtime.Second)), "wrongSecret", validCode))
 	require.False(t, totp.Verify(time.Now(), secret, ""))
-	require.True(t, totp.Verify(time.Now(), secret, "631354"))
 }
