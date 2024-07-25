@@ -3,8 +3,9 @@
 package totp
 
 import (
+	stdlibtime "time"
+
 	"github.com/ice-blockchain/wintr/time"
-	"github.com/ice-blockchain/wintr/totp/internal"
 )
 
 type (
@@ -22,7 +23,7 @@ type (
 
 type (
 	totp struct {
-		generator internal.Generator
+		generator codeGenerator
 		cfg       *config
 	}
 	config struct {
@@ -30,4 +31,17 @@ type (
 			Issuer string `yaml:"issuer" mapstructure:"issuer"`
 		} `yaml:"wintr/totp" mapstructure:"wintr/totp"` //nolint:tagliatelle // .
 	}
+	codeGenerator interface {
+		CreateCode(userSecret string) totpCode
+	}
+	totpCode interface {
+		ProvisioningUri(accountName, issuerName string) string
+		VerifyTime(code string, t stdlibtime.Time) bool
+	}
+	gotpGenerator struct{}
+)
+
+const (
+	digitsInCode     = 6
+	rotationDuration = 30
 )
