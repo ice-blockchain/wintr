@@ -123,7 +123,7 @@ func (tc *httpTestClient) testSwaggerRoot(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
 	body, status, headers := tc.Get(ctx, tb, tc.swaggerRoot)
-	assert.NotEmpty(tb, len(body))
+	assert.NotEmpty(tb, body)
 	assert.Equal(tb, http.StatusOK, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.NoError(tb, err)
@@ -137,7 +137,7 @@ func (tc *httpTestClient) testSwaggerIndex(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
 	body, status, headers := tc.Get(ctx, tb, fmt.Sprintf("%v/swagger/index.html", tc.swaggerRoot))
-	assert.NotEmpty(tb, len(body))
+	assert.NotEmpty(tb, body)
 	assert.Equal(tb, http.StatusOK, status)
 	l, err := strconv.Atoi(headers.Get("Content-Length"))
 	require.True(tb, err == nil && l > 0)
@@ -171,7 +171,6 @@ func (tc *httpTestClient) TestHealthCheck(ctx context.Context, tb testing.TB) {
 }
 
 func addHeaders(headers []http.Header, r *http.Request) {
-	//nolint:revive // False negative.
 	if len(headers) != 0 && headers[0] != nil {
 		for k, vs := range headers[0] {
 			for _, v := range vs {

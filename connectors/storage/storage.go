@@ -194,7 +194,7 @@ func CheckSQLDMLResponse(resp *tarantool.Response, err error) (affectedRows int6
 		if !okUnsigned {
 			return 0, errors.Errorf("unexpected SQL DML response: %[1]v %[1]T", resp.Data[0])
 		}
-		count = int64(unsignedCount)
+		count = int64(unsignedCount) //nolint:gosec // .
 	}
 
 	return count, nil

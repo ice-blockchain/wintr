@@ -116,7 +116,7 @@ func (mb *messageBroker) connect(additionalOpts ...kgo.Opt) error { //nolint:fun
 	if mb.cfg.MessageBroker.MaxMessageBytes == 0 {
 		mb.cfg.MessageBroker.MaxMessageBytes = 10485760
 	}
-	opts = append(opts, kgo.ProducerBatchMaxBytes(int32(mb.cfg.MessageBroker.MaxMessageBytes)))
+	opts = append(opts, kgo.ProducerBatchMaxBytes(int32(mb.cfg.MessageBroker.MaxMessageBytes))) //nolint:gosec // .
 	log.Info("connecting to MessageBroker...", "URLs", mb.cfg.MessageBroker.URLs)
 	var err error
 	mb.client, err = kgo.NewClient(opts...)
@@ -196,7 +196,7 @@ func (mb *messageBroker) createTopic(ctx context.Context, tpc *TopicConfig) {
 		"segment.ms":          kadm.StringPtr(strconv.Itoa(int(tpc.Retention.Milliseconds()))),
 	}
 	log.Info("trying to create topic", "topic", tpc)
-	createTopicsResponse, cErr := mb.admClient.CreateTopics(ctx, int32(tpc.Partitions), int16(tpc.ReplicationFactor), configs, tpc.Name)
+	createTopicsResponse, cErr := mb.admClient.CreateTopics(ctx, int32(tpc.Partitions), int16(tpc.ReplicationFactor), configs, tpc.Name) //nolint:gosec // .
 	if cErr != nil {
 		log.Panic(errors.Wrap(cErr, "could not create topic"), "topic", tpc)
 	}
@@ -228,7 +228,7 @@ func (mb *messageBroker) validateTopicListing(ctx context.Context, topics []stri
 	log.Info(fmt.Sprintf("topics %v found! ", topics), "topics", sortedTopicDetails)
 	if mb.concurrentConsumer != nil && mb.partitionCountPerTopic != nil {
 		for i := range sortedTopicDetails {
-			mb.partitionCountPerTopic.Store(sortedTopicDetails[i].Topic, int32(len(sortedTopicDetails[i].Partitions)))
+			mb.partitionCountPerTopic.Store(sortedTopicDetails[i].Topic, int32(len(sortedTopicDetails[i].Partitions))) //nolint:gosec // .
 		}
 	}
 }
