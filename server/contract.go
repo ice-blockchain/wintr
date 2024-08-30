@@ -104,6 +104,7 @@ type (
 		router             *Router
 		quit               chan<- os.Signal
 		swaggerRoot        string
+		nginxPrefix        string
 		applicationYAMLKey string
 	}
 )

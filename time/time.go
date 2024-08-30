@@ -33,7 +33,7 @@ func (t *Time) DecodeMsgpack(dec *msgpack.Decoder) error {
 		return errors.Wrap(err, "failed to Time.DecodeMsgpack.DecodeBytes")
 	}
 	t.Time = new(stdlibtime.Time)
-	*t.Time = stdlibtime.Unix(0, int64(nanoSecs)).UTC()
+	*t.Time = stdlibtime.Unix(0, int64(nanoSecs)).UTC() //nolint:gosec // .
 
 	return nil
 }

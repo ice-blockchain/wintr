@@ -23,11 +23,15 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func New(state State, cfgKey, swaggerRoot string) Server {
+func New(state State, cfgKey, swaggerRoot string, nginxPrefixOpt ...string) Server {
 	appcfg.MustLoadFromKey(cfgKey, &cfg)
 	appcfg.MustLoadFromKey("development", &development)
+	nginxPrefix := ""
+	if len(nginxPrefixOpt) > 0 {
+		nginxPrefix = nginxPrefixOpt[0]
+	}
 
-	return &srv{State: state, swaggerRoot: swaggerRoot, applicationYAMLKey: cfgKey}
+	return &srv{State: state, swaggerRoot: swaggerRoot, nginxPrefix: nginxPrefix, applicationYAMLKey: cfgKey}
 }
 
 func (s *srv) ListenAndServe(ctx context.Context, cancel context.CancelFunc) {
@@ -82,7 +86,7 @@ func (s *srv) setupSwaggerRoutes() {
 	}
 	s.router.
 		GET(root, func(c *gin.Context) {
-			c.Redirect(http.StatusFound, (&url.URL{Path: fmt.Sprintf("%v/swagger/index.html", root)}).RequestURI())
+			c.Redirect(http.StatusFound, (&url.URL{Path: fmt.Sprintf("%v%v/swagger/index.html", s.nginxPrefix, root)}).RequestURI())
 		}).
 		GET(fmt.Sprintf("%v/swagger/*any", root), ginswagger.WrapHandler(swaggerfiles.Handler))
 }

@@ -163,7 +163,7 @@ func IsErr(err, target error, column ...string) bool {
 		return false
 	}
 	if tErr := terror.As(err); tErr != nil {
-		if len(column) == 1 && column[0] != "" { //nolint:revive // Wrong.
+		if len(column) == 1 && column[0] != "" {
 			if val, found := tErr.Data["column"]; found {
 				return val == column[0]
 			}

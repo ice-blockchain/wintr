@@ -78,7 +78,7 @@ func getMailbox(ctx context.Context, tb testing.TB, login, server string) []uint
 		ID uint64 `json:"id"`
 	}
 	url := fmt.Sprintf("https://www.1secmail.com/api/v1/?action=getMessages&login=%v&domain=%v", login, server)
-	for ctx.Err() == nil && len(messageListData) == 0 {
+	for len(messageListData) == 0 && ctx.Err() == nil {
 		messageListBody, messageListStatus := do1SecMailRequest(ctx, tb, url)
 		assert.Equal(tb, 200, messageListStatus) //nolint:mnd,gomnd // Not a magic.
 		require.NoError(tb, json.UnmarshalContext(ctx, messageListBody, &messageListData))

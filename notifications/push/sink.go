@@ -69,7 +69,7 @@ func (s *pushNotificationsCollectingSink) accept(notif *Notification[DeviceToken
 			}
 			remainingElements := len(s.bufferedNotifications) % fcmSendAllBatchSize
 			s.bufferedNotifications = s.bufferedNotifications[len(s.bufferedNotifications)-remainingElements:]
-			if now.Sub(*s.resetAt.Time) >= fcmSendAllBufferingDeadline && len(s.bufferedNotifications) > 0 {
+			if len(s.bufferedNotifications) > 0 && now.Sub(*s.resetAt.Time) >= fcmSendAllBufferingDeadline {
 				s.bufferedNotificationsChan <- s.bufferedNotifications
 				s.bufferedNotifications = make([]*notification, 0, fcmSendAllBatchSize)
 			}

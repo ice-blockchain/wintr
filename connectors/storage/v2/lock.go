@@ -10,7 +10,7 @@ import (
 )
 
 func NewMutex(db *DB, lockID string) Mutex {
-	lockIDHash := int64(xxh3.HashString(lockID))
+	lockIDHash := int64(xxh3.HashString(lockID)) //nolint:gosec // .
 	l := &advisoryLockMutex{conn: nil, db: db, id: lockIDHash}
 
 	return l
@@ -77,7 +77,7 @@ func (l *advisoryLockMutex) EnsureLocked(ctx context.Context) error {
 func (l *advisoryLockMutex) checkIfAnotherRuntimeHandlesLock(ctx context.Context) error {
 	_, err := execOne[struct {
 		PID int32 `db:"pid"`
-	}](ctx, l.db.primary(), "SELECT pid FROM pg_locks WHERE objid = $1 and granted = true", int32(l.id))
+	}](ctx, l.db.primary(), "SELECT pid FROM pg_locks WHERE objid = $1 and granted = true", int32(l.id)) //nolint:gosec // .
 
 	return err
 }
