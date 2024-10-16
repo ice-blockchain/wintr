@@ -15,6 +15,7 @@ type (
 	}
 	Generator interface {
 		GenerateURI(userSecret, account string) string
+		GenerateCode(now *time.Time, userSecret string) string
 	}
 	Verifier interface {
 		Verify(now *time.Time, userSecret, totpCode string) bool
@@ -37,6 +38,7 @@ type (
 	totpCode interface {
 		ProvisioningUri(accountName, issuerName string) string
 		VerifyTime(code string, t stdlibtime.Time) bool
+		AtTime(t stdlibtime.Time) string
 	}
 	gotpGenerator struct{}
 )

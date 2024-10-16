@@ -111,7 +111,7 @@ func exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 		return 0, parseDBError(err)
 	}
 
-	return uint64(resp.RowsAffected()), nil
+	return uint64(resp.RowsAffected()), nil //nolint:gosec // .
 }
 
 func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, error) {
