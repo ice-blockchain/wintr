@@ -53,9 +53,9 @@ func (t *Time) Scan(src any) error {
 func (t *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
 	var nanos uint64
 	if t != nil && t.Time != nil && t.Location() != stdlibtime.UTC {
-		nanos = uint64(t.UTC().UnixNano())
+		nanos = uint64(t.UTC().UnixNano()) //nolint:gosec // .
 	} else if t != nil && t.Time != nil {
-		nanos = uint64(t.UnixNano())
+		nanos = uint64(t.UnixNano()) //nolint:gosec // .
 	}
 
 	return errors.Wrap(enc.EncodeUint64(nanos), "failed to EncodeUint64")

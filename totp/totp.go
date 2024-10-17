@@ -31,6 +31,12 @@ func (t *totp) Verify(now *time.Time, userSecret, totpCode string) bool {
 	return code.VerifyTime(totpCode, *now.Time)
 }
 
+func (t *totp) GenerateCode(now *time.Time, userSecret string) string {
+	code := t.generator.CreateCode(userSecret)
+
+	return code.AtTime(*now.Time)
+}
+
 func newGotp() codeGenerator {
 	return &gotpGenerator{}
 }

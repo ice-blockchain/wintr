@@ -21,10 +21,12 @@ func TestTOTP(t *testing.T) {
 	validCode := "799503"
 	validCodeAfter30s := "395417"
 	require.True(t, totp.Verify(now, secret, validCode))
-	require.True(t, totp.Verify(time.New(now.Add(3*stdlibtime.Second)), secret, validCode))
+	require.Equal(t, totp.GenerateCode(time.New(now.Add(3*stdlibtime.Second)), secret), validCode)
+	require.Equal(t, totp.GenerateCode(time.New(now.Add(3*stdlibtime.Second)), secret), validCode)
 	require.False(t, totp.Verify(now, secret, "697025"))
 	require.False(t, totp.Verify(time.New(now.Add(31*stdlibtime.Second)), secret, validCode))
 	require.True(t, totp.Verify(time.New(now.Add(31*stdlibtime.Second)), secret, validCodeAfter30s))
+	require.Equal(t, totp.GenerateCode(time.New(now.Add(31*stdlibtime.Second)), secret), validCodeAfter30s)
 	require.False(t, totp.Verify(now, "wrongSecret", validCode))
 	require.False(t, totp.Verify(time.New(now.Add(31*stdlibtime.Second)), "wrongSecret", validCode))
 	require.False(t, totp.Verify(time.Now(), secret, ""))
