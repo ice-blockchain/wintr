@@ -1945,6 +1945,119 @@ func (l *lb) HPTTL(ctx context.Context, key string, fields ...string) *redis.Int
 	return l.instance().HPTTL(ctx, key, fields...)
 }
 
+func (l *lb) FT_List(ctx context.Context) *redis.StringSliceCmd { //nolint:revive,stylecheck // Go-redis interface.
+	return l.instance().FT_List(ctx)
+}
+
+func (l *lb) FTAggregate(ctx context.Context, index, query string) *redis.MapStringInterfaceCmd {
+	return l.instance().FTAggregate(ctx, index, query)
+}
+
+func (l *lb) FTAggregateWithArgs(ctx context.Context, index, query string, options *redis.FTAggregateOptions) *redis.AggregateCmd {
+	return l.instance().FTAggregateWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTAliasAdd(ctx context.Context, index, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasAdd(ctx, index, alias)
+}
+
+func (l *lb) FTAliasDel(ctx context.Context, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasDel(ctx, alias)
+}
+
+func (l *lb) FTAliasUpdate(ctx context.Context, index, alias string) *redis.StatusCmd {
+	return l.instance().FTAliasUpdate(ctx, index, alias)
+}
+
+func (l *lb) FTAlter(ctx context.Context, index string, skipInitialScan bool, definition []any) *redis.StatusCmd {
+	return l.instance().FTAlter(ctx, index, skipInitialScan, definition)
+}
+
+func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd {
+	return l.instance().FTConfigGet(ctx, option)
+}
+
+func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd {
+	return l.instance().FTConfigSet(ctx, option, value)
+}
+
+func (l *lb) FTCreate(ctx context.Context, index string, options *redis.FTCreateOptions, schema ...*redis.FieldSchema) *redis.StatusCmd {
+	return l.instance().FTCreate(ctx, index, options, schema...)
+}
+
+func (l *lb) FTCursorDel(ctx context.Context, index string, cursorId int) *redis.StatusCmd { //nolint:stylecheck // .
+	return l.instance().FTCursorDel(ctx, index, cursorId)
+}
+
+func (l *lb) FTCursorRead(ctx context.Context, index string, cursorId, count int) *redis.MapStringInterfaceCmd { //nolint:stylecheck // .
+	return l.instance().FTCursorRead(ctx, index, cursorId, count)
+}
+
+func (l *lb) FTDictAdd(ctx context.Context, dict string, term ...any) *redis.IntCmd {
+	return l.instance().FTDictAdd(ctx, dict, term...)
+}
+
+func (l *lb) FTDictDel(ctx context.Context, dict string, term ...any) *redis.IntCmd {
+	return l.instance().FTDictDel(ctx, dict, term...)
+}
+
+func (l *lb) FTDictDump(ctx context.Context, dict string) *redis.StringSliceCmd {
+	return l.instance().FTDictDump(ctx, dict)
+}
+
+func (l *lb) FTDropIndex(ctx context.Context, index string) *redis.StatusCmd {
+	return l.instance().FTDropIndex(ctx, index)
+}
+
+func (l *lb) FTDropIndexWithArgs(ctx context.Context, index string, options *redis.FTDropIndexOptions) *redis.StatusCmd {
+	return l.instance().FTDropIndexWithArgs(ctx, index, options)
+}
+
+func (l *lb) FTExplain(ctx context.Context, index, query string) *redis.StringCmd {
+	return l.instance().FTExplain(ctx, index, query)
+}
+
+func (l *lb) FTExplainWithArgs(ctx context.Context, index, query string, options *redis.FTExplainOptions) *redis.StringCmd {
+	return l.instance().FTExplainWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTInfo(ctx context.Context, index string) *redis.FTInfoCmd {
+	return l.instance().FTInfo(ctx, index)
+}
+
+func (l *lb) FTSpellCheck(ctx context.Context, index, query string) *redis.FTSpellCheckCmd {
+	return l.instance().FTSpellCheck(ctx, index, query)
+}
+
+func (l *lb) FTSpellCheckWithArgs(ctx context.Context, index, query string, options *redis.FTSpellCheckOptions) *redis.FTSpellCheckCmd {
+	return l.instance().FTSpellCheckWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTSearch(ctx context.Context, index, query string) *redis.FTSearchCmd {
+	return l.instance().FTSearch(ctx, index, query)
+}
+
+func (l *lb) FTSearchWithArgs(ctx context.Context, index, query string, options *redis.FTSearchOptions) *redis.FTSearchCmd {
+	return l.instance().FTSearchWithArgs(ctx, index, query, options)
+}
+
+func (l *lb) FTSynDump(ctx context.Context, index string) *redis.FTSynDumpCmd {
+	return l.instance().FTSynDump(ctx, index)
+}
+
+func (l *lb) FTSynUpdate(ctx context.Context, index string, synGroupId any, terms []any) *redis.StatusCmd { //nolint:stylecheck // .
+	return l.instance().FTSynUpdate(ctx, index, synGroupId, terms)
+}
+
+//nolint:stylecheck // .
+func (l *lb) FTSynUpdateWithArgs(ctx context.Context, index string, synGroupId any, options *redis.FTSynUpdateOptions, terms []any) *redis.StatusCmd {
+	return l.instance().FTSynUpdateWithArgs(ctx, index, synGroupId, options, terms)
+}
+
+func (l *lb) FTTagVals(ctx context.Context, index, field string) *redis.StringSliceCmd {
+	return l.instance().FTTagVals(ctx, index, field)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))
