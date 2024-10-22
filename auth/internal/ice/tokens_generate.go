@@ -41,6 +41,7 @@ func (a *auth) generateRefreshToken(now *time.Time, userID, deviceUniqueID, emai
 		Email:          email,
 		Seq:            seq,
 		DeviceUniqueID: deviceUniqueID,
+		Tenant:         a.cfg.WintrAuthIce.Tenant,
 		Claims:         extra,
 	})
 	refreshToken, err := a.signToken(token)
@@ -68,6 +69,7 @@ func (a *auth) generateAccessToken(
 		DeviceUniqueID: deviceUniqueID,
 		HashCode:       hashCode,
 		Seq:            refreshTokenSeq,
+		Tenant:         a.cfg.WintrAuthIce.Tenant,
 		Claims:         extra,
 	})
 	tokenStr, err := a.signToken(token)
