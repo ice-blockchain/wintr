@@ -148,6 +148,7 @@ func (a *auth) GenerateMetadata(
 	return md, errors.Wrapf(err, "failed to generate metadata token for tokenID:%v", tokenID)
 }
 
+//nolint:revive // .
 func (a *auth) ParseToken(token string, verify bool) (res *IceToken, err error) {
 	if verify {
 		res = new(IceToken)

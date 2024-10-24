@@ -34,7 +34,6 @@ type (
 		Role           string         `json:"role" example:"1"`
 		Email          string         `json:"email" example:"jdoe@example.com"`
 		DeviceUniqueID string         `json:"deviceUniqueId" example:"6FB988F3-36F4-433D-9C7C-555887E57EB2"`
-		Tenant         string         `json:"tenant" example:"sunwaves"`
 		HashCode       int64          `json:"hashCode,omitempty" example:"12356789"`
 		Seq            int64          `json:"seq" example:"1"`
 	}
@@ -53,7 +52,6 @@ type (
 			JWTSecret             string              `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 			RefreshExpirationTime stdlibtime.Duration `yaml:"refreshExpirationTime" mapstructure:"refreshExpirationTime"`
 			AccessExpirationTime  stdlibtime.Duration `yaml:"accessExpirationTime" mapstructure:"accessExpirationTime"`
-			Tenant                string              `yaml:"tenant" mapstructure:"tenant"`
 		} `yaml:"wintr/auth/ice" mapstructure:"wintr/auth/ice"` //nolint:tagliatelle // Nope.
 	}
 )

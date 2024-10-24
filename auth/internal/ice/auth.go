@@ -35,9 +35,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 	if iceToken.Issuer != internal.AccessJwtIssuer {
 		return nil, errors.Wrapf(ErrWrongTypeToken, "access to endpoint with refresh token: %v", iceToken.Issuer)
 	}
-	if iceToken.Tenant != a.cfg.WintrAuthIce.Tenant {
-		return nil, errors.Wrapf(ErrWrongTypeToken, "not matching tenant: %v", iceToken.Tenant)
-	}
 	tok := &internal.Token{
 		Claims: map[string]any{
 			"email":          iceToken.Email,
@@ -49,7 +46,6 @@ func (a *auth) VerifyToken(token string) (*internal.Token, error) {
 		UserID:   iceToken.Subject,
 		Email:    iceToken.Email,
 		Role:     iceToken.Role,
-		Tenant:   iceToken.Tenant,
 		Provider: internal.ProviderIce,
 	}
 	if len(iceToken.Claims) > 0 {

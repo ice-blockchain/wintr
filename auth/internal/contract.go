@@ -21,7 +21,6 @@ type (
 		UserID   string `json:"userId,omitempty"`
 		Role     string `json:"role,omitempty"`
 		Email    string `json:"email,omitempty"`
-		Tenant   string `json:"tenant,omitempty"`
 		Provider string
 	}
 )
