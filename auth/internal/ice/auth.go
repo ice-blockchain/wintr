@@ -71,21 +71,21 @@ func (a *auth) VerifyTokenFields(jwtToken string, res jwt.Claims) error {
 	return nil
 }
 
-func DetectIceToken(jwtToken string) error {
+func DetectIceToken(jwtToken string) (*Token, error) {
 	parser := jwt.NewParser()
 	var claims Token
 	token, _, err := parser.ParseUnverified(jwtToken, &claims)
 	if err != nil {
-		return errors.Wrapf(err, "parse unverified error for token:%v", jwtToken)
+		return nil, errors.Wrapf(err, "parse unverified error for token:%v", jwtToken)
 	}
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Name {
-		return errors.Errorf("unexpected signing method:%v", token.Header["alg"])
+		return nil, errors.Errorf("unexpected signing method:%v", token.Header["alg"])
 	}
 	if iss, iErr := token.Claims.GetIssuer(); iErr != nil || (iss != internal.AccessJwtIssuer && iss != internal.RefreshJwtIssuer) {
-		return errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
+		return nil, errors.Wrapf(ErrInvalidToken, "invalid issuer:%v", iss)
 	}
 
-	return nil
+	return &claims, nil
 }
 
 func (a *auth) verify() func(token *jwt.Token) (any, error) {

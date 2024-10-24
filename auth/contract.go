@@ -36,7 +36,7 @@ type (
 	IceToken = iceauth.Token
 	Client   interface {
 		VerifyToken(ctx context.Context, token string) (*Token, error)
-		ParseToken(token string) (*IceToken, error)
+		ParseToken(token string, verify bool) (*IceToken, error)
 		UpdateCustomClaims(ctx context.Context, userID string, customClaims map[string]any) error
 		DeleteUser(ctx context.Context, userID string) error
 		UpdateEmail(ctx context.Context, userID, email string) error

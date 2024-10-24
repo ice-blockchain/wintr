@@ -213,7 +213,7 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	assert.NotEmpty(t, refreshToken)
 	assert.NotEmpty(t, accessToken)
 
-	accessRes, err := client.ParseToken(accessToken)
+	accessRes, err := client.ParseToken(accessToken, true)
 	require.NoError(t, err)
 	issuer, err := accessRes.GetIssuer()
 	require.NoError(t, err)
@@ -228,9 +228,9 @@ func TestParseToken_Parse(t *testing.T) { //nolint:funlen // .
 	assert.Equal(t, hashCode, accessRes.HashCode)
 	assert.Equal(t, seq, accessRes.Seq)
 
-	refreshRes, err := client.ParseToken(refreshToken)
+	refreshRes, err := client.ParseToken(refreshToken, true)
 	require.NoError(t, err)
-	accessRes, err = client.ParseToken(accessToken)
+	accessRes, err = client.ParseToken(accessToken, true)
 	require.NoError(t, err)
 	issuer, err = refreshRes.GetIssuer()
 	require.NoError(t, err)

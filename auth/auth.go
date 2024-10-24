@@ -23,7 +23,7 @@ func New(ctx context.Context, applicationYAMLKey string) Client {
 
 func (a *auth) VerifyToken(ctx context.Context, token string) (*Token, error) {
 	var authToken *Token
-	if err := iceauth.DetectIceToken(token); err != nil {
+	if _, err := iceauth.DetectIceToken(token); err != nil {
 		if a.fb == nil {
 			return nil, errors.Errorf("non-ice token, but firebase auth is disabled")
 		}
@@ -148,9 +148,14 @@ func (a *auth) GenerateMetadata(
 	return md, errors.Wrapf(err, "failed to generate metadata token for tokenID:%v", tokenID)
 }
 
-func (a *auth) ParseToken(token string) (*IceToken, error) {
-	res := new(IceToken)
-	err := a.ice.VerifyTokenFields(token, res)
+//nolint:revive // .
+func (a *auth) ParseToken(token string, verify bool) (res *IceToken, err error) {
+	if verify {
+		res = new(IceToken)
+		err = a.ice.VerifyTokenFields(token, res)
+	} else {
+		res, err = iceauth.DetectIceToken(token)
+	}
 
 	return res, errors.Wrapf(err, "can't verify token fields for:%v", token)
 }
