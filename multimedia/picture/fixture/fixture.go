@@ -92,7 +92,7 @@ func AssertPictureUploaded(ctx context.Context, tb testing.TB, applicationYAMLKe
 	assert.NotEmpty(tb, bodyBytes)
 }
 
-func AssertPictureDeleted(ctx context.Context, tb testing.TB, applicationYAMLKey, fileName string) { //nolint:funlen // .
+func AssertPictureDeleted(ctx context.Context, tb testing.TB, applicationYAMLKey, fileName string) {
 	tb.Helper()
 	var cfg struct {
 		WintrMultimediaPicture struct {

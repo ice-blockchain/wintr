@@ -61,7 +61,7 @@ func (*auth) checkMetadataOwnership(userID string, metadata jwt.MapClaims) error
 	subMatch := metadata["sub"] != "" && userID == metadata["sub"]
 	fbMatch := metadata[FirebaseIDClaim] != "" && userID == metadata[FirebaseIDClaim]
 	iceMatch := metadata[IceIDClaim] != "" && userID == metadata[IceIDClaim]
-	if userID != "" && !(subMatch || fbMatch || iceMatch) {
+	if userID != "" && !(subMatch || fbMatch || iceMatch) { //nolint:staticcheck // .
 		return errors.Wrapf(ErrWrongTypeToken, "token %v does not own metadata %#v", userID, metadata)
 	}
 

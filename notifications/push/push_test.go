@@ -29,7 +29,7 @@ const (
 
 func TestNonBufferedClientSend(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyNonBuffered)
 	defer func() {
@@ -51,7 +51,7 @@ func TestNonBufferedClientSend(t *testing.T) {
 
 func TestBufferedClientSend(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	defer func() {
@@ -73,7 +73,7 @@ func TestBufferedClientSend(t *testing.T) {
 
 func TestClientSendClosedResponder(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	defer func() {
@@ -95,7 +95,7 @@ func TestClientSendClosedResponder(t *testing.T) {
 
 func TestClientSendNoResponder(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	defer func() {
@@ -135,7 +135,7 @@ func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 			defer wg.Done()
 			stdlibtime.Sleep(stdlibtime.Duration(rand.Intn(4)) * stdlibtime.Second) //nolint:gosec // Good enough here.
 			innerResponder := make(chan error)
-			isolatedClient.Send(context.Background(), n1, innerResponder)
+			isolatedClient.Send(t.Context(), n1, innerResponder)
 			responder <- <-innerResponder
 			close(innerResponder)
 		}()
@@ -169,7 +169,7 @@ func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 			defer wg.Done()
 			stdlibtime.Sleep(stdlibtime.Duration(rand.Intn(4)) * stdlibtime.Second) //nolint:gosec // Good enough here.
 			innerResponder := make(chan error)
-			isolatedClient.Send(context.Background(), n1, innerResponder)
+			isolatedClient.Send(t.Context(), n1, innerResponder)
 			responder <- <-innerResponder
 			close(innerResponder)
 		}()
@@ -192,7 +192,7 @@ func TestClientSend_Stability(t *testing.T) { //nolint:funlen // .
 
 func TestNonBufferedClientBroadcast(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyNonBuffered)
 	defer func() {
@@ -211,7 +211,7 @@ func TestNonBufferedClientBroadcast(t *testing.T) {
 
 func TestBufferedClientBroadcast(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	isolatedClient := New(testApplicationYAMLKeyBuffered)
 	defer func() {
@@ -244,7 +244,7 @@ func BenchmarkBufferedClientSend(b *testing.B) {
 				ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 			}
 			responder := make(chan error)
-			isolatedClient.Send(context.Background(), n1, responder)
+			isolatedClient.Send(b.Context(), n1, responder)
 			require.ErrorIs(b, <-responder, ErrInvalidDeviceToken)
 		}
 	})
@@ -266,7 +266,7 @@ func BenchmarkNonBufferedClientSend(b *testing.B) {
 				ImageURL: "https://miro.medium.com/max/1400/0*S1zFXEm7Cr9cdoKk",
 			}
 			responder := make(chan error)
-			isolatedClient.Send(context.Background(), n1, responder)
+			isolatedClient.Send(b.Context(), n1, responder)
 			require.ErrorIs(b, <-responder, ErrInvalidDeviceToken)
 		}
 	})

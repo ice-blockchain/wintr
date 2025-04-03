@@ -4,7 +4,6 @@ package testing
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -79,7 +78,7 @@ func zeroValueIgnoredFields(val any) {
 
 func MustMarshal(tb testing.TB, val any) string {
 	tb.Helper()
-	valueBytes, err := json.MarshalContext(context.Background(), val)
+	valueBytes, err := json.MarshalContext(tb.Context(), val)
 	require.NoError(tb, err)
 
 	return string(valueBytes)
@@ -88,7 +87,7 @@ func MustMarshal(tb testing.TB, val any) string {
 func MustUnmarshal[T any](tb testing.TB, val string) *T {
 	tb.Helper()
 	tt := new(T)
-	require.NoError(tb, json.UnmarshalContext(context.Background(), []byte(val), tt))
+	require.NoError(tb, json.UnmarshalContext(tb.Context(), []byte(val), tt))
 
 	return tt
 }

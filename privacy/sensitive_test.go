@@ -3,7 +3,6 @@
 package privacy
 
 import (
-	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -21,62 +20,62 @@ type (
 func TestSensitiveJSONMarshalUnmarshal(t *testing.T) { //nolint:dupl // .
 	t.Parallel()
 	val := dummy[*Sensitive]{A: new(Sensitive).Bind("bogus@foo.com")}
-	bytes, err := json.MarshalContext(context.Background(), val)
+	bytes, err := json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{"a":"e95cf122b13b76295043ea46be61092d87671cb2dc6b8c397d482872bc"}`, string(bytes))
-	bytes, err = json.MarshalContext(context.Background(), dummy[*Sensitive]{A: new(Sensitive).Bind("e95cf122b13b76295043ea46be61092d87671cb2dc6b8c397d482872bc")})
+	bytes, err = json.MarshalContext(t.Context(), dummy[*Sensitive]{A: new(Sensitive).Bind("e95cf122b13b76295043ea46be61092d87671cb2dc6b8c397d482872bc")})
 	assert.Equal(t, `{"a":"e95cf122b13b76295043ea46be61092d87671cb2dc6b8c397d482872bc"}`, string(bytes))
 	require.NoError(t, err)
 	var resp dummy[*Sensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), bytes, &resp))
+	require.NoError(t, json.UnmarshalContext(t.Context(), bytes, &resp))
 	assert.EqualValues(t, val, resp)
 	var resp2 dummy[*Sensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"a":"bogus@foo.com"}`), &resp2))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"a":"bogus@foo.com"}`), &resp2))
 	assert.EqualValues(t, val, resp2)
 	val = dummy[*Sensitive]{}
-	bytes, err = json.MarshalContext(context.Background(), val)
+	bytes, err = json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{}`, string(bytes))
 	val = dummy[*Sensitive]{A: new(Sensitive)}
-	bytes, err = json.MarshalContext(context.Background(), val)
+	bytes, err = json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{"a":""}`, string(bytes))
 	var resp3 dummy[*Sensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{}`), &resp3))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{}`), &resp3))
 	assert.EqualValues(t, dummy[*Sensitive]{}, resp3)
 	var resp4 dummy[*Sensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"a":null}`), &resp4))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"a":null}`), &resp4))
 	assert.EqualValues(t, dummy[*Sensitive]{}, resp4)
 }
 
 func TestDBSensitiveJSONMarshalUnmarshal(t *testing.T) { //nolint:dupl // .
 	t.Parallel()
 	val := dummy[*DBSensitive]{A: new(DBSensitive).Bind("bogus@foo.com")}
-	bytes, err := json.MarshalContext(context.Background(), val)
+	bytes, err := json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{"a":"bogus@foo.com"}`, string(bytes))
-	bytes, err = json.MarshalContext(context.Background(), dummy[*DBSensitive]{A: new(DBSensitive).Bind("bogus@foo.com")})
+	bytes, err = json.MarshalContext(t.Context(), dummy[*DBSensitive]{A: new(DBSensitive).Bind("bogus@foo.com")})
 	assert.Equal(t, `{"a":"bogus@foo.com"}`, string(bytes))
 	require.NoError(t, err)
 	var resp dummy[*DBSensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), bytes, &resp))
+	require.NoError(t, json.UnmarshalContext(t.Context(), bytes, &resp))
 	assert.EqualValues(t, val, resp)
 	var resp2 dummy[*DBSensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"a":"bogus@foo.com"}`), &resp2))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"a":"bogus@foo.com"}`), &resp2))
 	assert.EqualValues(t, val, resp2)
 	val = dummy[*DBSensitive]{}
-	bytes, err = json.MarshalContext(context.Background(), val)
+	bytes, err = json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{}`, string(bytes))
 	val = dummy[*DBSensitive]{A: new(DBSensitive)}
-	bytes, err = json.MarshalContext(context.Background(), val)
+	bytes, err = json.MarshalContext(t.Context(), val)
 	require.NoError(t, err)
 	assert.Equal(t, `{"a":""}`, string(bytes))
 	var resp3 dummy[*DBSensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{}`), &resp3))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{}`), &resp3))
 	assert.EqualValues(t, dummy[*DBSensitive]{}, resp3)
 	var resp4 dummy[*DBSensitive]
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"a":null}`), &resp4))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"a":null}`), &resp4))
 	assert.EqualValues(t, dummy[*DBSensitive]{}, resp4)
 }
 

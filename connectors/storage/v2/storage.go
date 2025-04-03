@@ -81,7 +81,7 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	poolConfig.ConnConfig.Password = pass
 	poolConfig.ConnConfig.StatementCacheCapacity = 1024
 	poolConfig.ConnConfig.DescriptionCacheCapacity = 1024
-	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * stdlibtime.Second
+	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * stdlibtime.Second //nolint:staticcheck // .
 	if !strings.Contains(strings.ToLower(url), "pool_max_conn_idle_time") {
 		poolConfig.MaxConnIdleTime = stdlibtime.Minute
 	}

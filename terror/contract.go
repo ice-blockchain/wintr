@@ -3,7 +3,7 @@
 package terror
 
 type (
-	Err struct {
+	Err struct { //nolint:errname // .
 		error
 		Data map[string]any `json:"data"`
 	}

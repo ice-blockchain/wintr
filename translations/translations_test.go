@@ -21,7 +21,7 @@ var (
 
 func TestClientTranslate(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	cl := New(ctx, "self")
 
@@ -40,7 +40,7 @@ func TestClientTranslate(t *testing.T) {
 
 func TestClientTranslateAllLanguages(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	cl := New(ctx, "self")
 
@@ -53,7 +53,7 @@ func TestClientTranslateAllLanguages(t *testing.T) {
 
 func TestClientTranslateMultipleKeysAllLanguages(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	cl := New(ctx, "self")
 
@@ -69,7 +69,7 @@ func TestClientTranslateMultipleKeysAllLanguages(t *testing.T) {
 
 func TestClientTranslateMultipleKeys(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	cl := New(ctx, "self")
 

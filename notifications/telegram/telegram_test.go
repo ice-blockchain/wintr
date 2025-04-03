@@ -45,7 +45,7 @@ func TestClientSend_Success_WithPreviewAndButton(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	notif := &Notification{
@@ -70,7 +70,7 @@ func TestClientSend_Success_WithoutPreviewAndButton(t *testing.T) {
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		t.Skip()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	notif := &Notification{
@@ -89,7 +89,7 @@ func TestClientSend_Failure_NoBotInfo(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	notif := &Notification{
@@ -109,7 +109,7 @@ func TestClientSend_Failure_TooLongMessage(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	var longText string
@@ -132,7 +132,7 @@ func TestClientSend_Failure_EmptyMessage(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	notif := &Notification{
@@ -151,7 +151,7 @@ func TestClientSend_Failure_NoChatId(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	notif := &Notification{
@@ -170,7 +170,7 @@ func TestClientSendConcurrency_Success_TooManyAttempts(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*stdlibtime.Second)
 	defer cancel()
 
 	client := New(testApplicationYAML)
@@ -203,7 +203,7 @@ func TestClientGetUpdates_Success(t *testing.T) {
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		t.Skip()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
@@ -223,7 +223,7 @@ func TestClientGetUpdates_Success_WrongOffset(t *testing.T) {
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		t.Skip()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
@@ -243,7 +243,7 @@ func TestClientGetUpdates_Success_WrongAllowedUpdates(t *testing.T) {
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		t.Skip()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
@@ -263,7 +263,7 @@ func TestClientGetUpdates_Failure_NoBotTokenProvided(t *testing.T) {
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		t.Skip()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
 	upd, err := client.GetUpdates(ctx, &GetUpdatesArg{
@@ -284,7 +284,7 @@ func BenchmarkBufferedClientSendWithPreview(b *testing.B) {
 		b.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(b.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	client := New(testApplicationYAML)
@@ -305,7 +305,7 @@ func BenchmarkBufferedClientSendWithPreview(b *testing.B) {
 func BenchmarkBufferedClientSendNoPreview(b *testing.B) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(b.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		b.Skip()
@@ -328,7 +328,7 @@ func BenchmarkBufferedClientSendNoPreview(b *testing.B) {
 func BenchmarkGetUpdates(b *testing.B) {
 	var cfg config
 	appcfg.MustLoadFromKey(testApplicationYAML, &cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(b.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	if cfg.WintrTelegramNotifications.Credentials.BotToken == "" || testChatID == "" {
 		b.Skip()

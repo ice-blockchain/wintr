@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 
 func TestClientSend(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	userID := uuid.NewString()
 	p1 := &Parcel{
@@ -94,7 +94,7 @@ func TestClientSend(t *testing.T) { //nolint:funlen // .
 
 func TestClientBroadcast(t *testing.T) { //nolint:funlen // .
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	p1 := &Parcel{
 		Data:   map[string]any{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
@@ -143,7 +143,7 @@ func TestClientBroadcast(t *testing.T) { //nolint:funlen // .
 
 func TestClientCreateUserToken(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	token, err := notificationFeedClient.CreateUserToken(ctx, uuid.NewString())
 	require.NoError(t, err)
@@ -175,7 +175,7 @@ func TestClientBroadcastRetry(t *testing.T) { //nolint:paralleltest // We're tes
 func requireBroadcast(t *testing.T, wg *sync.WaitGroup) {
 	t.Helper()
 	defer wg.Done()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	p1 := &Parcel{
 		Data:   map[string]any{"deeplink": fmt.Sprintf("ice.app/something/%v", uuid.NewString())},
@@ -189,7 +189,7 @@ func requireBroadcast(t *testing.T, wg *sync.WaitGroup) {
 			Value: uuid.NewString(),
 		},
 	}
-	userIDs := make([]UserID, MaxBatchSize, MaxBatchSize) //nolint:gosimple // Prefer to be more descriptive.
+	userIDs := make([]UserID, MaxBatchSize, MaxBatchSize) //nolint:gosimple,staticcheck // Prefer to be more descriptive.
 	for i := range userIDs {
 		userIDs[i] = uuid.NewString()
 	}
@@ -219,7 +219,7 @@ func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing 
 func requireSend(t *testing.T, wg *sync.WaitGroup) {
 	t.Helper()
 	defer wg.Done()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	userID := uuid.NewString()
 	p1 := &Parcel{

@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 
 func TestVerifyFBToken_ValidToken(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	uid, idToken := fixture.CreateUser("app")
@@ -64,7 +64,7 @@ func TestVerifyFBToken_ValidToken(t *testing.T) {
 
 func TestVerifyFBToken_InvalidToken(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	token, err := client.VerifyToken(ctx, "invalid token")
@@ -74,7 +74,7 @@ func TestVerifyFBToken_InvalidToken(t *testing.T) {
 
 func TestUpdateCustomClaims_Success(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	uid, _ := fixture.CreateUser("app")
@@ -93,7 +93,7 @@ func TestUpdateCustomClaims_Success(t *testing.T) {
 
 func TestDeleteUser_Success(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	uid, _ := fixture.CreateUser("app")
@@ -110,7 +110,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 func TestVerifyIceToken_ValidToken(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	var (
 		seq    = int64(0)
@@ -137,7 +137,7 @@ func TestVerifyIceToken_ValidToken(t *testing.T) {
 
 func TestVerifyIceToken_InvalidToken(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	_, err := client.VerifyToken(ctx, "wrong")
 	require.Error(t, err)
@@ -145,7 +145,7 @@ func TestVerifyIceToken_InvalidToken(t *testing.T) {
 
 func TestGenerateIceTokens_Valid(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	var (
 		now      = time.Now()
@@ -177,7 +177,7 @@ func TestGenerateIceTokens_Valid(t *testing.T) {
 
 func TestUpdateCustomClaims_Ice(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	var (
 		userID = "ice"
@@ -190,7 +190,7 @@ func TestUpdateCustomClaims_Ice(t *testing.T) {
 
 func TestDeleteUser_Ice(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	userID := "ice"
 

@@ -254,9 +254,9 @@ func (mb *messageBroker) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), messageBrokerCloseDeadline)
 	defer cancel()
 	if mb.concurrentConsumer != nil {
-		if !mb.concurrentConsumer.done {
-			mb.concurrentConsumer.cancel()
-			for !mb.concurrentConsumer.done && ctx.Err() == nil { //nolint:revive // That's intended, its a blocking wait.
+		if !mb.concurrentConsumer.done { //nolint:staticcheck // .
+			mb.concurrentConsumer.cancel()                        //nolint:staticcheck // .
+			for !mb.concurrentConsumer.done && ctx.Err() == nil { //nolint:staticcheck,revive // That's intended, its a blocking wait.
 			}
 		}
 	} else {

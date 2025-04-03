@@ -24,7 +24,7 @@ services:
       - redpanda.kafka_api_tls={"name":"OUTSIDE","enabled":%[2]v,"cert_file":"/cert.pem","key_file":"/key.pem"}
       - --set
       - redpanda.admin_api_tls={"name":"OUTSIDE","enabled":%[2]v,"cert_file":"/cert.pem","key_file":"/key.pem"}
-    image: docker.vectorized.io/vectorized/redpanda:latest
+    image: redpandadata/redpanda:latest
     pull_policy: always
     ports:
       - %[1]v:%[1]v

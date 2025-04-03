@@ -158,7 +158,6 @@ func (t *telegramNotification) buildTelegramMessage(notif *Notification) (jsonVa
 	return string(val), err
 }
 
-//nolint:funlen // .
 func (t *telegramNotification) post(ctx context.Context, url, body string) (response string, err error) {
 	newReq := t.buildHTTPRequest(ctx)
 	newReq = newReq.SetBodyJsonString(body)

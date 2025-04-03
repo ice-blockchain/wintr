@@ -89,7 +89,7 @@ func (s *testMessageStore) recordsFound(expected ...RawMessage) bool {
 }
 
 func (s *testMessageStore) findExpectedInGlobalMessageSource(expected []RawMessage) []RawMessage {
-	actualFound := make([]RawMessage, len(expected), len(expected)) //nolint:gosimple // Prefer to set it explicitly.
+	actualFound := make([]RawMessage, len(expected), len(expected)) //nolint:gosimple,staticcheck // Prefer to set it explicitly.
 	for i := range expected {
 		for j := range s.chronologicalMessageList {
 			if expected[i].Key == s.chronologicalMessageList[j].Key &&

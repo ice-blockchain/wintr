@@ -3,7 +3,6 @@
 package time
 
 import (
-	"context"
 	"testing"
 	stdlibtime "time"
 
@@ -46,7 +45,7 @@ func TestTime(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, marshalBinary1, marshalBinary2)
 	assert.EqualValues(t, "", string(marshalBinary1))
-	bytes, err := json.MarshalContext(context.Background(), t1)
+	bytes, err := json.MarshalContext(t.Context(), t1)
 	require.NoError(t, err)
 	assert.Equal(t, `{"createdAt":"2006-01-02T15:04:05.999999999Z"}`, string(bytes))
 	bytes, err = msgpack.Marshal(t1)
@@ -56,21 +55,21 @@ func TestTime(t *testing.T) {
 	require.NoError(t, msgpack.Unmarshal(bytes, &t11))
 	assert.Equal(t, t1, t11)
 	var t2 tmpStruct
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"createdAt":1}`), &t2))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"createdAt":1}`), &t2))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1).UTC())}, t2)
-	bytes, err = json.MarshalContext(context.Background(), &tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 0).UTC())})
+	bytes, err = json.MarshalContext(t.Context(), &tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 0).UTC())})
 	require.NoError(t, err)
 	assert.Equal(t, `{"createdAt":null}`, string(bytes))
 	var t21 tmpStruct
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"createdAt":1655303440552373000}`), &t21))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"createdAt":1655303440552373000}`), &t21))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1655303440552373000).UTC())}, t21)
 	var t22 tmpStruct
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"createdAt":1655303440552}`), &t22))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"createdAt":1655303440552}`), &t22))
 	assert.Equal(t, tmpStruct{CreatedAt: New(stdlibtime.Unix(0, 1655303440552000000).UTC())}, t22)
 	var t3 tmpStruct
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"createdAt":"2006-01-02T15:04:05.999999999Z"}`), &t3))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"createdAt":"2006-01-02T15:04:05.999999999Z"}`), &t3))
 	assert.Equal(t, t1, t3)
-	bytes, err = json.MarshalContext(context.Background(), tmpStruct{CreatedAt: Now()})
+	bytes, err = json.MarshalContext(t.Context(), tmpStruct{CreatedAt: Now()})
 	require.NoError(t, err)
 	assert.Regexp(t, `{"createdAt":".+"}`, string(bytes))
 }
