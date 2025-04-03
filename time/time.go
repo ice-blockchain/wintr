@@ -82,7 +82,7 @@ func (t *Time) MarshalJSON(_ context.Context) ([]byte, error) {
 		return []byte("null"), nil
 	}
 	if t.Location() != stdlibtime.UTC {
-		*t.Time = t.Time.UTC()
+		*t.Time = t.Time.UTC() //nolint:staticcheck // .
 	}
 
 	//nolint:wrapcheck // We're just proxying it.

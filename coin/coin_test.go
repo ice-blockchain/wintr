@@ -3,7 +3,6 @@
 package coin
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -258,26 +257,26 @@ func TestICEJSONSerialization(t *testing.T) {
 	}
 	s := ICE("1,123,123,123.01")
 	we := whatever{ICE: &s}
-	bytes, err := json.MarshalContext(context.Background(), we)
+	bytes, err := json.MarshalContext(t.Context(), we)
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(bytes))
 	var w2 whatever
-	require.NoError(t, json.UnmarshalContext(context.Background(), bytes, &w2))
+	require.NoError(t, json.UnmarshalContext(t.Context(), bytes, &w2))
 	ice := ICE("1123123123.01")
 	require.Equal(t, whatever{ICE: &ice}, w2)
 	require.True(t, w2.ICE.UnsafeICEFlake().Equal(math.NewUint(1123123123010000000)))
 	ice2 := ICE("1123123123.01")
-	bytes, err = json.MarshalContext(context.Background(), whatever{ICE: &ice2})
+	bytes, err = json.MarshalContext(t.Context(), whatever{ICE: &ice2})
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(bytes))
-	bytes, err = json.MarshalContext(context.Background(), whatever{ICE: UnsafeParseAmount("1123123123010000000").UnsafeICE()})
+	bytes, err = json.MarshalContext(t.Context(), whatever{ICE: UnsafeParseAmount("1123123123010000000").UnsafeICE()})
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"1,123,123,123.01"}`, string(bytes))
-	bytes, err = json.MarshalContext(context.Background(), whatever{ICE: new(ICE)})
+	bytes, err = json.MarshalContext(t.Context(), whatever{ICE: new(ICE)})
 	require.NoError(t, err)
 	assert.Equal(t, `{"ice":"0.0"}`, string(bytes))
 	var w3 whatever
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"ice":""}`), &w3))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"ice":""}`), &w3))
 	ice = "0.0"
 	require.Equal(t, whatever{ICE: &ice}, w3)
 	require.True(t, w3.ICE.UnsafeICEFlake().Equal(math.ZeroUint()))
@@ -286,13 +285,13 @@ func TestICEJSONSerialization(t *testing.T) {
 func TestICEUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 	ice1 := new(ICE)
-	require.NoError(t, ice1.UnmarshalJSON(context.Background(), []byte("")))
+	require.NoError(t, ice1.UnmarshalJSON(t.Context(), []byte("")))
 	ice2 := new(ICE)
-	require.NoError(t, ice2.UnmarshalJSON(context.Background(), []byte(" .0")))
+	require.NoError(t, ice2.UnmarshalJSON(t.Context(), []byte(" .0")))
 	ice3 := new(ICE)
-	require.NoError(t, ice3.UnmarshalJSON(context.Background(), []byte("0")))
+	require.NoError(t, ice3.UnmarshalJSON(t.Context(), []byte("0")))
 	ice4 := new(ICE)
-	require.NoError(t, ice4.UnmarshalJSON(context.Background(), []byte("1123123123.01")))
+	require.NoError(t, ice4.UnmarshalJSON(t.Context(), []byte("1123123123.01")))
 	assert.Equal(t, ICE("0.0"), *ice1)
 	assert.Equal(t, ICE("0.0"), *ice2)
 	assert.Equal(t, ICE("1123123123.01"), *ice4)
@@ -339,17 +338,17 @@ func TestICEFlakeJSONSerialization(t *testing.T) {
 	t.Parallel()
 
 	c1 := UnsafeParse("115792089237316195423570985008687907853269984665640564039457584007913129639935")
-	bytes, err := json.MarshalContext(context.Background(), c1)
+	bytes, err := json.MarshalContext(t.Context(), c1)
 	require.NoError(t, err)
 	assert.Equal(t, `{"amount":"115792089237316195423570985008687907853269984665640564039457584007913129639935"}`, string(bytes))
 	var c2 Coin
-	require.NoError(t, json.UnmarshalContext(context.Background(), bytes, &c2))
+	require.NoError(t, json.UnmarshalContext(t.Context(), bytes, &c2))
 	assert.Equal(t, UnsafeParseAmount("115792089237316195423570985008687907853269984665640564039457584007913129639935"), c2.Amount)
-	bytes, err = json.MarshalContext(context.Background(), Coin{Amount: &ICEFlake{}})
+	bytes, err = json.MarshalContext(t.Context(), Coin{Amount: &ICEFlake{}})
 	require.NoError(t, err)
 	assert.Equal(t, `{"amount":"0"}`, string(bytes))
 	var c3 Coin
-	require.NoError(t, json.UnmarshalContext(context.Background(), []byte(`{"amount":""}`), &c3))
+	require.NoError(t, json.UnmarshalContext(t.Context(), []byte(`{"amount":""}`), &c3))
 	assert.Equal(t, NewAmountUint64(0), c3.Amount)
 }
 

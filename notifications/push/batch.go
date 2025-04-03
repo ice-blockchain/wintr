@@ -66,7 +66,7 @@ func (b *notificationBatch) respond() {
 	wg.Wait()
 }
 
-func (b *notificationBatch) fcmSendAll(ctx context.Context) error { //nolint:funlen // Because it would be worse to break it.
+func (b *notificationBatch) fcmSendAll(ctx context.Context) error {
 	messages, deviceIndices := buildFCMMessages(b.notifications, b.devicesWithInvalidTokens, b.devicesNotified)
 	batchR, err := b.sink.client.SendAll(ctx, messages) //nolint:staticcheck // We know.
 	if err != nil {

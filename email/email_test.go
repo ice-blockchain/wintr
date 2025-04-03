@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 func TestClientSend(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	p1 := &Parcel{
 		Body: &Body{
@@ -85,7 +85,7 @@ func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing 
 func requireSend(t *testing.T, wg *sync.WaitGroup) {
 	t.Helper()
 	defer wg.Done()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	p1 := &Parcel{
 		Body: &Body{

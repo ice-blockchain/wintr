@@ -15,12 +15,12 @@ import (
 
 func (mb *messageBroker) startConsuming(ctx context.Context, cancel context.CancelFunc) {
 	cctx, ccancel := context.WithCancel(ctx)
-	mb.concurrentConsumer.cancel = ccancel
-	defer func() { //nolint:contextcheck // .
+	mb.concurrentConsumer.cancel = ccancel //nolint:staticcheck // .
+	defer func() {                         //nolint:contextcheck // .
 		mb.shutdownConsumerGracefully()
 		cancel()
 	}()
-	defer mb.concurrentConsumer.cancel()
+	defer mb.concurrentConsumer.cancel() //nolint:staticcheck // .
 	log.Info("message broker client started consuming...")
 	var shouldStop bool
 	for !shouldStop && cctx.Err() == nil {
@@ -119,7 +119,7 @@ func (mb *messageBroker) processNotFoundPartitions(fetchedTopic *kgo.FetchTopic,
 	mb.assignPartitions(context.Background(), map[string][]int32{fetchedTopic.Topic: partitions})
 	partitionConsumers, _ := mb.consumers.Load(fetchedTopic.Topic)
 	for partition, records := range partitionRecords {
-		pc, _ := partitionConsumers.(*sync.Map).Load(partition)
+		pc, _ := partitionConsumers.(*sync.Map).Load(partition) //nolint:forcetypeassert // .
 		mb.consumingWg.Add(len(records))
 		pc.(*partitionConsumer).recordsChan <- records //nolint:forcetypeassert // We know for sure.
 	}
@@ -150,7 +150,7 @@ func (mb *messageBroker) records(fetchedTopic *kgo.FetchTopic, ps []kgo.FetchPar
 
 func (mb *messageBroker) shutdownConsumerGracefully() { //nolint:funlen,revive // .
 	mb.mx.Lock()
-	if mb.concurrentConsumer.done {
+	if mb.concurrentConsumer.done { //nolint:staticcheck // .
 		mb.mx.Unlock()
 
 		return
@@ -158,10 +158,10 @@ func (mb *messageBroker) shutdownConsumerGracefully() { //nolint:funlen,revive /
 	defer mb.client.CloseAllowingRebalance()
 	defer mb.mx.Unlock()
 	defer log.Info("message broker client stopped consuming")
-	defer func() { mb.concurrentConsumer.done = true }()
+	defer func() { mb.concurrentConsumer.done = true }() //nolint:staticcheck // .
 	ctx, cancel := context.WithTimeout(context.Background(), messageBrokerCloseDeadline)
 	defer cancel()
-	mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers any) bool {
+	mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers any) bool { //nolint:staticcheck // .
 		partitionConsumers.(*sync.Map).Range(func(_, pc any) bool { //nolint:forcetypeassert // We know for sure.
 			pc.(*partitionConsumer).stop(ctx) //nolint:forcetypeassert // We know for sure.
 
@@ -174,7 +174,7 @@ func (mb *messageBroker) shutdownConsumerGracefully() { //nolint:funlen,revive /
 	cctx, ccancel := context.WithTimeout(context.Background(), messageBrokerCloseDeadline)
 	defer ccancel()
 	for cctx.Err() == nil {
-		mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers any) bool {
+		mb.concurrentConsumer.consumers.Range(func(_, partitionConsumers any) bool { //nolint:staticcheck // .
 			partitionConsumers.(*sync.Map).Range(func(_, pc any) bool { //nolint:forcetypeassert // We know for sure.
 				if !pc.(*partitionConsumer).done { //nolint:forcetypeassert // We know for sure.
 					done = false
@@ -214,8 +214,8 @@ func (c *concurrentConsumer) assignPartitions(ctx context.Context, assigned map[
 	for topic, partitions := range assigned {
 		partitionConsumers, _ := c.consumers.LoadOrStore(topic, &sync.Map{})
 		for _, partition := range partitions {
-			pc, loaded := partitionConsumers.(*sync.Map).Load(partition)
-			if !loaded || pc.(*partitionConsumer).closing { //nolint:forcetypeassert // We know for sure.
+			pc, loaded := partitionConsumers.(*sync.Map).Load(partition) //nolint:forcetypeassert // .
+			if !loaded || pc.(*partitionConsumer).closing {              //nolint:forcetypeassert // We know for sure.
 				c.replaceConsumer(ctx, topic, partition, partitionConsumers.(*sync.Map), pc) //nolint:forcetypeassert // We know for sure.
 			}
 		}
@@ -271,7 +271,7 @@ func (c *concurrentConsumer) revokePartitions(cctx context.Context, lost map[str
 			continue
 		}
 		for _, partition := range partitions {
-			if pc, ok := partitionConsumers.(*sync.Map).Load(partition); ok {
+			if pc, ok := partitionConsumers.(*sync.Map).Load(partition); ok { //nolint:forcetypeassert // .
 				pc.(*partitionConsumer).stop(ctx) //nolint:forcetypeassert // We know for sure.
 
 				continue

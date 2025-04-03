@@ -160,7 +160,7 @@ func (i *ICEFlake) Subtract(amount *ICEFlake) *ICEFlake {
 		return ZeroICEFlakes()
 	}
 
-	return new(ICEFlake).set(i.Uint.Sub(amount.Uint))
+	return new(ICEFlake).set(i.Uint.Sub(amount.Uint)) //nolint:staticcheck // .
 }
 
 func (i *ICEFlake) Divide(amount *ICEFlake) *ICEFlake {
@@ -171,7 +171,7 @@ func (i *ICEFlake) Divide(amount *ICEFlake) *ICEFlake {
 		return i
 	}
 
-	return new(ICEFlake).set(i.Uint.Quo(amount.Uint))
+	return new(ICEFlake).set(i.Uint.Quo(amount.Uint)) //nolint:staticcheck // .
 }
 
 func (i *ICEFlake) DivideUint64(amount uint64) *ICEFlake {
@@ -182,7 +182,7 @@ func (i *ICEFlake) DivideUint64(amount uint64) *ICEFlake {
 		return i
 	}
 
-	return new(ICEFlake).set(i.Uint.QuoUint64(amount))
+	return new(ICEFlake).set(i.Uint.QuoUint64(amount)) //nolint:staticcheck // .
 }
 
 func (i *ICEFlake) MultiplyUint64(amount uint64) *ICEFlake {
@@ -196,7 +196,7 @@ func (i *ICEFlake) MultiplyUint64(amount uint64) *ICEFlake {
 		return ZeroICEFlakes()
 	}
 
-	return new(ICEFlake).set(i.Uint.MulUint64(amount))
+	return new(ICEFlake).set(i.Uint.MulUint64(amount)) //nolint:staticcheck // .
 }
 
 func (i *ICEFlake) Multiply(amount *ICEFlake) *ICEFlake {
@@ -210,7 +210,7 @@ func (i *ICEFlake) Multiply(amount *ICEFlake) *ICEFlake {
 		return amount
 	}
 
-	return new(ICEFlake).set(i.Uint.Mul(amount.Uint))
+	return new(ICEFlake).set(i.Uint.Mul(amount.Uint)) //nolint:staticcheck // .
 }
 
 func (i *ICEFlake) IsNil() bool {
@@ -241,7 +241,7 @@ func (i *ICEFlake) UnmarshalJSON(_ context.Context, bytes []byte) error {
 }
 
 func (i *ICEFlake) EncodeMsgpack(enc *msgpack.Encoder) error {
-	bytes, err := i.Uint.Marshal()
+	bytes, err := i.Uint.Marshal() //nolint:staticcheck // .
 	if err != nil {
 		return errors.Wrapf(err, "cound not EncodeMsgpack->Marshall *ICEFlake %v", i.String())
 	}
@@ -280,7 +280,7 @@ func (i *ICEFlake) ICE() (*ICE, error) {
 
 		return &ice, nil
 	}
-	bytes, err := i.Uint.Marshal()
+	bytes, err := i.Uint.Marshal() //nolint:staticcheck // .
 	if err != nil {
 		return nil, errors.Wrapf(err, "cound not EncodeMsgpack->Marshall *ICEFlake %v", i.String())
 	}

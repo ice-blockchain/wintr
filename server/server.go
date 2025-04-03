@@ -71,7 +71,7 @@ func (s *srv) setupRouter() {
 
 func (s *srv) setupHealthCheckRoutes() {
 	s.router.GET("health-check", RootHandler(func(ctx context.Context, _ *Request[healthCheck, map[string]string]) (*Response[map[string]string], *Response[ErrorResponse]) { //nolint:lll // .
-		if err := s.State.CheckHealth(ctx); err != nil {
+		if err := s.State.CheckHealth(ctx); err != nil { //nolint:staticcheck // .
 			return nil, Unexpected(errors.Wrapf(err, "health check failed"))
 		}
 
@@ -139,7 +139,7 @@ func (s *srv) shutDown() {
 		log.Info("server shutdown succeeded")
 	}
 
-	if err := s.State.Close(ctx); err != nil && !errors.Is(err, io.EOF) {
+	if err := s.State.Close(ctx); err != nil && !errors.Is(err, io.EOF) { //nolint:staticcheck // .
 		log.Error(errors.Wrap(err, "state close failed"))
 	} else {
 		log.Info("state close succeeded")

@@ -53,7 +53,7 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 	return func(cctx context.Context) error {
 		var errs []error
 		if tc.Connector != nil {
-			errs = append(errs, errors.Wrapf(tc.Connector.Close(), "failed closing the test storage client for %v", tc.applicationYAMLKey))
+			errs = append(errs, errors.Wrapf(tc.Connector.Close(), "failed closing the test storage client for %v", tc.applicationYAMLKey)) //nolint:staticcheck // .
 		}
 		errs = append(errs, errors.Wrapf(cleanUp(cctx), "failed to cleanup storage connector for %v", tc.applicationYAMLKey))
 

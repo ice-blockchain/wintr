@@ -46,8 +46,8 @@ func (tc *testConnector) Setup(ctx context.Context) fixture.ContextErrClose {
 		}
 	}()
 	tc.testMessageStore = new(testMessageStore)
-	tc.testMessageStore.mx = new(sync.RWMutex)
-	tc.testMessageStore.chronologicalMessageList = []RawMessage{}
+	tc.testMessageStore.mx = new(sync.RWMutex)                    //nolint:staticcheck // .
+	tc.testMessageStore.chronologicalMessageList = []RawMessage{} //nolint:staticcheck // .
 	processors := make([]messagebroker.Processor, 0, len(tc.cfg.MessageBroker.Topics))
 	for range tc.cfg.MessageBroker.Topics {
 		processors = append(processors, tc.testMessageStore)

@@ -3,7 +3,6 @@
 package storage
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,84 +53,84 @@ $$ LANGUAGE plpgsql;`
 			C bool
 		}
 	)
-	db := MustConnect(context.Background(), ddl, "self")
+	db := MustConnect(t.Context(), ddl, "self")
 	defer func() {
-		_, err := Exec(context.Background(), db, `DROP TABLE bogus2`)
+		_, err := Exec(t.Context(), db, `DROP TABLE bogus2`)
 		require.NoError(t, err)
-		_, err = Exec(context.Background(), db, `DROP TABLE bogus`)
+		_, err = Exec(t.Context(), db, `DROP TABLE bogus`)
 		require.NoError(t, err)
-		_, err = Exec(context.Background(), db, `DROP function doSomething`)
+		_, err = Exec(t.Context(), db, `DROP function doSomething`)
 		require.NoError(t, err)
 		require.NoError(t, db.Close())
 	}()
-	require.NoError(t, db.Ping(context.Background()))
-	rowsAffected, err := Exec(context.Background(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
+	require.NoError(t, db.Ping(t.Context()))
+	rowsAffected, err := Exec(t.Context(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, rowsAffected)
-	rowsAffected, err = Exec(context.Background(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
+	rowsAffected, err = Exec(t.Context(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
 	require.ErrorIs(t, err, ErrDuplicate)
 	assert.EqualValues(t, terror.New(ErrDuplicate, map[string]any{"column": "pk"}), err)
 	assert.True(t, IsErr(err, ErrDuplicate, "pk"))
 	assert.EqualValues(t, 0, rowsAffected)
-	rowsAffected, err = Exec(context.Background(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
+	rowsAffected, err = Exec(t.Context(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a1", 1, true)
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, rowsAffected)
-	rowsAffected, err = Exec(context.Background(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a1", 2, true)
+	rowsAffected, err = Exec(t.Context(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a1", 2, true)
 	require.ErrorIs(t, err, ErrDuplicate)
 	assert.EqualValues(t, terror.New(ErrDuplicate, map[string]any{"column": "a"}), err)
 	assert.True(t, IsErr(err, ErrDuplicate, "a"))
 	assert.EqualValues(t, 0, rowsAffected)
-	rowsAffected, err = Exec(context.Background(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a2", 1, true)
+	rowsAffected, err = Exec(t.Context(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "a2", 1, true)
 	require.ErrorIs(t, err, ErrDuplicate)
 	assert.EqualValues(t, terror.New(ErrDuplicate, map[string]any{"column": "pk"}), err)
 	assert.EqualValues(t, 0, rowsAffected)
-	rowsAffected, err = Exec(context.Background(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "axx", 33, true)
+	rowsAffected, err = Exec(t.Context(), db, `INSERT INTO bogus2(a,b,c) VALUES ($1,$2,$3)`, "axx", 33, true)
 	require.ErrorIs(t, err, ErrRelationNotFound)
 	assert.EqualValues(t, terror.New(ErrRelationNotFound, map[string]any{"column": "a"}), err)
 	assert.True(t, IsErr(err, ErrRelationNotFound, "a"))
 	assert.EqualValues(t, 0, rowsAffected)
-	res1, err := ExecOne[Bogus](context.Background(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3) RETURNING *`, "a2", 2, true)
+	res1, err := ExecOne[Bogus](t.Context(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3) RETURNING *`, "a2", 2, true)
 	require.NoError(t, err)
 	assert.EqualValues(t, &Bogus{A: "a2", B: 2, C: true}, res1)
-	res2, err := ExecMany[Bogus](context.Background(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3),($4,$5,$6) RETURNING *`, "a3", 3, true, "a4", 4, false)
+	res2, err := ExecMany[Bogus](t.Context(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3),($4,$5,$6) RETURNING *`, "a3", 3, true, "a4", 4, false)
 	require.NoError(t, err)
 	assert.EqualValues(t, []*Bogus{{A: "a3", B: 3, C: true}, {A: "a4", B: 4, C: false}}, res2)
-	res3, err := Get[Bogus](context.Background(), db, `SELECT * FROM bogus WHERE a = $1`, "a1")
+	res3, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "a1")
 	require.NoError(t, err)
 	assert.EqualValues(t, &Bogus{A: "a1", B: 1, C: true}, res3)
-	resX, err := Get[Bogus](context.Background(), db, `SELECT * FROM bogus WHERE a = $1`, "axxx")
+	resX, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "axxx")
 	require.ErrorIs(t, err, ErrNotFound)
 	assert.True(t, IsErr(err, ErrNotFound))
 	assert.Nil(t, resX)
-	res4, err := Select[Bogus](context.Background(), db, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "b")
+	res4, err := Select[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "b")
 	require.NoError(t, err)
 	assert.EqualValues(t, []*Bogus{{A: "a1", B: 1, C: true}, {A: "a2", B: 2, C: true}, {A: "a3", B: 3, C: true}, {A: "a4", B: 4, C: false}}, res4)
-	require.NoError(t, DoInTransaction(context.Background(), db, func(conn QueryExecer) error {
-		rowsAffected, err = Exec(context.Background(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a5", 5, true)
+	require.NoError(t, DoInTransaction(t.Context(), db, func(conn QueryExecer) error {
+		rowsAffected, err = Exec(t.Context(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3)`, "a5", 5, true)
 		require.NoError(t, err)
 		if err != nil {
 			return err
 		}
 		assert.EqualValues(t, 1, rowsAffected)
-		res1, err = ExecOne[Bogus](context.Background(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3) RETURNING *`, "a6", 6, true)
+		res1, err = ExecOne[Bogus](t.Context(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3) RETURNING *`, "a6", 6, true)
 		require.NoError(t, err)
 		if err != nil {
 			return err
 		}
 		assert.EqualValues(t, &Bogus{A: "a6", B: 6, C: true}, res1)
-		res2, err = ExecMany[Bogus](context.Background(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3),($4,$5,$6) RETURNING *`, "a7", 7, true, "a8", 8, false)
+		res2, err = ExecMany[Bogus](t.Context(), conn, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3),($4,$5,$6) RETURNING *`, "a7", 7, true, "a8", 8, false)
 		require.NoError(t, err)
 		if err != nil {
 			return err
 		}
 		assert.EqualValues(t, []*Bogus{{A: "a7", B: 7, C: true}, {A: "a8", B: 8, C: false}}, res2)
-		res3, err = Get[Bogus](context.Background(), conn, `SELECT * FROM bogus WHERE a = $1`, "a5")
+		res3, err = Get[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a = $1`, "a5")
 		require.NoError(t, err)
 		if err != nil {
 			return err
 		}
 		assert.EqualValues(t, &Bogus{A: "a5", B: 5, C: true}, res3)
-		res4, err = Select[Bogus](context.Background(), conn, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "bb")
+		res4, err = Select[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "bb")
 		require.NoError(t, err)
 		if err != nil {
 			return err
@@ -144,11 +143,11 @@ $$ LANGUAGE plpgsql;`
 
 func TestStopWhenTxAborted(t *testing.T) {
 	t.Parallel()
-	db := MustConnect(context.Background(), "", "self")
+	db := MustConnect(t.Context(), "", "self")
 	require.NotNil(t, db)
 
-	err := DoInTransaction(context.Background(), db, func(tx QueryExecer) error {
-		_, gErr := Get[bool](context.Background(), tx, `SELECT $1 + $2`, 1, "2")
+	err := DoInTransaction(t.Context(), db, func(tx QueryExecer) error {
+		_, gErr := Get[bool](t.Context(), tx, `SELECT $1 + $2`, 1, "2")
 
 		return gErr
 	})

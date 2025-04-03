@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 
 func TestClientTrackAction(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	require.NoError(t, client.TrackAction(ctx, "bogus", &Action{
 		Name: "test",
@@ -42,7 +42,7 @@ func TestClientTrackAction(t *testing.T) {
 
 func TestClientSetUserAttributes(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	require.NoError(t, client.SetUserAttributes(ctx, "bogus", map[string]any{
 		"bogus2": "test",
@@ -51,7 +51,7 @@ func TestClientSetUserAttributes(t *testing.T) {
 
 func TestDeleteUser(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	userID := client.createTestUser(ctx, t)
 	require.NoError(t, client.DeleteUser(ctx, userID))

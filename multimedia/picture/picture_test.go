@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 
 func TestClientUpload(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	pic1 := getPic1(t)
@@ -64,9 +64,9 @@ func TestClientUpload(t *testing.T) {
 	fixture.AssertPictureDeleted(ctx, t, testWriteApplicationYAMLKey, pic1.Filename)
 }
 
-func TestClientUploadNoDelete(t *testing.T) { //nolint:funlen // .
+func TestClientUploadNoDelete(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*stdlibtime.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 
 	var cleanupFilenames [3]string
