@@ -1,6 +1,6 @@
 module github.com/ice-blockchain/wintr
 
-go 1.24.2
+go 1.24
 
 require (
 	cosmossdk.io/math v1.5.2
