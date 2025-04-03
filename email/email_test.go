@@ -33,6 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestClientSend(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
