@@ -1725,42 +1725,6 @@ func (l *lb) JSONType(ctx context.Context, key, path string) *redis.JSONSliceCmd
 	return l.instance().JSONType(ctx, key, path)
 }
 
-func (l *lb) TFunctionLoad(ctx context.Context, lib string) *redis.StatusCmd {
-	return l.instance().TFunctionLoad(ctx, lib)
-}
-
-func (l *lb) TFunctionLoadArgs(ctx context.Context, lib string, options *redis.TFunctionLoadOptions) *redis.StatusCmd {
-	return l.instance().TFunctionLoadArgs(ctx, lib, options)
-}
-
-func (l *lb) TFunctionDelete(ctx context.Context, libName string) *redis.StatusCmd {
-	return l.instance().TFunctionDelete(ctx, libName)
-}
-
-func (l *lb) TFunctionList(ctx context.Context) *redis.MapStringInterfaceSliceCmd {
-	return l.instance().TFunctionList(ctx)
-}
-
-func (l *lb) TFunctionListArgs(ctx context.Context, options *redis.TFunctionListOptions) *redis.MapStringInterfaceSliceCmd {
-	return l.instance().TFunctionListArgs(ctx, options)
-}
-
-func (l *lb) TFCall(ctx context.Context, libName, funcName string, numKeys int) *redis.Cmd {
-	return l.instance().TFCall(ctx, libName, funcName, numKeys)
-}
-
-func (l *lb) TFCallArgs(ctx context.Context, libName, funcName string, numKeys int, options *redis.TFCallOptions) *redis.Cmd {
-	return l.instance().TFCallArgs(ctx, libName, funcName, numKeys, options)
-}
-
-func (l *lb) TFCallASYNC(ctx context.Context, libName, funcName string, numKeys int) *redis.Cmd {
-	return l.instance().TFCallASYNC(ctx, libName, funcName, numKeys)
-}
-
-func (l *lb) TFCallASYNCArgs(ctx context.Context, libName, funcName string, numKeys int, options *redis.TFCallOptions) *redis.Cmd {
-	return l.instance().TFCallASYNCArgs(ctx, libName, funcName, numKeys, options)
-}
-
 func (l *lb) TSAdd(ctx context.Context, key string, timestamp any, value float64) *redis.IntCmd {
 	return l.instance().TSAdd(ctx, key, timestamp, value)
 }
@@ -1974,11 +1938,11 @@ func (l *lb) FTAlter(ctx context.Context, index string, skipInitialScan bool, de
 }
 
 func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd {
-	return l.instance().FTConfigGet(ctx, option)
+	return l.instance().FTConfigGet(ctx, option) //nolint:staticcheck // .
 }
 
 func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd {
-	return l.instance().FTConfigSet(ctx, option, value)
+	return l.instance().FTConfigSet(ctx, option, value) //nolint:staticcheck // .
 }
 
 func (l *lb) FTCreate(ctx context.Context, index string, options *redis.FTCreateOptions, schema ...*redis.FieldSchema) *redis.StatusCmd {
@@ -2056,6 +2020,54 @@ func (l *lb) FTSynUpdateWithArgs(ctx context.Context, index string, synGroupId a
 
 func (l *lb) FTTagVals(ctx context.Context, index, field string) *redis.StringSliceCmd {
 	return l.instance().FTTagVals(ctx, index, field)
+}
+
+func (l *lb) ACLCat(ctx context.Context) *redis.StringSliceCmd {
+	return l.instance().ACLCat(ctx)
+}
+
+func (l *lb) ACLCatArgs(ctx context.Context, options *redis.ACLCatArgs) *redis.StringSliceCmd {
+	return l.instance().ACLCatArgs(ctx, options)
+}
+
+func (l *lb) ACLDelUser(ctx context.Context, username string) *redis.IntCmd {
+	return l.instance().ACLDelUser(ctx, username)
+}
+
+func (l *lb) ACLList(ctx context.Context) *redis.StringSliceCmd {
+	return l.instance().ACLList(ctx)
+}
+
+func (l *lb) ACLSetUser(ctx context.Context, username string, rules ...string) *redis.StatusCmd {
+	return l.instance().ACLSetUser(ctx, username, rules...)
+}
+
+func (l *lb) ClusterMyID(ctx context.Context) *redis.StringCmd {
+	return l.instance().ClusterMyID(ctx)
+}
+
+func (l *lb) HGetDel(ctx context.Context, key string, fields ...string) *redis.StringSliceCmd {
+	return l.instance().HGetDel(ctx, key, fields...)
+}
+
+func (l *lb) HGetEX(ctx context.Context, key string, fields ...string) *redis.StringSliceCmd {
+	return l.instance().HGetEX(ctx, key, fields...)
+}
+
+func (l *lb) HGetEXWithArgs(ctx context.Context, key string, options *redis.HGetEXOptions, fields ...string) *redis.StringSliceCmd {
+	return l.instance().HGetEXWithArgs(ctx, key, options, fields...)
+}
+
+func (l *lb) HSetEX(ctx context.Context, key string, fieldsAndValues ...string) *redis.IntCmd {
+	return l.instance().HSetEX(ctx, key, fieldsAndValues...)
+}
+
+func (l *lb) HSetEXWithArgs(ctx context.Context, key string, options *redis.HSetEXOptions, fieldsAndValues ...string) *redis.IntCmd {
+	return l.instance().HSetEXWithArgs(ctx, key, options, fieldsAndValues...)
+}
+
+func (l *lb) HStrLen(ctx context.Context, key, field string) *redis.IntCmd {
+	return l.instance().HStrLen(ctx, key, field)
 }
 
 func (l *lb) Close() error {
