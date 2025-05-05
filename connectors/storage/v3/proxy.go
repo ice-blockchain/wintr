@@ -1937,12 +1937,12 @@ func (l *lb) FTAlter(ctx context.Context, index string, skipInitialScan bool, de
 	return l.instance().FTAlter(ctx, index, skipInitialScan, definition)
 }
 
-func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd { //nolint:staticcheck // .
-	return l.instance().FTConfigGet(ctx, option)
+func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd {
+	return l.instance().FTConfigGet(ctx, option) //nolint:staticcheck // .
 }
 
-func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd { //nolint:staticcheck // .
-	return l.instance().FTConfigSet(ctx, option, value)
+func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd {
+	return l.instance().FTConfigSet(ctx, option, value) //nolint:staticcheck // .
 }
 
 func (l *lb) FTCreate(ctx context.Context, index string, options *redis.FTCreateOptions, schema ...*redis.FieldSchema) *redis.StatusCmd {
