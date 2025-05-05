@@ -1937,11 +1937,11 @@ func (l *lb) FTAlter(ctx context.Context, index string, skipInitialScan bool, de
 	return l.instance().FTAlter(ctx, index, skipInitialScan, definition)
 }
 
-func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd {
+func (l *lb) FTConfigGet(ctx context.Context, option string) *redis.MapMapStringInterfaceCmd { //nolint:staticcheck // .
 	return l.instance().FTConfigGet(ctx, option)
 }
 
-func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd {
+func (l *lb) FTConfigSet(ctx context.Context, option string, value any) *redis.StatusCmd { //nolint:staticcheck // .
 	return l.instance().FTConfigSet(ctx, option, value)
 }
 
@@ -2066,7 +2066,7 @@ func (l *lb) HSetEXWithArgs(ctx context.Context, key string, options *redis.HSet
 	return l.instance().HSetEXWithArgs(ctx, key, options, fieldsAndValues...)
 }
 
-func (l *lb) HStrLen(ctx context.Context, key string, field string) *redis.IntCmd {
+func (l *lb) HStrLen(ctx context.Context, key, field string) *redis.IntCmd {
 	return l.instance().HStrLen(ctx, key, field)
 }
 
