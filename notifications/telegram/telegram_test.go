@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 		testChatID = os.Getenv("TELEGRAM_NOTIFICATIONS_TEST_CHAT_ID")
 	}
 
-	os.Exit(m.Run())
+	os.Exit(m.Run()) //nolint:revive // .
 }
 
 //nolint:paralleltest // Not to have unpredictable too many attempts error.

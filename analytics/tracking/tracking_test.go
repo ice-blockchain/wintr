@@ -25,7 +25,7 @@ var (
 
 func TestMain(m *testing.M) {
 	client = New(testApplicationYAMLKey).(*tracking) //nolint:forcetypeassert,revive,errcheck // We know for sure.
-	os.Exit(m.Run())
+	os.Exit(m.Run())                                 //nolint:revive // .
 }
 
 func TestClientTrackAction(t *testing.T) {

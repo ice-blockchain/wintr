@@ -128,7 +128,7 @@ func (c *Coin) IsNil() bool {
 
 //nolint:mnd,gomnd // Those are fixed numbers, nothing magical about em.
 func (c *Coin) setWord(wordPosition int, wordValue uint64) {
-	switch wordPosition {
+	switch wordPosition { //nolint:revive // .
 	case 0:
 		c.AmountWord0 = wordValue
 	case 1:

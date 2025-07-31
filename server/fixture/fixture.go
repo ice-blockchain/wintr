@@ -77,7 +77,7 @@ func (tc *testConnector) Setup(ctx context.Context) connectorsfixture.ContextErr
 }
 
 func (tc *testConnector) callMain(ctx context.Context) connectorsfixture.ContextErrClose {
-	cmd := exec.Command("go", "run", "-v", fmt.Sprintf("..%c%v", os.PathSeparator, tc.serviceName)) //nolint:gosec // False negative.
+	cmd := exec.CommandContext(ctx, "go", "run", "-v", fmt.Sprintf("..%c%v", os.PathSeparator, tc.serviceName)) //nolint:gosec // False negative.
 	cmd.Dir = tc.testdataPath
 	cmd.Stdout = tc
 	cmd.Stderr = tc

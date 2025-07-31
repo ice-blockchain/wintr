@@ -69,8 +69,24 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
 	for _, statement := range strings.Split(ddl, "----") {
 		_, err := master.Exec(ctx, statement)
-		log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+		if !ignorableDDLError(err) {
+			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+		}
 	}
+}
+
+func ignorableDDLError(err error) bool {
+	if err == nil {
+		return true
+	}
+	var dbErr *pgconn.PgError
+	if errors.As(err, &dbErr) {
+		if dbErr.SQLState() == "25006" {
+			return true
+		}
+	}
+
+	return false
 }
 
 //nolint:mnd,gomnd // Configuration.

@@ -30,7 +30,7 @@ var (
 
 func TestMain(m *testing.M) {
 	client = New(testApplicationYAMLKey)
-	os.Exit(m.Run())
+	os.Exit(m.Run()) //nolint:revive // .
 }
 
 func TestClientVerifyPhoneNumber(t *testing.T) {

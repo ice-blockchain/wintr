@@ -36,12 +36,12 @@ func TestMain(m *testing.M) {
 	defer func() {
 		if e := recover(); e != nil {
 			cancel()
-			log.Panic(e)
+			log.Panic(e) //nolint:revive // .
 		}
 	}()
 	exitCode := m.Run()
 	cancel()
-	os.Exit(exitCode) //nolint:gocritic // That's intended.
+	os.Exit(exitCode) //nolint:gocritic,revive // That's intended.
 }
 
 func TestVerifyFBToken_ValidToken(t *testing.T) {
