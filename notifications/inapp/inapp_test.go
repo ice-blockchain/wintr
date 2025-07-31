@@ -35,7 +35,7 @@ var (
 func TestMain(m *testing.M) {
 	notificationFeedClient = New(testApplicationYAMLKey, testNotificationFeedName)
 	flatFeedClient = New(testApplicationYAMLKey, testFlatFeedName)
-	os.Exit(m.Run())
+	os.Exit(m.Run()) //nolint:revive // .
 }
 
 func TestClientSend(t *testing.T) { //nolint:funlen // .

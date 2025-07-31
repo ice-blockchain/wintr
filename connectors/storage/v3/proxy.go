@@ -2070,6 +2070,78 @@ func (l *lb) HStrLen(ctx context.Context, key, field string) *redis.IntCmd {
 	return l.instance().HStrLen(ctx, key, field)
 }
 
+func (l *lb) VAdd(ctx context.Context, key, element string, val redis.Vector) *redis.BoolCmd {
+	return l.instance().VAdd(ctx, key, element, val)
+}
+
+func (l *lb) VAddWithArgs(ctx context.Context, key, element string, val redis.Vector, addArgs *redis.VAddArgs) *redis.BoolCmd {
+	return l.instance().VAddWithArgs(ctx, key, element, val, addArgs)
+}
+
+func (l *lb) VCard(ctx context.Context, key string) *redis.IntCmd {
+	return l.instance().VCard(ctx, key)
+}
+
+func (l *lb) VDim(ctx context.Context, key string) *redis.IntCmd {
+	return l.instance().VDim(ctx, key)
+}
+
+func (l *lb) VEmb(ctx context.Context, key, element string, raw bool) *redis.SliceCmd {
+	return l.instance().VEmb(ctx, key, element, raw)
+}
+
+func (l *lb) VGetAttr(ctx context.Context, key, element string) *redis.StringCmd {
+	return l.instance().VGetAttr(ctx, key, element)
+}
+
+func (l *lb) VInfo(ctx context.Context, key string) *redis.MapStringInterfaceCmd {
+	return l.instance().VInfo(ctx, key)
+}
+
+func (l *lb) VLinks(ctx context.Context, key, element string) *redis.StringSliceCmd {
+	return l.instance().VLinks(ctx, key, element)
+}
+
+func (l *lb) VLinksWithScores(ctx context.Context, key, element string) *redis.VectorScoreSliceCmd {
+	return l.instance().VLinksWithScores(ctx, key, element)
+}
+
+func (l *lb) VRandMember(ctx context.Context, key string) *redis.StringCmd {
+	return l.instance().VRandMember(ctx, key)
+}
+
+func (l *lb) VRandMemberCount(ctx context.Context, key string, count int) *redis.StringSliceCmd {
+	return l.instance().VRandMemberCount(ctx, key, count)
+}
+
+func (l *lb) VRem(ctx context.Context, key, element string) *redis.BoolCmd {
+	return l.instance().VRem(ctx, key, element)
+}
+
+func (l *lb) VSetAttr(ctx context.Context, key, element string, attr any) *redis.BoolCmd {
+	return l.instance().VSetAttr(ctx, key, element, attr)
+}
+
+func (l *lb) VClearAttributes(ctx context.Context, key, element string) *redis.BoolCmd {
+	return l.instance().VClearAttributes(ctx, key, element)
+}
+
+func (l *lb) VSim(ctx context.Context, key string, val redis.Vector) *redis.StringSliceCmd {
+	return l.instance().VSim(ctx, key, val)
+}
+
+func (l *lb) VSimWithScores(ctx context.Context, key string, val redis.Vector) *redis.VectorScoreSliceCmd {
+	return l.instance().VSimWithScores(ctx, key, val)
+}
+
+func (l *lb) VSimWithArgs(ctx context.Context, key string, val redis.Vector, args *redis.VSimArgs) *redis.StringSliceCmd {
+	return l.instance().VSimWithArgs(ctx, key, val, args)
+}
+
+func (l *lb) VSimWithArgsWithScores(ctx context.Context, key string, val redis.Vector, args *redis.VSimArgs) *redis.VectorScoreSliceCmd {
+	return l.instance().VSimWithArgsWithScores(ctx, key, val, args)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))

@@ -124,7 +124,7 @@ func (req *Request[REQ, RESP]) processRequest() *Response[ErrorResponse] {
 	req.processTags()
 	var errs []error
 	for b := range req.bindings {
-		switch b {
+		switch b { //nolint:revive // .
 		case json:
 			errs = append(errs, req.ginCtx.ShouldBindJSON(req.Data))
 		case uri:

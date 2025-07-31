@@ -20,6 +20,9 @@ linters:
     - wsl
     - errcheck # TODO: check how to use it properly for v2.
     - testifylint # TODO: check how to use it properly for v2.
+    - noinlineerr
+    - embeddedstructfieldcheck
+    - wsl_v5
   settings:
     cyclop:
       max-complexity: 15

@@ -38,7 +38,7 @@ var (
 func TestMain(m *testing.M) {
 	client = New(testWriteApplicationYAMLKey)
 	noDeleteClient = New(testWriteApplicationYAMLKey, ignoreFilenameRegex)
-	os.Exit(m.Run())
+	os.Exit(m.Run()) //nolint:revive // .
 }
 
 func TestClientUpload(t *testing.T) {

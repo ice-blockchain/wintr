@@ -135,7 +135,7 @@ func (t *tracking) buildHTTPRequest(ctx context.Context) *req.Request {
 		SetContext(ctx).
 		SetRetryBackoffInterval(10*stdlibtime.Millisecond, 1*stdlibtime.Second).
 		SetRetryHook(func(resp *req.Response, err error) {
-			switch {
+			switch { //nolint:revive // .
 			case err != nil:
 				log.Error(errors.Wrapf(err, "analytics/tracking request failed, retrying... "))
 			case resp.GetStatusCode() == http.StatusTooManyRequests:

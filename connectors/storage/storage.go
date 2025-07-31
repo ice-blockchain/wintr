@@ -211,7 +211,7 @@ func CheckNoSQLDMLErr(err error) error {
 func parseTarantoolDMLErr(err error) error {
 	dbErr := new(tarantool.Error)
 	if ok := errors.As(err, dbErr); ok {
-		switch dbErr.Code {
+		switch dbErr.Code { //nolint:revive // .
 		case tarantool.ER_TUPLE_FOUND: //nolint:nosnakecase // External library.
 			return terror.New(ErrDuplicate, map[string]any{
 				IndexName: strings.Split(strings.Replace(dbErr.Msg, `Duplicate key exists in unique index "`, "", 1), `"`)[0],

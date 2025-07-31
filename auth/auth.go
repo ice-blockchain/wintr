@@ -72,7 +72,7 @@ func (*auth) firstRegisteredUserID(metadata map[string]any) string {
 	var userID string
 	if registeredWithProviderInterface, found := metadata[internal.RegisteredWithProviderClaim]; found {
 		registeredWithProvider := registeredWithProviderInterface.(string) //nolint:errcheck,revive,forcetypeassert // Not needed.
-		switch registeredWithProvider {
+		switch registeredWithProvider {                                    //nolint:revive // .
 		case internal.ProviderFirebase:
 			if firebaseIDInterface, ok := metadata[internal.FirebaseIDClaim]; ok {
 				userID, _ = firebaseIDInterface.(string) //nolint:errcheck,revive // Not needed.

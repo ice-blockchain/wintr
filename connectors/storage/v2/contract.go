@@ -22,6 +22,7 @@ var (
 	ErrTxAborted            = errors.New("transaction aborted")
 	ErrExclusionViolation   = errors.New("exclusion violation")
 	ErrMutexNotLocked       = errors.New("not locked")
+	ErrReadOnly             = errors.New("read only")
 )
 
 type (

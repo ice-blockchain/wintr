@@ -69,8 +69,24 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
 	for _, statement := range strings.Split(ddl, "----") {
 		_, err := master.Exec(ctx, statement)
-		log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+		if !ignorableDDLError(err) {
+			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
+		}
 	}
+}
+
+func ignorableDDLError(err error) bool {
+	if err == nil {
+		return true
+	}
+	var dbErr *pgconn.PgError
+	if errors.As(err, &dbErr) {
+		if dbErr.SQLState() == "25006" {
+			return true
+		}
+	}
+
+	return false
 }
 
 //nolint:mnd,gomnd // Configuration.
@@ -173,12 +189,17 @@ func (db *DB) Close() error {
 
 func (db *DB) Ping(ctx context.Context) error {
 	wg := new(sync.WaitGroup)
-	errChan := make(chan error, len(db.lb.replicas)+1)
+	const masterChecks = 2
+	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
 	if db.master != nil {
-		wg.Add(1)
+		wg.Add(masterChecks)
 		go func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
+		}()
+		go func() {
+			defer wg.Done()
+			errChan <- errors.Wrap(checkWrite(ctx, db.master), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -192,12 +213,26 @@ func (db *DB) Ping(ctx context.Context) error {
 	}
 	wg.Wait()
 	close(errChan)
-	errs := make([]error, 0, len(db.lb.replicas)+1)
+	errs := make([]error, 0, len(db.lb.replicas)+masterChecks)
 	for err := range errChan {
 		errs = append(errs, err)
 	}
 
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
+}
+
+func checkWrite(ctx context.Context, db *pgxpool.Pool) error {
+	res, err := ExecOne[struct {
+		ReadOnly string `db:"transaction_read_only"`
+	}](ctx, db, "show transaction_read_only;")
+	if err != nil {
+		return errors.Wrapf(err, "failed to check write access")
+	}
+	if res.ReadOnly == "on" {
+		return ErrReadOnly
+	}
+
+	return nil
 }
 
 func (db *DB) primary() *pgxpool.Pool {
