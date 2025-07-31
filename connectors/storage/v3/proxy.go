@@ -2118,7 +2118,7 @@ func (l *lb) VRem(ctx context.Context, key, element string) *redis.BoolCmd {
 	return l.instance().VRem(ctx, key, element)
 }
 
-func (l *lb) VSetAttr(ctx context.Context, key, element string, attr interface{}) *redis.BoolCmd {
+func (l *lb) VSetAttr(ctx context.Context, key, element string, attr any) *redis.BoolCmd {
 	return l.instance().VSetAttr(ctx, key, element, attr)
 }
 

@@ -189,9 +189,10 @@ func (db *DB) Close() error {
 
 func (db *DB) Ping(ctx context.Context) error {
 	wg := new(sync.WaitGroup)
-	errChan := make(chan error, len(db.lb.replicas)+2)
+	const masterChecks = 2
+	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
 	if db.master != nil {
-		wg.Add(2)
+		wg.Add(masterChecks)
 		go func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
@@ -212,7 +213,7 @@ func (db *DB) Ping(ctx context.Context) error {
 	}
 	wg.Wait()
 	close(errChan)
-	errs := make([]error, 0, len(db.lb.replicas)+2)
+	errs := make([]error, 0, len(db.lb.replicas)+masterChecks)
 	for err := range errChan {
 		errs = append(errs, err)
 	}
@@ -230,8 +231,8 @@ func checkWrite(ctx context.Context, db *pgxpool.Pool) error {
 	if res.ReadOnly == "on" {
 		return ErrReadOnly
 	}
-	return nil
 
+	return nil
 }
 
 func (db *DB) primary() *pgxpool.Pool {
