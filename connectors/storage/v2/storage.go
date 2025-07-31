@@ -189,12 +189,16 @@ func (db *DB) Close() error {
 
 func (db *DB) Ping(ctx context.Context) error {
 	wg := new(sync.WaitGroup)
-	errChan := make(chan error, len(db.lb.replicas)+1)
+	errChan := make(chan error, len(db.lb.replicas)+2)
 	if db.master != nil {
-		wg.Add(1)
+		wg.Add(2)
 		go func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
+		}()
+		go func() {
+			defer wg.Done()
+			errChan <- errors.Wrap(checkWrite(ctx, db.master), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -208,12 +212,26 @@ func (db *DB) Ping(ctx context.Context) error {
 	}
 	wg.Wait()
 	close(errChan)
-	errs := make([]error, 0, len(db.lb.replicas)+1)
+	errs := make([]error, 0, len(db.lb.replicas)+2)
 	for err := range errChan {
 		errs = append(errs, err)
 	}
 
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
+}
+
+func checkWrite(ctx context.Context, db *pgxpool.Pool) error {
+	res, err := ExecOne[struct {
+		ReadOnly string `db:"transaction_read_only"`
+	}](ctx, db, "show transaction_read_only;")
+	if err != nil {
+		return errors.Wrapf(err, "failed to check write access")
+	}
+	if res.ReadOnly == "on" {
+		return ErrReadOnly
+	}
+	return nil
+
 }
 
 func (db *DB) primary() *pgxpool.Pool {
