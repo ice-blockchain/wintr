@@ -199,7 +199,7 @@ func (db *DB) Ping(ctx context.Context) error {
 		}()
 		go func() {
 			defer wg.Done()
-			errChan <- errors.Wrap(checkWrite(ctx, db.master), "write check failed for master")
+			errChan <- errors.Wrap(CheckWrite(ctx, db.master), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -221,7 +221,7 @@ func (db *DB) Ping(ctx context.Context) error {
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
 }
 
-func checkWrite(ctx context.Context, db *pgxpool.Pool) error {
+func CheckWrite(ctx context.Context, db Querier) error {
 	res, err := ExecOne[struct {
 		ReadOnly string `db:"transaction_read_only"`
 	}](ctx, db, "show transaction_read_only;")

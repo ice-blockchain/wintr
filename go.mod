@@ -5,7 +5,7 @@ go 1.24
 require (
 	cosmossdk.io/math v1.5.3
 	dario.cat/mergo v1.0.2
-	firebase.google.com/go/v4 v4.17.0
+	firebase.google.com/go/v4 v4.18.0
 	github.com/GetStream/stream-go2/v7 v7.1.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/docker/go-connections v0.5.0
