@@ -318,6 +318,18 @@ func (l *lb) BitOpAndOr(ctx context.Context, destKey string, keys ...string) *re
 	return l.instance().BitOpAndOr(ctx, destKey, keys...)
 }
 
+func (l *lb) BitOpDiff(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
+	return l.instance().BitOpDiff(ctx, destKey, keys...)
+}
+
+func (l *lb) BitOpDiff1(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
+	return l.instance().BitOpDiff1(ctx, destKey, keys...)
+}
+
+func (l *lb) BitOpOne(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
+	return l.instance().BitOpOne(ctx, destKey, keys...)
+}
+
 func (l *lb) BitOpXor(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
 	return l.instance().BitOpXor(ctx, destKey, keys...)
 }
@@ -680,6 +692,14 @@ func (l *lb) XAck(ctx context.Context, stream, group string, ids ...string) *red
 	return l.instance().XAck(ctx, stream, group, ids...)
 }
 
+func (l *lb) XAckDel(ctx context.Context, stream, group, id string, ids ...string) *redis.SliceCmd {
+	return l.instance().XAckDel(ctx, stream, group, id, ids...)
+}
+
+func (l *lb) XDelEx(ctx context.Context, stream, id string, ids ...string) *redis.SliceCmd {
+	return l.instance().XDelEx(ctx, stream, id, ids...)
+}
+
 func (l *lb) XPending(ctx context.Context, stream, group string) *redis.XPendingCmd {
 	return l.instance().XPending(ctx, stream, group)
 }
@@ -706,6 +726,22 @@ func (l *lb) XAutoClaimJustID(ctx context.Context, a *redis.XAutoClaimArgs) *red
 
 func (l *lb) XTrimMaxLen(ctx context.Context, key string, maximumLen int64) *redis.IntCmd {
 	return l.instance().XTrimMaxLen(ctx, key, maximumLen)
+}
+
+func (l *lb) XTrimMaxLenApproxMode(ctx context.Context, key string, maxLen, limit int64, mode string) *redis.IntCmd {
+	return l.instance().XTrimMaxLenApproxMode(ctx, key, maxLen, limit, mode)
+}
+
+func (l *lb) XTrimMaxLenMode(ctx context.Context, key string, maxLen int64, mode string) *redis.IntCmd {
+	return l.instance().XTrimMaxLenMode(ctx, key, maxLen, mode)
+}
+
+func (l *lb) XTrimMinIDApproxMode(ctx context.Context, key, minID string, limit int64, mode string) *redis.IntCmd {
+	return l.instance().XTrimMinIDApproxMode(ctx, key, minID, limit, mode)
+}
+
+func (l *lb) XTrimMinIDMode(ctx context.Context, key, minID, mode string) *redis.IntCmd {
+	return l.instance().XTrimMinIDMode(ctx, key, minID, mode)
 }
 
 func (l *lb) XTrimMaxLenApprox(ctx context.Context, key string, maximumLen, limit int64) *redis.IntCmd {
