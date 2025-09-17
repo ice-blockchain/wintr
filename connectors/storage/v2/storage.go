@@ -5,7 +5,9 @@ package storage
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -92,7 +94,7 @@ func ignorableDDLError(err error) bool {
 //nolint:mnd,gomnd // Configuration.
 func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
-	log.Panic(errors.Wrapf(err, "failed to parse pool config: %v", url)) //nolint:revive // Intended
+	log.Panic(errors.Wrapf(maskError(err), "failed to parse pool config: %v", maskSensitive(url))) //nolint:revive // Intended
 	poolConfig.ConnConfig.User = user
 	poolConfig.ConnConfig.Password = pass
 	poolConfig.ConnConfig.StatementCacheCapacity = 1024
@@ -111,7 +113,7 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
 	poolConfig.MinConns = 1
 	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
-	log.Panic(errors.Wrapf(err, "failed to start pool for config: %v", url))
+	log.Panic(errors.Wrapf(maskError(err), "failed to start pool for config: %v", maskSensitive(url)))
 
 	return db
 }
@@ -138,8 +140,8 @@ func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error {
 		}
 	}
 	sql := fmt.Sprintf(`SELECT name, setting
-							FROM pg_settings
-							WHERE name IN (%v)`, strings.Join(values, ","))
+						FROM pg_settings
+						WHERE name IN (%v)`, strings.Join(values, ","))
 	rows, qErr := conn.Query(ctx, sql)
 	if qErr != nil {
 		return errors.Wrapf(qErr, "validation select failed")
@@ -269,8 +271,38 @@ func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
 			Clock:               backoff.SystemClock,
 		}, ctx),
 		func(e error, next stdlibtime.Duration) {
-			log.Error(errors.Wrapf(e, "[wintr/storage/v2]call failed. retrying in %v... ", next))
+			log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
 		})
 
 	return tt, err
+}
+
+func maskError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return errors.New(maskSensitive(err.Error()))
+}
+
+func maskSensitive(input string) string {
+	if input == "" {
+		return input
+	}
+	out := input
+	if u, perr := neturl.Parse(out); perr == nil && u.Scheme != "" {
+		u.User = nil
+		if u.Path != "" {
+			u.Path = "/***"
+		}
+		out = u.String()
+	}
+	out = regexp.MustCompile(`(?i)(user=)[^\s\)]+`).ReplaceAllString(out, `${1}***`)
+	out = regexp.MustCompile(`(?i)(database=)[^\s\)]+`).ReplaceAllString(out, `${1}***`)
+	out = regexp.MustCompile(`(?i)(db=)[^\s\)]+`).ReplaceAllString(out, `${1}***`)
+	out = regexp.MustCompile(`(?i)(dbname=)[^\s\)]+`).ReplaceAllString(out, `${1}***`)
+	out = regexp.MustCompile(`(?i)(password=)[^\s\)]+`).ReplaceAllString(out, `${1}***`)
+	out = regexp.MustCompile(`(?i)(for user\s+")([^"]+)(")`).ReplaceAllString(out, `${1}***${3}`)
+
+	return out
 }
