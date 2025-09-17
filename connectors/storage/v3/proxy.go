@@ -314,6 +314,10 @@ func (l *lb) BitOpOr(ctx context.Context, destKey string, keys ...string) *redis
 	return l.instance().BitOpOr(ctx, destKey, keys...)
 }
 
+func (l *lb) BitOpAndOr(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
+	return l.instance().BitOpAndOr(ctx, destKey, keys...)
+}
+
 func (l *lb) BitOpXor(ctx context.Context, destKey string, keys ...string) *redis.IntCmd {
 	return l.instance().BitOpXor(ctx, destKey, keys...)
 }
