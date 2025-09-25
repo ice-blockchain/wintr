@@ -10,9 +10,9 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/terror"
@@ -45,16 +45,16 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 
 		return DoInTransaction(ctx, db, fn)
 	}
-	if needRetryOnFallbackMaster(err) && db.fallbackPrimary() != nil {
-		_, err = retry[any](ctx, func(_ error) (any, error) {
-			if err = parseDBError(pgx.BeginTxFunc(ctx, db.fallbackPrimary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
-				return nil, err
-			} else { //nolint:revive // Nope.
-				return nil, backoff.Permanent(err)
-			}
-		})
+	if db.fallbackMasters != nil && len(db.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(err) {
+		idx := 0
+		var txErr *multierror.Error
+		for idx < len(db.fallbackMasters.replicas) && (needRetryOnFallbackMaster(err) || IsUnexpected(err)) {
+			err = parseDBError(pgx.BeginTxFunc(ctx, db.fallbackPrimary(), txOptions, func(tx pgx.Tx) error { return fn(tx) }))
+			txErr = multierror.Append(txErr, err)
+			idx++
+		}
 
-		return err
+		return errors.Wrap(txErr.ErrorOrNil(), "failed to execute tx on fallbacks")
 	}
 
 	return err
@@ -106,9 +106,9 @@ func selectInternal[T any](ctx context.Context, db Querier, sql string, args ...
 
 func Exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, error) {
 	return retry[uint64](ctx, func(prevErr error) (uint64, error) {
-		var primary *pgxpool.Pool
+		primary := db
 		if pool, ok := db.(*DB); ok {
-			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
 				primary = pool.fallbackPrimary()
 			} else {
 				primary = pool.primary()
@@ -136,7 +136,7 @@ func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 	return retry[*T](ctx, func(prevErr error) (*T, error) {
 		primary := db
 		if pool, ok := db.(*DB); ok {
-			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
 				primary = pool.fallbackPrimary()
 			} else {
 				primary = pool.primary()
@@ -162,9 +162,9 @@ func execOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 //nolint:varnamelen // .
 func ExecMany[T any](ctx context.Context, db Querier, sql string, args ...any) ([]*T, error) {
 	return retry[[]*T](ctx, func(prevErr error) ([]*T, error) {
-		var primary *pgxpool.Pool
+		primary := db
 		if pool, ok := db.(*DB); ok {
-			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
 				primary = pool.fallbackPrimary()
 			} else {
 				primary = pool.primary()
