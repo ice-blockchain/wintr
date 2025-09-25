@@ -137,7 +137,7 @@ func (a *auth) GenerateTokens( //nolint:revive // We need to have these paramete
 	accessToken, refreshToken, err = a.ice.GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role, extra)
 	err = errors.Wrapf(err, "can't generate tokens for userID:%v, email:%v", userID, email)
 
-	return
+	return accessToken, refreshToken, err
 }
 
 func (a *auth) GenerateMetadata(

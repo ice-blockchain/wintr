@@ -23,6 +23,7 @@ linters:
     - noinlineerr
     - embeddedstructfieldcheck
     - wsl_v5
+    - unqueryvet
   settings:
     cyclop:
       max-complexity: 15

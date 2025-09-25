@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package firebaseauth
+package firebaseauth //nolint:revive //.
 
 import (
 	"context"

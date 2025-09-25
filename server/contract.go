@@ -75,11 +75,10 @@ const (
 	query
 	header
 	formMultipart
-
-	languageHeader = "X-Language"
 )
 
 const (
+	languageHeader              = "X-Language"
 	requestingUserIDCtxValueKey = "requestingUserIDCtxValueKey"
 
 	authClientCtxValueKey = "authClientCtxValueKey"

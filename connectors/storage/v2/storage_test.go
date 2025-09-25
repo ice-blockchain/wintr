@@ -95,14 +95,14 @@ $$ LANGUAGE plpgsql;`
 	res2, err := ExecMany[Bogus](t.Context(), db, `INSERT INTO bogus(a,b,c) VALUES ($1,$2,$3),($4,$5,$6) RETURNING *`, "a3", 3, true, "a4", 4, false)
 	require.NoError(t, err)
 	assert.EqualValues(t, []*Bogus{{A: "a3", B: 3, C: true}, {A: "a4", B: 4, C: false}}, res2)
-	res3, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "a1")
+	res3, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "a1") //nolint:unqueryvet // .
 	require.NoError(t, err)
 	assert.EqualValues(t, &Bogus{A: "a1", B: 1, C: true}, res3)
-	resX, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "axxx")
+	resX, err := Get[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a = $1`, "axxx") //nolint:unqueryvet // .
 	require.ErrorIs(t, err, ErrNotFound)
 	assert.True(t, IsErr(err, ErrNotFound))
 	assert.Nil(t, resX)
-	res4, err := Select[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "b")
+	res4, err := Select[Bogus](t.Context(), db, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "b") //nolint:unqueryvet // .
 	require.NoError(t, err)
 	assert.EqualValues(t, []*Bogus{{A: "a1", B: 1, C: true}, {A: "a2", B: 2, C: true}, {A: "a3", B: 3, C: true}, {A: "a4", B: 4, C: false}}, res4)
 	require.NoError(t, DoInTransaction(t.Context(), db, func(conn QueryExecer) error {
@@ -124,13 +124,13 @@ $$ LANGUAGE plpgsql;`
 			return err
 		}
 		assert.EqualValues(t, []*Bogus{{A: "a7", B: 7, C: true}, {A: "a8", B: 8, C: false}}, res2)
-		res3, err = Get[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a = $1`, "a5")
+		res3, err = Get[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a = $1`, "a5") //nolint:unqueryvet // .
 		require.NoError(t, err)
 		if err != nil {
 			return err
 		}
 		assert.EqualValues(t, &Bogus{A: "a5", B: 5, C: true}, res3)
-		res4, err = Select[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "bb")
+		res4, err = Select[Bogus](t.Context(), conn, `SELECT * FROM bogus WHERE a != $1  ORDER BY b`, "bb") //nolint:unqueryvet // .
 		require.NoError(t, err)
 		if err != nil {
 			return err

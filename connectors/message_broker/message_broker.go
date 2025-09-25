@@ -269,19 +269,13 @@ func (mb *messageBroker) Close() error {
 
 func (*messageBroker) Level() kgo.LogLevel {
 	switch log.Level() {
-	case "trace":
-		return kgo.LogLevelDebug
-	case "debug":
+	case "trace", "debug":
 		return kgo.LogLevelDebug
 	case "info":
 		return kgo.LogLevelInfo
 	case "warn":
 		return kgo.LogLevelWarn
-	case "error":
-		return kgo.LogLevelError
-	case "fatal":
-		return kgo.LogLevelError
-	case "panic":
+	case "error", "fatal", "panic":
 		return kgo.LogLevelError
 	default:
 		return kgo.LogLevelNone
@@ -289,6 +283,7 @@ func (*messageBroker) Level() kgo.LogLevel {
 }
 
 func (*messageBroker) Log(level kgo.LogLevel, msg string, keyValEnumeration ...any) {
+	//nolint:revive // .
 	switch level {
 	case kgo.LogLevelError:
 		log.Error(errors.New(msg), keyValEnumeration...)

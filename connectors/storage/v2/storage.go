@@ -50,9 +50,12 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 
 func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 	var replicas []*pgxpool.Pool
-	var master *pgxpool.Pool
+	var master, primaryFallback *pgxpool.Pool
 	if cfg.PrimaryURL != "" {
 		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL)
+	}
+	if cfg.PrimaryFallbackURL != "" {
+		primaryFallback = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryFallbackURL)
 	}
 	for ix, url := range cfg.ReplicaURLs {
 		if ix == 0 {
@@ -63,7 +66,7 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 	if master != nil && ddl != "" && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
 	}
-	db := &DB{master: master, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
+	db := &DB{master: master, fallbackMaster: primaryFallback, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
 	return db
 }
@@ -194,14 +197,13 @@ func (db *DB) Ping(ctx context.Context) error {
 	const masterChecks = 2
 	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
 	if db.master != nil {
-		wg.Add(masterChecks)
-		go func() {
+		wg.Go(func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
-		}()
+		})
 		go func() {
 			defer wg.Done()
-			errChan <- errors.Wrap(CheckWrite(ctx, db.master), "write check failed for master")
+			errChan <- errors.Wrap(checkWrites(ctx, db), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -223,6 +225,17 @@ func (db *DB) Ping(ctx context.Context) error {
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
 }
 
+func checkWrites(ctx context.Context, db *DB) error {
+	err := CheckWrite(ctx, db.master)
+	if err != nil {
+		if db.fallbackMaster != nil && errors.Is(err, ErrReadOnly) {
+			err = CheckWrite(ctx, db.fallbackMaster)
+		}
+	}
+
+	return err
+}
+
 func CheckWrite(ctx context.Context, db Querier) error {
 	res, err := ExecOne[struct {
 		ReadOnly string `db:"transaction_read_only"`
@@ -241,6 +254,10 @@ func (db *DB) primary() *pgxpool.Pool {
 	return db.master
 }
 
+func (db *DB) fallbackPrimary() *pgxpool.Pool {
+	return db.fallbackMaster
+}
+
 func (db *DB) replica() *pgxpool.Pool {
 	return db.lb.replicas[atomic.AddUint64(&db.lb.currentIndex, 1)%uint64(len(db.lb.replicas))]
 }
@@ -253,10 +270,10 @@ func (*DB) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 	panic("should not be used because its implemented just for type matching")
 }
 
-func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
+func retry[T any](ctx context.Context, op func(prevError error) (T, error)) (tt T, err error) {
 	err = backoff.RetryNotify(
 		func() error {
-			tt, err = op()
+			tt, err = op(err)
 
 			return err
 		},
@@ -271,7 +288,11 @@ func retry[T any](ctx context.Context, op func() (T, error)) (tt T, err error) {
 			Clock:               backoff.SystemClock,
 		}, ctx),
 		func(e error, next stdlibtime.Duration) {
-			log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
+			if errors.Is(err, ErrReadOnly) {
+				log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v on fallback master... ", next))
+			} else {
+				log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
+			}
 		})
 
 	return tt, err

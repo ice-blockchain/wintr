@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package storagefixture
+package storagefixture //nolint:revive // .
 
 import (
 	_ "embed"
