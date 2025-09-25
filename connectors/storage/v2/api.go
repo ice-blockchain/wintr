@@ -134,7 +134,7 @@ func exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 //nolint:varnamelen // .
 func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, error) {
 	return retry[*T](ctx, func(prevErr error) (*T, error) {
-		var primary *pgxpool.Pool
+		primary := db
 		if pool, ok := db.(*DB); ok {
 			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
 				primary = pool.fallbackPrimary()
