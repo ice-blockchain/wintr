@@ -31,7 +31,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/testcontainers/testcontainers-go v0.38.0
-	github.com/twilio/twilio-go v1.28.1
+	github.com/twilio/twilio-go v1.28.2
 	github.com/twmb/franz-go v1.19.5
 	github.com/twmb/franz-go/pkg/kadm v1.16.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
