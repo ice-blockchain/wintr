@@ -102,7 +102,7 @@ func GenerateIceTokens(userID, role string) (refreshToken, accessToken string, e
 	)
 	refreshToken, accessToken, err = clientIce().GenerateTokens(now, userID, deviceUniqueID, email, hashCode, seq, role, nil)
 
-	return
+	return refreshToken, accessToken, errors.Wrap(err, "failed to generate tokens")
 }
 
 func generateUser(ctx context.Context, role string) (uid, email, password string) {

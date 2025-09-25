@@ -11,7 +11,7 @@ require (
 	github.com/docker/go-connections v0.6.0
 	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/gin-gonic/gin v1.10.1
+	github.com/gin-gonic/gin v1.11.0
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-reflect v1.2.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -31,7 +31,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/testcontainers/testcontainers-go v0.38.0
-	github.com/twilio/twilio-go v1.28.0
+	github.com/twilio/twilio-go v1.28.1
 	github.com/twmb/franz-go v1.19.5
 	github.com/twmb/franz-go/pkg/kadm v1.16.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
@@ -43,15 +43,15 @@ require (
 
 require (
 	cel.dev/expr v0.24.0 // indirect
-	cloud.google.com/go v0.122.0 // indirect
+	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.16.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.8.1 // indirect
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/firestore v1.18.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/longrunning v0.6.7 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
-	cloud.google.com/go/storage v1.56.2 // indirect
+	cloud.google.com/go/storage v1.57.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.53.0 // indirect
@@ -93,22 +93,23 @@ require (
 	github.com/go-openapi/jsonpointer v0.22.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.1 // indirect
 	github.com/go-openapi/spec v0.21.0 // indirect
-	github.com/go-openapi/swag v0.24.1 // indirect
-	github.com/go-openapi/swag/cmdutils v0.24.0 // indirect
-	github.com/go-openapi/swag/conv v0.24.0 // indirect
-	github.com/go-openapi/swag/fileutils v0.24.0 // indirect
-	github.com/go-openapi/swag/jsonname v0.24.0 // indirect
-	github.com/go-openapi/swag/jsonutils v0.24.0 // indirect
-	github.com/go-openapi/swag/loading v0.24.0 // indirect
-	github.com/go-openapi/swag/mangling v0.24.0 // indirect
-	github.com/go-openapi/swag/netutils v0.24.0 // indirect
-	github.com/go-openapi/swag/stringutils v0.24.0 // indirect
-	github.com/go-openapi/swag/typeutils v0.24.0 // indirect
-	github.com/go-openapi/swag/yamlutils v0.24.0 // indirect
+	github.com/go-openapi/swag v0.25.0 // indirect
+	github.com/go-openapi/swag/cmdutils v0.25.0 // indirect
+	github.com/go-openapi/swag/conv v0.25.0 // indirect
+	github.com/go-openapi/swag/fileutils v0.25.0 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.0 // indirect
+	github.com/go-openapi/swag/jsonutils v0.25.0 // indirect
+	github.com/go-openapi/swag/loading v0.25.0 // indirect
+	github.com/go-openapi/swag/mangling v0.25.0 // indirect
+	github.com/go-openapi/swag/netutils v0.25.0 // indirect
+	github.com/go-openapi/swag/stringutils v0.25.0 // indirect
+	github.com/go-openapi/swag/typeutils v0.25.0 // indirect
+	github.com/go-openapi/swag/yamlutils v0.25.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.27.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
+	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
@@ -124,14 +125,12 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lib/pq v1.10.7 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
-	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -152,9 +151,8 @@ require (
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/refraction-networking/utls v1.8.0 // indirect
-	github.com/sagikazarmark/locafero v0.11.0 // indirect
+	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -188,9 +186,9 @@ require (
 	golang.org/x/time v0.13.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20250908214217-97024824d090 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250908214217-97024824d090 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
+	google.golang.org/genproto v0.0.0-20250922171735-9219d122eba9 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250922171735-9219d122eba9 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250922171735-9219d122eba9 // indirect
 	google.golang.org/grpc v1.75.1 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

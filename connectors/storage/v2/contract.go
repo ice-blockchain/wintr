@@ -27,12 +27,13 @@ var (
 
 type (
 	DB struct {
-		master        *pgxpool.Pool
-		lb            *lb
-		acquiredLocks map[int64]*pgxpool.Conn
-		locksMx       sync.Mutex
-		closed        bool
-		closedMx      sync.Mutex
+		master         *pgxpool.Pool
+		fallbackMaster *pgxpool.Pool
+		lb             *lb
+		acquiredLocks  map[int64]*pgxpool.Conn
+		locksMx        sync.Mutex
+		closed         bool
+		closedMx       sync.Mutex
 	}
 	Mutex interface {
 		Lock(ctx context.Context) error
@@ -64,11 +65,12 @@ type (
 			User     string `yaml:"user"`
 			Password string `yaml:"password"`
 		} `yaml:"credentials" mapstructure:"credentials"`
-		Timeout      string   `yaml:"timeout" mapstructure:"timeout"`
-		PrimaryURL   string   `yaml:"primaryURL" mapstructure:"primaryURL"`     //nolint:tagliatelle // Nope.
-		ReplicaURLs  []string `yaml:"replicaURLs" mapstructure:"replicaURLs"`   //nolint:tagliatelle // Nope.
-		RunDDL       bool     `yaml:"runDDL" mapstructure:"runDDL"`             //nolint:tagliatelle // Nope.
-		IgnoreGlobal bool     `yaml:"ignoreGlobal" mapstructure:"ignoreGlobal"` //nolint:tagliatelle // Nope.
+		Timeout            string   `yaml:"timeout" mapstructure:"timeout"`
+		PrimaryURL         string   `yaml:"primaryURL" mapstructure:"primaryURL"`                 //nolint:tagliatelle // Nope.
+		PrimaryFallbackURL string   `yaml:"primaryFallbackURL" mapstructure:"primaryFallbackURL"` //nolint:tagliatelle // Nope.
+		ReplicaURLs        []string `yaml:"replicaURLs" mapstructure:"replicaURLs"`               //nolint:tagliatelle // Nope.
+		RunDDL             bool     `yaml:"runDDL" mapstructure:"runDDL"`                         //nolint:tagliatelle // Nope.
+		IgnoreGlobal       bool     `yaml:"ignoreGlobal" mapstructure:"ignoreGlobal"`             //nolint:tagliatelle // Nope.
 	}
 	advisoryLockMutex struct {
 		conn *pgxpool.Conn

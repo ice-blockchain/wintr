@@ -382,6 +382,7 @@ func omitEmpty(opt string) bool {
 }
 
 func isEmptyValue(value reflect.Value) bool {
+	//nolint:revive // .
 	switch value.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return value.Len() == 0

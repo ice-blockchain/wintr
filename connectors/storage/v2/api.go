@@ -12,6 +12,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
 	"github.com/ice-blockchain/wintr/terror"
@@ -32,7 +33,7 @@ type (
 
 func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) error) error {
 	txOptions := pgx.TxOptions{IsoLevel: pgx.Serializable, AccessMode: pgx.ReadWrite, DeferrableMode: pgx.NotDeferrable}
-	_, err := retry[any](ctx, func() (any, error) {
+	_, err := retry[any](ctx, func(_ error) (any, error) {
 		if err := parseDBError(pgx.BeginTxFunc(ctx, db.primary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
@@ -44,12 +45,23 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 
 		return DoInTransaction(ctx, db, fn)
 	}
+	if needRetryOnFallbackMaster(err) && db.fallbackPrimary() != nil {
+		_, err = retry[any](ctx, func(_ error) (any, error) {
+			if err = parseDBError(pgx.BeginTxFunc(ctx, db.fallbackPrimary(), txOptions, func(tx pgx.Tx) error { return fn(tx) })); err != nil && IsUnexpected(err) {
+				return nil, err
+			} else { //nolint:revive // Nope.
+				return nil, backoff.Permanent(err)
+			}
+		})
+
+		return err
+	}
 
 	return err
 }
 
 func Get[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, error) {
-	return retry[*T](ctx, func() (*T, error) {
+	return retry[*T](ctx, func(_ error) (*T, error) {
 		if resp, err := get[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
@@ -71,7 +83,7 @@ func get[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, e
 }
 
 func Select[T any](ctx context.Context, db Querier, sql string, args ...any) ([]*T, error) {
-	return retry[[]*T](ctx, func() ([]*T, error) {
+	return retry[[]*T](ctx, func(_ error) ([]*T, error) {
 		if resp, err := selectInternal[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
@@ -93,8 +105,16 @@ func selectInternal[T any](ctx context.Context, db Querier, sql string, args ...
 }
 
 func Exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, error) {
-	return retry[uint64](ctx, func() (uint64, error) {
-		if resp, err := exec(ctx, db, sql, args...); err != nil && IsUnexpected(err) {
+	return retry[uint64](ctx, func(prevErr error) (uint64, error) {
+		var primary *pgxpool.Pool
+		if pool, ok := db.(*DB); ok {
+			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+				primary = pool.fallbackPrimary()
+			} else {
+				primary = pool.primary()
+			}
+		}
+		if resp, err := exec(ctx, primary, sql, args...); err != nil && IsUnexpected(err) {
 			return 0, err
 		} else { //nolint:revive // Nope.
 			return resp, backoff.Permanent(err)
@@ -103,9 +123,6 @@ func Exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 }
 
 func exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, error) { //nolint:revive // Nope.
-	if pool, ok := db.(*DB); ok {
-		db = pool.primary() //nolint:revive // Not an issue here.
-	}
 	resp, err := db.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, parseDBError(err)
@@ -114,9 +131,18 @@ func exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 	return uint64(resp.RowsAffected()), nil //nolint:gosec // .
 }
 
+//nolint:varnamelen // .
 func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, error) {
-	return retry[*T](ctx, func() (*T, error) {
-		if resp, err := execOne[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
+	return retry[*T](ctx, func(prevErr error) (*T, error) {
+		var primary *pgxpool.Pool
+		if pool, ok := db.(*DB); ok {
+			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+				primary = pool.fallbackPrimary()
+			} else {
+				primary = pool.primary()
+			}
+		}
+		if resp, err := execOne[T](ctx, primary, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
 			return resp, backoff.Permanent(err)
@@ -125,9 +151,6 @@ func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 }
 
 func execOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*T, error) { //nolint:revive // Nope.
-	if pool, ok := db.(*DB); ok {
-		db = pool.primary() //nolint:revive // Not an issue here.
-	}
 	resp := new(T)
 	if err := pgxscan.Get(ctx, db, resp, sql, args...); err != nil {
 		return nil, parseDBError(err)
@@ -136,9 +159,18 @@ func execOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 	return resp, nil
 }
 
+//nolint:varnamelen // .
 func ExecMany[T any](ctx context.Context, db Querier, sql string, args ...any) ([]*T, error) {
-	return retry[[]*T](ctx, func() ([]*T, error) {
-		if resp, err := execMany[T](ctx, db, sql, args...); err != nil && IsUnexpected(err) {
+	return retry[[]*T](ctx, func(prevErr error) ([]*T, error) {
+		var primary *pgxpool.Pool
+		if pool, ok := db.(*DB); ok {
+			if needRetryOnFallbackMaster(prevErr) && pool.fallbackPrimary() != nil {
+				primary = pool.fallbackPrimary()
+			} else {
+				primary = pool.primary()
+			}
+		}
+		if resp, err := execMany[T](ctx, primary, sql, args...); err != nil && IsUnexpected(err) {
 			return nil, err
 		} else { //nolint:revive // Nope.
 			return resp, backoff.Permanent(err)
@@ -147,9 +179,6 @@ func ExecMany[T any](ctx context.Context, db Querier, sql string, args ...any) (
 }
 
 func execMany[T any](ctx context.Context, db Querier, sql string, args ...any) ([]*T, error) { //nolint:revive // Nope.
-	if pool, ok := db.(*DB); ok {
-		db = pool.primary() //nolint:revive // Not an issue here.
-	}
 	var resp []*T
 	if err := pgxscan.Select(ctx, db, &resp, sql, args...); err != nil {
 		return nil, parseDBError(err)
@@ -177,7 +206,11 @@ func IsUnexpected(err error) bool {
 	var pgConnErr *pgconn.PgError
 	var netOpErr *net.OpError
 
-	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr)
+	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr) || errors.Is(err, ErrReadOnly)
+}
+
+func needRetryOnFallbackMaster(err error) bool {
+	return err != nil && errors.Is(err, ErrReadOnly)
 }
 
 func parseDBError(err error) error { //nolint:funlen,gocognit,revive // .
@@ -219,6 +252,9 @@ func parseDBError(err error) error { //nolint:funlen,gocognit,revive // .
 		}
 		if dbErr.SQLState() == "23P01" {
 			return ErrExclusionViolation
+		}
+		if dbErr.SQLState() == "25006" {
+			return ErrReadOnly
 		}
 
 		return err

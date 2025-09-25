@@ -45,7 +45,7 @@ func MustConnect(ctx context.Context, cancel context.CancelFunc, ddl, applicatio
 		log.Panic(err)
 	}
 
-	return
+	return db
 }
 
 func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Connector, err error) {
@@ -59,7 +59,7 @@ func connectDB(ctx context.Context, cancel context.CancelFunc) (db tarantool.Con
 		return nil, errors.Wrapf(err, "could not connect to tarantool instances: %v", cfg.DB.URLs)
 	}
 
-	return
+	return db, errors.Wrap(err, "failed to connect db")
 }
 
 func initDBSchema(db tarantool.Connector, ddl string) error {

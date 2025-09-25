@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package iceauth
+package iceauth //nolint:revive //.
 
 import (
 	"github.com/golang-jwt/jwt/v5"
