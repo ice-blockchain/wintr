@@ -49,13 +49,10 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 }
 
 func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
-	var replicas []*pgxpool.Pool
-	var master, primaryFallback *pgxpool.Pool
+	var replicas, fallbacks []*pgxpool.Pool
+	var master *pgxpool.Pool
 	if cfg.PrimaryURL != "" {
 		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL)
-	}
-	if cfg.PrimaryFallbackURL != "" {
-		primaryFallback = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryFallbackURL)
 	}
 	for ix, url := range cfg.ReplicaURLs {
 		if ix == 0 {
@@ -63,10 +60,16 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 		}
 		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
 	}
+	for ix, url := range cfg.PrimaryFallbackURLs {
+		if ix == 0 {
+			fallbacks = make([]*pgxpool.Pool, len(cfg.PrimaryFallbackURLs)) //nolint:makezero // Not needed, we know the size.
+		}
+		fallbacks[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
+	}
 	if master != nil && ddl != "" && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
 	}
-	db := &DB{master: master, fallbackMaster: primaryFallback, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
+	db := &DB{master: master, fallbackMasters: &lb{replicas: fallbacks}, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
 	return db
 }
@@ -229,8 +232,12 @@ func (db *DB) Ping(ctx context.Context) error {
 func checkWrites(ctx context.Context, db *DB) error {
 	err := CheckWrite(ctx, db.master)
 	if err != nil {
-		if db.fallbackMaster != nil && errors.Is(err, ErrReadOnly) {
-			err = CheckWrite(ctx, db.fallbackMaster)
+		if db.fallbackMasters != nil && len(db.fallbackMasters.replicas) > 0 && errors.Is(err, ErrReadOnly) {
+			idx := 0
+			for err != nil && idx < len(db.fallbackMasters.replicas) {
+				err = CheckWrite(ctx, db.fallbackPrimary())
+				idx++
+			}
 		}
 	}
 
@@ -256,7 +263,7 @@ func (db *DB) primary() *pgxpool.Pool {
 }
 
 func (db *DB) fallbackPrimary() *pgxpool.Pool {
-	return db.fallbackMaster
+	return db.fallbackMasters.replicas[atomic.AddUint64(&db.fallbackMasters.currentIndex, 1)%uint64(len(db.fallbackMasters.replicas))]
 }
 
 func (db *DB) replica() *pgxpool.Pool {
