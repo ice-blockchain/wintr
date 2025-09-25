@@ -197,10 +197,11 @@ func (db *DB) Ping(ctx context.Context) error {
 	const masterChecks = 2
 	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
 	if db.master != nil {
-		wg.Go(func() {
+		wg.Add(masterChecks) //nolint:revive // More than 1.
+		go func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
-		})
+		}()
 		go func() {
 			defer wg.Done()
 			errChan <- errors.Wrap(checkWrites(ctx, db), "write check failed for master")
