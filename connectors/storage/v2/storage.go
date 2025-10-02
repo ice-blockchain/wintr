@@ -208,7 +208,7 @@ func (db *DB) Ping(ctx context.Context) error {
 		}()
 		go func() {
 			defer wg.Done()
-			errChan <- errors.Wrap(checkWrites(ctx, db), "write check failed for master")
+			errChan <- errors.Wrap(CheckWrite(ctx, db.master), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -228,22 +228,6 @@ func (db *DB) Ping(ctx context.Context) error {
 	}
 
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
-}
-
-func checkWrites(ctx context.Context, db *DB) error {
-	err := CheckWrite(ctx, db.master)
-	if err != nil {
-		if db.fallbackMasters != nil && len(db.fallbackMasters.replicas) > 0 && errors.Is(err, ErrReadOnly) {
-			idx := 0
-			for err != nil && idx < len(db.fallbackMasters.replicas) {
-				fb, _ := db.fallbackPrimary()
-				err = CheckWrite(ctx, fb)
-				idx++
-			}
-		}
-	}
-
-	return err
 }
 
 func CheckWrite(ctx context.Context, db Querier) error {
