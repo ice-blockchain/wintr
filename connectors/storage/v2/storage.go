@@ -69,6 +69,7 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 	if master != nil && ddl != "" && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
 	}
+	log.Info(fmt.Sprintf("db connected: replicas = %v, fallbacks = %v", len(replicas), len(fallbacks)))
 	db := &DB{master: master, fallbackMasters: &lb{replicas: fallbacks}, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
 
 	return db
@@ -207,7 +208,7 @@ func (db *DB) Ping(ctx context.Context) error {
 		}()
 		go func() {
 			defer wg.Done()
-			errChan <- errors.Wrap(checkWrites(ctx, db), "write check failed for master")
+			errChan <- errors.Wrap(CheckWrite(ctx, db.master), "write check failed for master")
 		}()
 	}
 	if len(db.lb.replicas) != 0 {
@@ -229,21 +230,6 @@ func (db *DB) Ping(ctx context.Context) error {
 	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
 }
 
-func checkWrites(ctx context.Context, db *DB) error {
-	err := CheckWrite(ctx, db.master)
-	if err != nil {
-		if db.fallbackMasters != nil && len(db.fallbackMasters.replicas) > 0 && errors.Is(err, ErrReadOnly) {
-			idx := 0
-			for err != nil && idx < len(db.fallbackMasters.replicas) {
-				err = CheckWrite(ctx, db.fallbackPrimary())
-				idx++
-			}
-		}
-	}
-
-	return err
-}
-
 func CheckWrite(ctx context.Context, db Querier) error {
 	res, err := ExecOne[struct {
 		ReadOnly string `db:"transaction_read_only"`
@@ -262,8 +248,10 @@ func (db *DB) primary() *pgxpool.Pool {
 	return db.master
 }
 
-func (db *DB) fallbackPrimary() *pgxpool.Pool {
-	return db.fallbackMasters.replicas[atomic.AddUint64(&db.fallbackMasters.currentIndex, 1)%uint64(len(db.fallbackMasters.replicas))]
+func (db *DB) fallbackPrimary() (*pgxpool.Pool, uint64) {
+	idx := atomic.AddUint64(&db.fallbackMasters.currentIndex, 1) % uint64(len(db.fallbackMasters.replicas))
+
+	return db.fallbackMasters.replicas[idx], idx
 }
 
 func (db *DB) replica() *pgxpool.Pool {
@@ -296,11 +284,7 @@ func retry[T any](ctx context.Context, op func(prevError error) (T, error)) (tt 
 			Clock:               backoff.SystemClock,
 		}, ctx),
 		func(e error, next stdlibtime.Duration) {
-			if errors.Is(err, ErrReadOnly) {
-				log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v on fallback master... ", next))
-			} else {
-				log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
-			}
+			log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
 		})
 
 	return tt, err

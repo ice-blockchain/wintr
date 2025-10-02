@@ -184,7 +184,6 @@ jobs:
         - time
         - privacy
         - multimedia/picture
-        - analytics/tracking
         - email
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
@@ -246,7 +245,6 @@ jobs:
           - privacy
           - translations
           - multimedia/picture
-          - analytics/tracking
           - email
           - notifications/telegram
           - auth

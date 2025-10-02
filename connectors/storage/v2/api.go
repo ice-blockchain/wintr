@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pkg/errors"
 
+	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/terror"
 )
 
@@ -49,7 +50,8 @@ func DoInTransaction(ctx context.Context, db *DB, fn func(conn QueryExecer) erro
 		idx := 0
 		var txErr *multierror.Error
 		for idx < len(db.fallbackMasters.replicas) && (needRetryOnFallbackMaster(err) || IsUnexpected(err)) {
-			err = parseDBError(pgx.BeginTxFunc(ctx, db.fallbackPrimary(), txOptions, func(tx pgx.Tx) error { return fn(tx) }))
+			fb, _ := db.fallbackPrimary()
+			err = parseDBError(pgx.BeginTxFunc(ctx, fb, txOptions, func(tx pgx.Tx) error { return fn(tx) }))
 			txErr = multierror.Append(txErr, err)
 			idx++
 		}
@@ -109,7 +111,9 @@ func Exec(ctx context.Context, db Execer, sql string, args ...any) (uint64, erro
 		primary := db
 		if pool, ok := db.(*DB); ok {
 			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
-				primary = pool.fallbackPrimary()
+				var idx uint64
+				primary, idx = pool.fallbackPrimary()
+				log.Error(errors.Wrapf(prevErr, "[wintr/storage/v2]call failed. retrying in on fallback master %v", idx))
 			} else {
 				primary = pool.primary()
 			}
@@ -137,7 +141,9 @@ func ExecOne[T any](ctx context.Context, db Querier, sql string, args ...any) (*
 		primary := db
 		if pool, ok := db.(*DB); ok {
 			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
-				primary = pool.fallbackPrimary()
+				var idx uint64
+				primary, idx = pool.fallbackPrimary()
+				log.Error(errors.Wrapf(prevErr, "[wintr/storage/v2]call failed. retrying in on fallback master %v", idx))
 			} else {
 				primary = pool.primary()
 			}
@@ -165,7 +171,9 @@ func ExecMany[T any](ctx context.Context, db Querier, sql string, args ...any) (
 		primary := db
 		if pool, ok := db.(*DB); ok {
 			if pool.fallbackMasters != nil && len(pool.fallbackMasters.replicas) > 0 && needRetryOnFallbackMaster(prevErr) {
-				primary = pool.fallbackPrimary()
+				var idx uint64
+				primary, idx = pool.fallbackPrimary()
+				log.Error(errors.Wrapf(prevErr, "[wintr/storage/v2]call failed. retrying in on fallback master %v", idx))
 			} else {
 				primary = pool.primary()
 			}
