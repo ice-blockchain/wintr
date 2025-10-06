@@ -21,7 +21,7 @@ import (
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
 	globalClient           *twilio.RestClient
-	globalToPhoneNumbersLB *internal.PhoneNumbersRoundRobinLB
+	globalToPhoneNumbersLB map[string]*internal.PhoneNumbersRoundRobinLB
 	singleton              = new(sync.Once)
 )
 
@@ -37,8 +37,14 @@ func toPhoneNumbersLB() *internal.PhoneNumbersRoundRobinLB {
 	singleton.Do(func() {
 		globalClient, globalToPhoneNumbersLB = internal.New("_")
 	})
+	var messagingService *internal.PhoneNumbersRoundRobinLB
+	for _, ms := range globalToPhoneNumbersLB {
+		messagingService = ms
 
-	return globalToPhoneNumbersLB
+		break
+	}
+
+	return messagingService
 }
 
 func AssertSMSCode(ctx context.Context, tb testing.TB, toNumber, expectedCode string, parse func(body string) string) {

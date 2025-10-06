@@ -4,9 +4,11 @@ package sms
 
 import (
 	"context"
+	"strings"
 	stdlibtime "time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/nyaruka/phonenumbers"
 	"github.com/pkg/errors"
 	twilioclient "github.com/twilio/twilio-go/client"
 	twilioopenapi "github.com/twilio/twilio-go/rest/api/v2010"
@@ -21,8 +23,8 @@ func New(applicationYAMLKey string) Client {
 	client, lb := internal.New(applicationYAMLKey)
 
 	return &sms{
-		client: client,
-		lb:     lb,
+		client:           client,
+		sendersByCountry: lb,
 	}
 }
 
@@ -63,24 +65,59 @@ func (s *sms) Send(ctx context.Context, parcel *Parcel) error {
 		if ctx.Err() != nil {
 			return backoff.Permanent(ctx.Err())
 		}
+		messageService, err := s.messageService(parcel.ToNumber)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 		msg := new(twilioopenapi.CreateMessageParams).
 			SetTo(parcel.ToNumber).
-			SetFrom(s.lb.PhoneNumber()).
+			SetFrom(messageService.PhoneNumber()).
 			SetBody(parcel.Message)
 		if parcel.SendAt != nil {
 			if parcel.SendAt.Sub(*time.Now().Time) < MinimumSchedulingDurationInAdvance {
 				return backoff.Permanent(ErrSchedulingDateTooEarly)
 			}
 			msg = msg.
-				SetMessagingServiceSid(s.lb.SchedulingMessageServiceSID()).
+				SetMessagingServiceSid(messageService.SchedulingMessageServiceSID()).
 				SetScheduleType("fixed").
 				SetSendAt(*parcel.SendAt.Time)
 		}
-		_, err := s.client.Api.CreateMessage(msg)
-
+		_, err = s.client.Api.CreateMessage(msg)
+		if err != nil {
+			//nolint:errorlint // errors.As(err,*twilioclient.TwilioRestError) doesn't seem to work.
+			if tErr, ok := err.(*twilioclient.TwilioRestError); ok && tErr.Code == 21612 {
+				return backoff.Permanent(errors.Wrapf(ErrUnsupportedCountry, "error while sending sms: %v", err))
+			}
+		}
 		//nolint:wrapcheck // It's wrapped outside.
 		return err
 	}), "failed to send sms message via twilio")
+}
+
+func (s *sms) messageService(toNumber string) (*internal.PhoneNumbersRoundRobinLB, error) {
+	if len(s.sendersByCountry) == 1 {
+		for _, sender := range s.sendersByCountry {
+			return sender, nil
+		}
+	}
+	country, err := detectCounty(toNumber)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to detect country for phone number %v", toNumber)
+	}
+	if lb, ok := s.sendersByCountry[country]; ok {
+		return lb, nil
+	}
+
+	return nil, ErrUnsupportedCountry
+}
+
+func detectCounty(toNumber string) (string, error) {
+	num, err := phonenumbers.Parse(toNumber, "")
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to detect phone number country using libphonenumber: %v", toNumber)
+	}
+
+	return strings.ToLower(phonenumbers.GetRegionCodeForNumber(num)), nil
 }
 
 func retry(ctx context.Context, op func() error) error {
