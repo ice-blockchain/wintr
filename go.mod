@@ -39,7 +39,7 @@ require (
 	github.com/xlzd/gotp v0.1.0
 	github.com/zeebo/xxh3 v1.0.2
 	golang.org/x/net v0.44.0
-	google.golang.org/api v0.251.0
+	google.golang.org/api v0.252.0
 )
 
 require (

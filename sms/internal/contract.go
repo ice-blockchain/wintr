@@ -9,10 +9,8 @@ import (
 // Public API.
 
 type (
-	PhoneNumbersRoundRobinLB struct {
-		schedulingMessagingServiceSID string
-		phoneNumbers                  []string
-		currentIndex                  uint64
+	MessagingService struct {
+		messagingServiceSID string
 	}
 )
 

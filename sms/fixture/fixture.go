@@ -14,14 +14,16 @@ import (
 	"github.com/twilio/twilio-go"
 	twilioclient "github.com/twilio/twilio-go/client"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
+	twilioopenapimessagingv1 "github.com/twilio/twilio-go/rest/messaging/v1"
 
+	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/sms/internal"
 )
 
 //nolint:gochecknoglobals // We're using lazy stateless singletons for the whole testing runtime.
 var (
 	globalClient           *twilio.RestClient
-	globalToPhoneNumbersLB map[string]*internal.PhoneNumbersRoundRobinLB
+	globalToPhoneNumbersLB map[string]*internal.MessagingService
 	singleton              = new(sync.Once)
 )
 
@@ -33,18 +35,18 @@ func client() *twilio.RestClient {
 	return globalClient
 }
 
-func toPhoneNumbersLB() *internal.PhoneNumbersRoundRobinLB {
+func messagingService() *internal.MessagingService {
 	singleton.Do(func() {
 		globalClient, globalToPhoneNumbersLB = internal.New("_")
 	})
-	var messagingService *internal.PhoneNumbersRoundRobinLB
+	var service *internal.MessagingService
 	for _, ms := range globalToPhoneNumbersLB {
-		messagingService = ms
+		service = ms
 
 		break
 	}
 
-	return messagingService
+	return service
 }
 
 func AssertSMSCode(ctx context.Context, tb testing.TB, toNumber, expectedCode string, parse func(body string) string) {
@@ -114,5 +116,15 @@ func ClearSMSQueue(phoneNumber string) error {
 }
 
 func TestingPhoneNumber() string {
-	return toPhoneNumbersLB().PhoneNumber()
+	phoneNumbers, pErr := client().MessagingV1.ListPhoneNumber(messagingService().MessageServiceSID(),
+		new(twilioopenapimessagingv1.ListPhoneNumberParams).SetPageSize(1))
+	log.Panic(errors.Wrapf(pErr, "failed to ListPhoneNumber for %v", messagingService().MessageServiceSID())) //nolint:revive // .
+	var phone string
+	for i := range phoneNumbers {
+		phone = *(phoneNumbers[i].PhoneNumber)
+
+		break
+	}
+
+	return phone
 }

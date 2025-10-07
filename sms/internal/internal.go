@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/twilio/twilio-go"
@@ -16,7 +15,7 @@ import (
 	"github.com/ice-blockchain/wintr/log"
 )
 
-func New(applicationYAMLKey string) (client *twilio.RestClient, messageServicesByCountry map[string]*PhoneNumbersRoundRobinLB) {
+func New(applicationYAMLKey string) (client *twilio.RestClient, messageServicesByCountry map[string]*MessagingService) {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 
@@ -44,17 +43,17 @@ func New(applicationYAMLKey string) (client *twilio.RestClient, messageServicesB
 	return client, initClient(client, &cfg)
 }
 
-func initClient(client *twilio.RestClient, cfg *config) map[string]*PhoneNumbersRoundRobinLB {
+func initClient(client *twilio.RestClient, cfg *config) map[string]*MessagingService {
 	const maxPageSize = 1000
 	services, err := client.MessagingV1.ListService(new(twilioopenapimessagingv1.ListServiceParams).SetLimit(maxPageSize))
 	log.Panic(errors.Wrapf(err, "failed to ListMessageServices")) //nolint:revive // .
-	senderPhoneNumbersByCountry := map[string]*PhoneNumbersRoundRobinLB{}
+	senderPhoneNumbersByCountry := map[string]*MessagingService{}
 	for i := range services {
-		lb := new(PhoneNumbersRoundRobinLB)
-		lb.schedulingMessagingServiceSID = *services[i].Sid
+		lb := new(MessagingService)
+		lb.messagingServiceSID = *services[i].Sid
 		serviceMapped := false
 		for country, messagingServiceCfg := range cfg.WintrSMS.MessageServiceSIDs {
-			if messagingServiceCfg == lb.schedulingMessagingServiceSID {
+			if messagingServiceCfg == lb.messagingServiceSID {
 				senderPhoneNumbersByCountry[country] = lb
 				serviceMapped = true
 
@@ -62,33 +61,17 @@ func initClient(client *twilio.RestClient, cfg *config) map[string]*PhoneNumbers
 			}
 		}
 		if !serviceMapped {
-			log.Warn(fmt.Sprintf("message service %v not mapped to any country", lb.schedulingMessagingServiceSID))
-			if len(services) == 1 {
-				senderPhoneNumbersByCountry["global"] = lb
-			} else {
+			log.Warn(fmt.Sprintf("message service %v not mapped to any country", lb.messagingServiceSID))
+			if len(services) > 1 {
 				continue
 			}
-		}
-		phoneNumbers, pErr := client.MessagingV1.ListPhoneNumber(lb.schedulingMessagingServiceSID,
-			new(twilioopenapimessagingv1.ListPhoneNumberParams).SetPageSize(maxPageSize))
-		log.Panic(errors.Wrapf(pErr, "failed to ListPhoneNumber for %v", lb.schedulingMessagingServiceSID)) //nolint:revive // .
-		lb.phoneNumbers = make([]string, 0, len(phoneNumbers))
-		for i := range phoneNumbers {
-			lb.phoneNumbers = append(lb.phoneNumbers, *(phoneNumbers[i].PhoneNumber))
+			senderPhoneNumbersByCountry["global"] = lb
 		}
 	}
 
 	return senderPhoneNumbersByCountry
 }
 
-func (lb *PhoneNumbersRoundRobinLB) PhoneNumber() string {
-	return lb.phoneNumbers[atomic.AddUint64(&lb.currentIndex, 1)%uint64(len(lb.phoneNumbers))]
-}
-
-func (lb *PhoneNumbersRoundRobinLB) SchedulingMessageServiceSID() string {
-	return lb.schedulingMessagingServiceSID
-}
-
-func (lb *PhoneNumbersRoundRobinLB) PhoneNumbers() []string {
-	return lb.phoneNumbers[:] //nolint:gocritic // We need to clone it.
+func (lb *MessagingService) MessageServiceSID() string {
+	return lb.messagingServiceSID
 }

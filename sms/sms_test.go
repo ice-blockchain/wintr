@@ -5,8 +5,6 @@ package sms
 import (
 	"context"
 	"os"
-	"sync"
-	"sync/atomic"
 	"testing"
 	stdlibtime "time"
 
@@ -14,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ice-blockchain/wintr/sms/fixture"
-	"github.com/ice-blockchain/wintr/sms/internal"
 	"github.com/ice-blockchain/wintr/terror"
 	"github.com/ice-blockchain/wintr/time"
 )
@@ -68,36 +65,6 @@ func TestClientSend(t *testing.T) {
 	}
 	require.NoError(t, fixture.ClearSMSQueue(p1.ToNumber))
 	require.ErrorIs(t, client.Send(ctx, p1), ErrSchedulingDateTooEarly)
-}
-
-func TestClientFromPhoneNumbersRoundRobinLB(t *testing.T) {
-	t.Parallel()
-	var messageService *internal.PhoneNumbersRoundRobinLB
-	//nolint:forcetypeassert // .
-	for _, sender := range client.(*sms).sendersByCountry {
-		messageService = sender
-
-		break
-	}
-	stats := make(map[string]*uint64, len(messageService.PhoneNumbers()))
-	for _, number := range messageService.PhoneNumbers() {
-		zero := uint64(0)
-		stats[number] = &zero
-	}
-
-	const iterations = 10_000_000
-	wg := new(sync.WaitGroup)
-	wg.Add(iterations)
-	for i := 0; i < iterations; i++ { //nolint:intrange // .
-		go func() {
-			defer wg.Done()
-			atomic.AddUint64(stats[messageService.PhoneNumber()], 1)
-		}()
-	}
-	wg.Wait()
-	for _, v := range stats {
-		assert.InDelta(t, iterations/len(messageService.PhoneNumbers()), *v, 10)
-	}
 }
 
 //nolint:funlen // Test cases.

@@ -71,14 +71,13 @@ func (s *sms) Send(ctx context.Context, parcel *Parcel) error {
 		}
 		msg := new(twilioopenapi.CreateMessageParams).
 			SetTo(parcel.ToNumber).
-			SetFrom(messageService.PhoneNumber()).
+			SetMessagingServiceSid(messageService.MessageServiceSID()).
 			SetBody(parcel.Message)
 		if parcel.SendAt != nil {
 			if parcel.SendAt.Sub(*time.Now().Time) < MinimumSchedulingDurationInAdvance {
 				return backoff.Permanent(ErrSchedulingDateTooEarly)
 			}
 			msg = msg.
-				SetMessagingServiceSid(messageService.SchedulingMessageServiceSID()).
 				SetScheduleType("fixed").
 				SetSendAt(*parcel.SendAt.Time)
 		}
@@ -94,7 +93,7 @@ func (s *sms) Send(ctx context.Context, parcel *Parcel) error {
 	}), "failed to send sms message via twilio")
 }
 
-func (s *sms) messageService(toNumber string) (*internal.PhoneNumbersRoundRobinLB, error) {
+func (s *sms) messageService(toNumber string) (*internal.MessagingService, error) {
 	if len(s.sendersByCountry) == 1 {
 		for _, sender := range s.sendersByCountry {
 			return sender, nil

@@ -48,6 +48,6 @@ const (
 type (
 	sms struct {
 		client           *twilio.RestClient
-		sendersByCountry map[string]*internal.PhoneNumbersRoundRobinLB
+		sendersByCountry map[string]*internal.MessagingService
 	}
 )
