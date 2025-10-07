@@ -23,6 +23,7 @@ var (
 	ErrInvalidPhoneNumber       = errors.New("phone number invalid")
 	ErrInvalidPhoneNumberFormat = errors.New("phone number has invalid format")
 	ErrSchedulingDateTooEarly   = errors.New("scheduled time is too early")
+	ErrUnsupportedCountry       = errors.New("unsupported country")
 )
 
 type (
@@ -46,7 +47,7 @@ const (
 
 type (
 	sms struct {
-		client *twilio.RestClient
-		lb     *internal.PhoneNumbersRoundRobinLB
+		client           *twilio.RestClient
+		sendersByCountry map[string]*internal.MessagingService
 	}
 )

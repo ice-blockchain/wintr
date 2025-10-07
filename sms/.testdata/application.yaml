@@ -6,3 +6,5 @@ logger:
   level: debug
 self:
   wintr/sms:
+    messageServiceSIDs:
+      us: bogus # not running tests for sms anyway due to expired creds

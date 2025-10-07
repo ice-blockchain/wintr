@@ -9,10 +9,8 @@ import (
 // Public API.
 
 type (
-	PhoneNumbersRoundRobinLB struct {
-		schedulingMessagingServiceSID string
-		phoneNumbers                  []string
-		currentIndex                  uint64
+	MessagingService struct {
+		messagingServiceSID string
 	}
 )
 
@@ -23,9 +21,11 @@ const (
 )
 
 type (
-	config struct {
+	countryCode = string
+	config      struct {
 		WintrSMS struct {
-			Credentials struct {
+			MessageServiceSIDs map[countryCode]string `yaml:"messageServiceSIDs" mapstructure:"messageServiceSIDs"` //nolint:tagliatelle // .
+			Credentials        struct {
 				User     string `yaml:"user"`
 				Password string `yaml:"password"`
 			} `yaml:"credentials" mapstructure:"credentials"`
