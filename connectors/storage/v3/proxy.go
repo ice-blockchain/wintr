@@ -2182,6 +2182,10 @@ func (l *lb) VSimWithArgsWithScores(ctx context.Context, key string, val redis.V
 	return l.instance().VSimWithArgsWithScores(ctx, key, val, args)
 }
 
+func (l *lb) ClientMaintNotifications(ctx context.Context, enabled bool, endpointType string) *redis.StatusCmd {
+	return l.instance().ClientMaintNotifications(ctx, enabled, endpointType)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))
