@@ -1889,7 +1889,7 @@ func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
 	return l.instance().ObjectFreq(ctx, key)
 }
 
-func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive // Comes from interface.
+func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive,modernize // Comes from interface.
 	return l.instance().BitFieldRO(ctx, key, values...)
 }
 

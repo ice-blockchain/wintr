@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -25,14 +26,9 @@ func AssertEmailConfirmationCode(ctx context.Context, tb testing.TB, toEmail, ex
 	foundValidationCode := false
 	for !foundValidationCode && ctx.Err() == nil {
 		verificationCodes = GetEmailConfirmationCodes(ctx, tb, toEmail, parseMsg)
-		for _, code := range verificationCodes {
-			if code == expectedCode {
-				foundValidationCode = true
+		if slices.Contains(verificationCodes, expectedCode) {
+			foundValidationCode = true
 
-				break
-			}
-		}
-		if foundValidationCode {
 			break
 		}
 		time.Sleep(100 * time.Millisecond) //nolint:mnd,gomnd // Not a magic.

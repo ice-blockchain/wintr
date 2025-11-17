@@ -287,11 +287,13 @@ func (i *ICEFlake) ICE() (*ICE, error) {
 	if i.GTE(denomination) {
 		return i.transformNumbersBiggerThan1ICE(string(bytes))
 	}
-	r := "0."
-	for ix := 0; ix < e9-len(bytes); ix++ { //nolint:intrange // .
-		r += "0"
+	var builder strings.Builder
+	builder.WriteString("0.")
+	for range e9 - len(bytes) {
+		builder.WriteString("0")
 	}
-	ice := ICE(r + strings.TrimRight(string(bytes), "0"))
+	builder.WriteString(strings.TrimRight(string(bytes), "0"))
+	ice := ICE(builder.String())
 
 	return &ice, nil
 }
@@ -370,9 +372,12 @@ func (i *ICE) ICEFlake() (*ICEFlake, error) {
 		return ParseAmount(val + e9Zeros)
 	}
 	missingZeros := e9 - len(val[ix+1:])
-	for j := 0; j < missingZeros; j++ { //nolint:intrange // .
-		val += "0"
+	var builder strings.Builder
+	builder.WriteString(val)
+	for range missingZeros {
+		builder.WriteString("0")
 	}
+	val = builder.String()
 	res := val[:ix] + val[ix+1:]
 	res = strings.TrimLeftFunc(res, func(r rune) bool {
 		return r == '0'
@@ -474,12 +479,13 @@ func toICEFlake(iceValue string) string {
 			ice = "0" + ice
 			dotIdx++
 		}
-		zeros := ""
-		for i := 0; i <= e9-(len(ice)-dotIdx); i++ {
-			zeros += "0"
+		var builder strings.Builder
+		builder.WriteString(ice[dotIdx+1:])
+		for range e9 - (len(ice) - dotIdx) + 1 {
+			builder.WriteString("0")
 		}
 
-		ice = ice[dotIdx+1:] + zeros
+		ice = builder.String()
 	} else {
 		ice += e9Zeros
 	}

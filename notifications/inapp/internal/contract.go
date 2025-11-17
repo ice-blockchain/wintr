@@ -14,8 +14,8 @@ type (
 		ReferenceID string         `json:"referenceId,omitempty" example:"e5335afb-8ec4-4669-953d-37f0c712ba8d"`
 		Data        map[string]any `json:"data,omitempty"`
 		Action      string         `json:"action,omitempty" example:"broadcast_news"`
-		Actor       ID             `json:"actor,omitempty"`
-		Subject     ID             `json:"subject,omitempty"`
+		Actor       ID             `json:"actor,omitempty"`   //nolint:modernize // .
+		Subject     ID             `json:"subject,omitempty"` //nolint:modernize // .
 	}
 	ID struct {
 		Type  string `json:"type" example:"userId"`

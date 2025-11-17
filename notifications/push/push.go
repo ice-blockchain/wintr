@@ -4,6 +4,7 @@ package push
 
 import (
 	"context"
+	"maps"
 	"os"
 	"runtime"
 	"strconv"
@@ -198,9 +199,7 @@ func (p *push) BroadcastDelayed(ctx context.Context, notification *DelayedNotifi
 
 func buildAndroidDataOnlyNotification(notification *DelayedNotification) *fcm.AndroidConfig {
 	dataOnlyNotification := make(map[string]string, len(notification.Data)+6) //nolint:mnd,gomnd // Extra fields.
-	for k, v := range notification.Data {
-		dataOnlyNotification[k] = v
-	}
+	maps.Copy(dataOnlyNotification, notification.Data)
 	dataOnlyNotification[dataOnlyTitle] = notification.Title
 	dataOnlyNotification[dataOnlyBody] = notification.Body
 	dataOnlyNotification[dataOnlyImageURL] = notification.ImageURL

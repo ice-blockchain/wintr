@@ -50,7 +50,7 @@ type (
 			Username     string `json:"username,omitempty"`
 			ID           int64  `json:"id,omitempty"`
 			IsBot        bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
-		} `json:"from,omitempty"`
+		} `json:"from,omitempty"` //nolint:modernize // .
 		MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
 		Date      int64 `json:"date,omitempty"`
 	}
@@ -66,7 +66,7 @@ type (
 			LanguageCode string `json:"language_code,omitempty"` //nolint:tagliatelle // It's telegram API.
 			ID           int64  `json:"id,omitempty"`
 			IsBot        bool   `json:"is_bot,omitempty"` //nolint:tagliatelle // It's telegram API.
-		} `json:"from,omitempty"`
+		} `json:"from,omitempty"` //nolint:modernize // .
 	}
 	Update struct {
 		Message       *Message       `json:"message,omitempty"`
@@ -107,7 +107,7 @@ type (
 				URL          string `json:"url,omitempty" example:"https://ice.io"`
 				CallbackData string `json:"callback_data,omitempty" example:"1"` //nolint:tagliatelle // It's telegram API.
 			} `json:"inline_keyboard,omitempty"` //nolint:tagliatelle // It's telegram API.
-		} `json:"reply_markup,omitempty"` //nolint:tagliatelle // It's telegram API.
+		} `json:"reply_markup,omitempty"` //nolint:modernize,tagliatelle // It's telegram API.
 		ReplyParameters struct {
 			MessageID int64 `json:"message_id,omitempty"` //nolint:tagliatelle // It's telegram API.
 		} `json:"reply_parameters"` //nolint:tagliatelle // It's telegram API.

@@ -19,7 +19,7 @@ import (
 func init() {
 	loadFirstApplicationConfigFile()
 	dotEnvPath := `.env`
-	for i := 0; i < 5; i++ { //nolint:intrange // .
+	for range 5 {
 		if err := godotenv.Load(dotEnvPath); err == nil {
 			break
 		}

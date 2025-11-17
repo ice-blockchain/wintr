@@ -72,12 +72,12 @@ func TestClientSendRetry(t *testing.T) { //nolint:paralleltest // We're testing 
 	const rateLimit = 1
 	wg := new(sync.WaitGroup)
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
+	for range rateLimit {
 		go requireSend(t, wg)
 	}
 	wg.Wait()
 	wg.Add(rateLimit)
-	for i := 0; i < rateLimit; i++ { //nolint:intrange // .
+	for range rateLimit {
 		go requireSend(t, wg)
 	}
 	wg.Wait()
