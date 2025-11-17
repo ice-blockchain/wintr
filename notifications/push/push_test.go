@@ -130,7 +130,7 @@ func TestClientSend_Buffering(t *testing.T) { //nolint:funlen // .
 	const concurrency = 100_000
 	wg.Add(concurrency)
 	responder := make(chan error, concurrency)
-	for i := 0; i < concurrency; i++ { //nolint:intrange // .
+	for range concurrency {
 		go func() {
 			defer wg.Done()
 			stdlibtime.Sleep(stdlibtime.Duration(rand.Intn(4)) * stdlibtime.Second) //nolint:gosec // Good enough here.

@@ -112,10 +112,11 @@ func TestClientSend_Failure_TooLongMessage(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*stdlibtime.Second)
 	defer cancel()
 	client := New(testApplicationYAML)
-	var longText string
+	var builder strings.Builder
 	for range 4097 {
-		longText += "a"
+		builder.WriteString("a")
 	}
+	longText := builder.String()
 	notif := &Notification{
 		ChatID:   testChatID,
 		Text:     longText,
@@ -178,7 +179,7 @@ func TestClientSendConcurrency_Success_TooManyAttempts(t *testing.T) {
 	const concurrency = 100
 	wg.Add(concurrency)
 	responder := make(chan error, concurrency)
-	for i := 0; i < concurrency; i++ { //nolint:intrange // .
+	for i := range concurrency {
 		notif := &Notification{
 			ChatID:   testChatID,
 			Text:     fmt.Sprintf("<b>test message %v</b>", i+1),

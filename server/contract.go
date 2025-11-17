@@ -37,7 +37,7 @@ type (
 	Request[REQ any, RESP any] struct {
 		Data                         *REQ                        `json:"data,omitempty"`
 		ginCtx                       *gin.Context                //nolint:structcheck // Wrong.
-		AuthenticatedUser            AuthenticatedUser           `json:"authenticatedUser,omitempty"`
+		AuthenticatedUser            AuthenticatedUser           `json:"authenticatedUser,omitempty"` //nolint:modernize // .
 		ClientIP                     net.IP                      `json:"clientIp,omitempty"`
 		bindings                     map[requestBinding]struct{} //nolint:structcheck // Wrong.
 		requiredFields               []string                    //nolint:structcheck // Wrong.

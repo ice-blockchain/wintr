@@ -1889,7 +1889,7 @@ func (l *lb) ObjectFreq(ctx context.Context, key string) *redis.IntCmd {
 	return l.instance().ObjectFreq(ctx, key)
 }
 
-func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive // Comes from interface.
+func (l *lb) BitFieldRO(ctx context.Context, key string, values ...interface{}) *redis.IntSliceCmd { //nolint:revive,modernize // Comes from interface.
 	return l.instance().BitFieldRO(ctx, key, values...)
 }
 
@@ -2180,6 +2180,10 @@ func (l *lb) VSimWithArgs(ctx context.Context, key string, val redis.Vector, arg
 
 func (l *lb) VSimWithArgsWithScores(ctx context.Context, key string, val redis.Vector, args *redis.VSimArgs) *redis.VectorScoreSliceCmd {
 	return l.instance().VSimWithArgsWithScores(ctx, key, val, args)
+}
+
+func (l *lb) ClientMaintNotifications(ctx context.Context, enabled bool, endpointType string) *redis.StatusCmd {
+	return l.instance().ClientMaintNotifications(ctx, enabled, endpointType)
 }
 
 func (l *lb) Close() error {

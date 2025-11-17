@@ -5,6 +5,7 @@ package fixture
 import (
 	"context"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -79,13 +80,8 @@ func (s *testMessageStore) recordsFound(expected ...RawMessage) bool {
 	}
 
 	specificExpected := s.findExpectedInGlobalMessageSource(expected)
-	for i := range specificExpected {
-		if specificExpected[i] == (RawMessage{}) {
-			return false
-		}
-	}
 
-	return true
+	return !slices.Contains(specificExpected, RawMessage{})
 }
 
 func (s *testMessageStore) findExpectedInGlobalMessageSource(expected []RawMessage) []RawMessage {

@@ -76,7 +76,7 @@ func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
 }
 
 func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
-	for _, statement := range strings.Split(ddl, "----") {
+	for statement := range strings.SplitSeq(ddl, "----") {
 		_, err := master.Exec(ctx, statement)
 		if !ignorableDDLError(err) {
 			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
