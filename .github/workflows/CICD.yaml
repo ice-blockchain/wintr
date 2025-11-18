@@ -183,7 +183,6 @@ jobs:
         - coin
         - time
         - privacy
-        - multimedia/picture
         - email
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
@@ -244,7 +243,6 @@ jobs:
           - time
           - privacy
           - translations
-          - multimedia/picture
           - email
           - notifications/telegram
           - auth

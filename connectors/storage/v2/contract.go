@@ -58,19 +58,20 @@ type (
 		currentIndex uint64
 	}
 	config struct {
-		WintrStorage storageCfg `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
+		WintrStorage Cfg `yaml:"wintr/connectors/storage/v2" mapstructure:"wintr/connectors/storage/v2"` //nolint:tagliatelle // Nope.
 	}
-	storageCfg struct {
+	Cfg struct {
 		Credentials struct {
 			User     string `yaml:"user"`
 			Password string `yaml:"password"`
 		} `yaml:"credentials" mapstructure:"credentials"`
-		Timeout             string   `yaml:"timeout" mapstructure:"timeout"`
-		PrimaryURL          string   `yaml:"primaryURL" mapstructure:"primaryURL"`                   //nolint:tagliatelle // Nope.
-		PrimaryFallbackURLs []string `yaml:"primaryFallbackURLs" mapstructure:"primaryFallbackURLs"` //nolint:tagliatelle // Nope.
-		ReplicaURLs         []string `yaml:"replicaURLs" mapstructure:"replicaURLs"`                 //nolint:tagliatelle // Nope.
-		RunDDL              bool     `yaml:"runDDL" mapstructure:"runDDL"`                           //nolint:tagliatelle // Nope.
-		IgnoreGlobal        bool     `yaml:"ignoreGlobal" mapstructure:"ignoreGlobal"`               //nolint:tagliatelle // Nope.
+		Timeout                  string   `yaml:"timeout" mapstructure:"timeout"`
+		PrimaryURL               string   `yaml:"primaryURL" mapstructure:"primaryURL"`                   //nolint:tagliatelle // Nope.
+		PrimaryFallbackURLs      []string `yaml:"primaryFallbackURLs" mapstructure:"primaryFallbackURLs"` //nolint:tagliatelle // Nope.
+		ReplicaURLs              []string `yaml:"replicaURLs" mapstructure:"replicaURLs"`                 //nolint:tagliatelle // Nope.
+		RunDDL                   bool     `yaml:"runDDL" mapstructure:"runDDL"`                           //nolint:tagliatelle // Nope.
+		SkipSettingsVerification bool     `yaml:"skipSettingsVerification" mapstructure:"skipSettingsVerification"`
+		IgnoreGlobal             bool     `yaml:"ignoreGlobal" mapstructure:"ignoreGlobal"`
 	}
 	advisoryLockMutex struct {
 		conn *pgxpool.Conn

@@ -30,7 +30,7 @@ func init() {
 	var cfg config
 	appcfg.MustLoadFromKey(globalDBYamlKey, &cfg)
 	if cfg.WintrStorage.PrimaryURL != "" || len(cfg.WintrStorage.ReplicaURLs) > 0 {
-		globalDB = mustConnectWithCfg(context.Background(), &cfg.WintrStorage, "")
+		globalDB = MustConnectWithCfg(context.Background(), &cfg.WintrStorage, "")
 	}
 }
 
@@ -45,26 +45,26 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 		return globalDB
 	}
 
-	return mustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
+	return MustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
 }
 
-func mustConnectWithCfg(ctx context.Context, cfg *storageCfg, ddl string) *DB {
+func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl string) *DB {
 	var replicas, fallbacks []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.PrimaryURL != "" {
-		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL)
+		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL, cfg.SkipSettingsVerification)
 	}
 	for ix, url := range cfg.ReplicaURLs {
 		if ix == 0 {
 			replicas = make([]*pgxpool.Pool, len(cfg.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
+		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
 	}
 	for ix, url := range cfg.PrimaryFallbackURLs {
 		if ix == 0 {
 			fallbacks = make([]*pgxpool.Pool, len(cfg.PrimaryFallbackURLs)) //nolint:makezero // Not needed, we know the size.
 		}
-		fallbacks[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url)
+		fallbacks[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
 	}
 	if master != nil && ddl != "" && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
@@ -98,8 +98,8 @@ func ignorableDDLError(err error) bool {
 	return false
 }
 
-//nolint:mnd,gomnd // Configuration.
-func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *pgxpool.Pool) {
+//nolint:mnd,gomnd,revive // Configuration.
+func mustConnectPool(ctx context.Context, timeout, user, pass, url string, skipSettingsVerification bool) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
 	log.Panic(errors.Wrapf(maskError(err), "failed to parse pool config: %v", maskSensitive(url))) //nolint:revive // Intended
 	poolConfig.ConnConfig.User = user
@@ -117,7 +117,9 @@ func mustConnectPool(ctx context.Context, timeout, user, pass, url string) (db *
 	log.Info(fmt.Sprintf("poolConfig.HealthCheckPeriod=%v", poolConfig.HealthCheckPeriod))
 	poolConfig.MaxConnLifetimeJitter = 10 * stdlibtime.Minute
 	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
-	poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
+	if !skipSettingsVerification {
+		poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
+	}
 	poolConfig.MinConns = 1
 	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
 	log.Panic(errors.Wrapf(maskError(err), "failed to start pool for config: %v", maskSensitive(url)))

@@ -91,16 +91,16 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/jsonpointer v0.22.2 // indirect
+	github.com/go-openapi/jsonpointer v0.22.3 // indirect
 	github.com/go-openapi/jsonreference v0.21.3 // indirect
 	github.com/go-openapi/spec v0.22.1 // indirect
-	github.com/go-openapi/swag/conv v0.25.1 // indirect
-	github.com/go-openapi/swag/jsonname v0.25.1 // indirect
-	github.com/go-openapi/swag/jsonutils v0.25.1 // indirect
-	github.com/go-openapi/swag/loading v0.25.1 // indirect
-	github.com/go-openapi/swag/stringutils v0.25.1 // indirect
-	github.com/go-openapi/swag/typeutils v0.25.1 // indirect
-	github.com/go-openapi/swag/yamlutils v0.25.1 // indirect
+	github.com/go-openapi/swag/conv v0.25.3 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.3 // indirect
+	github.com/go-openapi/swag/jsonutils v0.25.3 // indirect
+	github.com/go-openapi/swag/loading v0.25.3 // indirect
+	github.com/go-openapi/swag/stringutils v0.25.3 // indirect
+	github.com/go-openapi/swag/typeutils v0.25.3 // indirect
+	github.com/go-openapi/swag/yamlutils v0.25.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
@@ -184,7 +184,7 @@ require (
 	google.golang.org/genproto v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
-	google.golang.org/grpc v1.76.0 // indirect
+	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
