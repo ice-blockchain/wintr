@@ -72,12 +72,21 @@ func (l *lb) Del(ctx context.Context, keys ...string) *redis.IntCmd {
 	return l.instance().Del(ctx, keys...)
 }
 
+//nolint:gocritic // Signature must match redis.Cmdable interface.
+func (l *lb) DelExArgs(ctx context.Context, key string, a redis.DelExArgs) *redis.IntCmd {
+	return l.instance().DelExArgs(ctx, key, a)
+}
+
 func (l *lb) Unlink(ctx context.Context, keys ...string) *redis.IntCmd {
 	return l.instance().Unlink(ctx, keys...)
 }
 
 func (l *lb) Dump(ctx context.Context, key string) *redis.StringCmd {
 	return l.instance().Dump(ctx, key)
+}
+
+func (l *lb) Digest(ctx context.Context, key string) *redis.DigestCmd {
+	return l.instance().Digest(ctx, key)
 }
 
 func (l *lb) Exists(ctx context.Context, keys ...string) *redis.IntCmd {
@@ -257,6 +266,10 @@ func (l *lb) MSet(ctx context.Context, values ...any) *redis.StatusCmd {
 	return l.instance().MSet(ctx, values...)
 }
 
+func (l *lb) MSetEX(ctx context.Context, args redis.MSetEXArgs, values ...any) *redis.IntCmd {
+	return l.instance().MSetEX(ctx, args, values...)
+}
+
 func (l *lb) MSetNX(ctx context.Context, values ...any) *redis.BoolCmd {
 	return l.instance().MSetNX(ctx, values...)
 }
@@ -280,6 +293,42 @@ func (l *lb) SetNX(ctx context.Context, key string, value any, expiration stdlib
 
 func (l *lb) SetXX(ctx context.Context, key string, value any, expiration stdlibtime.Duration) *redis.BoolCmd {
 	return l.instance().SetXX(ctx, key, value, expiration)
+}
+
+//nolint:gocritic,gofumpt // Signature must match redis.Cmdable interface.
+func (l *lb) SetIFEQ(ctx context.Context, key string, value any, matchValue any, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFEQ(ctx, key, value, matchValue, expiration)
+}
+
+//nolint:gocritic,gofumpt // Signature must match redis.Cmdable interface.
+func (l *lb) SetIFEQGet(ctx context.Context, key string, value any, matchValue any, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFEQGet(ctx, key, value, matchValue, expiration)
+}
+
+//nolint:gocritic,gofumpt // Signature must match redis.Cmdable interface.
+func (l *lb) SetIFNE(ctx context.Context, key string, value any, matchValue any, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFNE(ctx, key, value, matchValue, expiration)
+}
+
+//nolint:gocritic,gofumpt // Signature must match redis.Cmdable interface.
+func (l *lb) SetIFNEGet(ctx context.Context, key string, value any, matchValue any, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFNEGet(ctx, key, value, matchValue, expiration)
+}
+
+func (l *lb) SetIFDEQ(ctx context.Context, key string, value any, matchDigest uint64, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFDEQ(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDEQGet(ctx context.Context, key string, value any, matchDigest uint64, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFDEQGet(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDNE(ctx context.Context, key string, value any, matchDigest uint64, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFDNE(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDNEGet(ctx context.Context, key string, value any, matchDigest uint64, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFDNEGet(ctx, key, value, matchDigest, expiration)
 }
 
 func (l *lb) SetRange(ctx context.Context, key string, offset int64, value string) *redis.IntCmd {
@@ -1087,6 +1136,14 @@ func (l *lb) LastSave(ctx context.Context) *redis.IntCmd {
 	return l.instance().LastSave(ctx)
 }
 
+func (l *lb) Latency(ctx context.Context) *redis.LatencyCmd {
+	return l.instance().Latency(ctx)
+}
+
+func (l *lb) LatencyReset(ctx context.Context, events ...any) *redis.StatusCmd {
+	return l.instance().LatencyReset(ctx, events...)
+}
+
 func (l *lb) Save(ctx context.Context) *redis.StatusCmd {
 	return l.instance().Save(ctx)
 }
@@ -1109,6 +1166,14 @@ func (l *lb) SlaveOf(ctx context.Context, host, port string) *redis.StatusCmd {
 
 func (l *lb) SlowLogGet(ctx context.Context, num int64) *redis.SlowLogCmd {
 	return l.instance().SlowLogGet(ctx, num)
+}
+
+func (l *lb) SlowLogLen(ctx context.Context) *redis.IntCmd {
+	return l.instance().SlowLogLen(ctx)
+}
+
+func (l *lb) SlowLogReset(ctx context.Context) *redis.StatusCmd {
+	return l.instance().SlowLogReset(ctx)
 }
 
 func (l *lb) Time(ctx context.Context) *redis.TimeCmd {
@@ -2025,6 +2090,19 @@ func (l *lb) FTExplainWithArgs(ctx context.Context, index, query string, options
 	return l.instance().FTExplainWithArgs(ctx, index, query, options)
 }
 
+func (l *lb) FTExplainCli(ctx context.Context, key, path string) error {
+	return l.instance().FTExplainCli(ctx, key, path) //nolint:wrapcheck // It's just a proxy.
+}
+
+//nolint:gocritic,gofumpt // Signature must match redis.Cmdable interface.
+func (l *lb) FTHybrid(ctx context.Context, index string, searchExpr string, vectorField string, vectorData redis.Vector) *redis.FTHybridCmd {
+	return l.instance().FTHybrid(ctx, index, searchExpr, vectorField, vectorData)
+}
+
+func (l *lb) FTHybridWithArgs(ctx context.Context, index string, options *redis.FTHybridOptions) *redis.FTHybridCmd {
+	return l.instance().FTHybridWithArgs(ctx, index, options)
+}
+
 func (l *lb) FTInfo(ctx context.Context, index string) *redis.FTInfoCmd {
 	return l.instance().FTInfo(ctx, index)
 }
@@ -2076,6 +2154,18 @@ func (l *lb) ACLDelUser(ctx context.Context, username string) *redis.IntCmd {
 
 func (l *lb) ACLList(ctx context.Context) *redis.StringSliceCmd {
 	return l.instance().ACLList(ctx)
+}
+
+func (l *lb) ACLGenPass(ctx context.Context, bit int) *redis.StringCmd {
+	return l.instance().ACLGenPass(ctx, bit)
+}
+
+func (l *lb) ACLUsers(ctx context.Context) *redis.StringSliceCmd {
+	return l.instance().ACLUsers(ctx)
+}
+
+func (l *lb) ACLWhoAmI(ctx context.Context) *redis.StringCmd {
+	return l.instance().ACLWhoAmI(ctx)
 }
 
 func (l *lb) ACLSetUser(ctx context.Context, username string, rules ...string) *redis.StatusCmd {
@@ -2152,6 +2242,10 @@ func (l *lb) VRandMember(ctx context.Context, key string) *redis.StringCmd {
 
 func (l *lb) VRandMemberCount(ctx context.Context, key string, count int) *redis.StringSliceCmd {
 	return l.instance().VRandMemberCount(ctx, key, count)
+}
+
+func (l *lb) VRange(ctx context.Context, key, start, end string, count int64) *redis.StringSliceCmd {
+	return l.instance().VRange(ctx, key, start, end, count)
 }
 
 func (l *lb) VRem(ctx context.Context, key, element string) *redis.BoolCmd {
