@@ -2186,6 +2186,90 @@ func (l *lb) ClientMaintNotifications(ctx context.Context, enabled bool, endpoin
 	return l.instance().ClientMaintNotifications(ctx, enabled, endpointType)
 }
 
+func (l *lb) SlowLogLen(ctx context.Context) *redis.IntCmd {
+	return l.instance().SlowLogLen(ctx)
+}
+
+func (l *lb) SlowLogReset(ctx context.Context) *redis.StatusCmd {
+	return l.instance().SlowLogReset(ctx)
+}
+
+func (l *lb) Latency(ctx context.Context) *redis.LatencyCmd {
+	return l.instance().Latency(ctx)
+}
+
+func (l *lb) LatencyReset(ctx context.Context, events ...interface{}) *redis.StatusCmd {
+	return l.instance().LatencyReset(ctx, events...)
+}
+
+func (l *lb) ACLGenPass(ctx context.Context, bit int) *redis.StringCmd {
+	return l.instance().ACLGenPass(ctx, bit)
+}
+
+func (l *lb) ACLUsers(ctx context.Context) *redis.StringSliceCmd {
+	return l.instance().ACLUsers(ctx)
+}
+
+func (l *lb) ACLWhoAmI(ctx context.Context) *redis.StringCmd {
+	return l.instance().ACLWhoAmI(ctx)
+}
+
+func (l *lb) FTHybrid(ctx context.Context, index string, searchExpr string, vectorField string, vectorData redis.Vector) *redis.FTHybridCmd {
+	return l.instance().FTHybrid(ctx, index, searchExpr, vectorField, vectorData)
+}
+
+func (l *lb) FTHybridWithArgs(ctx context.Context, index string, options *redis.FTHybridOptions) *redis.FTHybridCmd {
+	return l.instance().FTHybridWithArgs(ctx, index, options)
+}
+
+func (l *lb) DelExArgs(ctx context.Context, key string, a redis.DelExArgs) *redis.IntCmd {
+	return l.instance().DelExArgs(ctx, key, a)
+}
+
+func (l *lb) Digest(ctx context.Context, key string) *redis.DigestCmd {
+	return l.instance().Digest(ctx, key)
+}
+
+func (l *lb) MSetEX(ctx context.Context, args redis.MSetEXArgs, values ...interface{}) *redis.IntCmd {
+	return l.instance().MSetEX(ctx, args, values...)
+}
+
+func (l *lb) SetIFEQ(ctx context.Context, key string, value interface{}, matchValue interface{}, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFEQ(ctx, key, value, matchValue, expiration)
+}
+
+func (l *lb) SetIFEQGet(ctx context.Context, key string, value interface{}, matchValue interface{}, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFEQGet(ctx, key, value, matchValue, expiration)
+}
+
+func (l *lb) SetIFNE(ctx context.Context, key string, value interface{}, matchValue interface{}, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFNE(ctx, key, value, matchValue, expiration)
+}
+
+func (l *lb) SetIFNEGet(ctx context.Context, key string, value interface{}, matchValue interface{}, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFNEGet(ctx, key, value, matchValue, expiration)
+}
+
+func (l *lb) SetIFDEQ(ctx context.Context, key string, value interface{}, matchDigest uint64, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFDEQ(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDEQGet(ctx context.Context, key string, value interface{}, matchDigest uint64, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFDEQGet(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDNE(ctx context.Context, key string, value interface{}, matchDigest uint64, expiration stdlibtime.Duration) *redis.StatusCmd {
+	return l.instance().SetIFDNE(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) SetIFDNEGet(ctx context.Context, key string, value interface{}, matchDigest uint64, expiration stdlibtime.Duration) *redis.StringCmd {
+	return l.instance().SetIFDNEGet(ctx, key, value, matchDigest, expiration)
+}
+
+func (l *lb) VRange(ctx context.Context, key, start, end string, count int64) *redis.StringSliceCmd {
+	return l.instance().VRange(ctx, key, start, end, count)
+}
+
 func (l *lb) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(l.instances))
