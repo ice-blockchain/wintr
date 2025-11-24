@@ -214,7 +214,7 @@ func IsUnexpected(err error) bool {
 	var pgConnErr *pgconn.PgError
 	var netOpErr *net.OpError
 
-	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr) || errors.Is(err, ErrReadOnly)
+	return errors.As(err, &pgConnErr) || errors.As(err, &netOpErr)
 }
 
 func needRetryOnFallbackMaster(err error) bool {
