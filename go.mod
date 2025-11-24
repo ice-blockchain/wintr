@@ -1,6 +1,6 @@
 module github.com/ice-blockchain/wintr
 
-go 1.25.4
+go 1.25
 
 replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.56.0
 
