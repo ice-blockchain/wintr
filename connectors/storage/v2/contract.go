@@ -4,6 +4,7 @@ package storage
 
 import (
 	"context"
+	"io/fs"
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,6 +27,9 @@ var (
 )
 
 type (
+	DDL interface {
+		run(context.Context, *pgxpool.Pool) error
+	}
 	DB struct {
 		master          *pgxpool.Pool
 		fallbackMasters *lb
@@ -77,5 +81,12 @@ type (
 		conn *pgxpool.Conn
 		db   *DB
 		id   int64
+	}
+	stringDDL struct {
+		Data string
+	}
+	filesystemDDL struct {
+		FS          fs.FS
+		SchemeTable string
 	}
 )
