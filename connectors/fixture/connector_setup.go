@@ -5,13 +5,12 @@ package fixture
 import (
 	"context"
 	"fmt"
-	stdlog "log"
 	"os"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/ice-blockchain/wintr/log"
@@ -68,7 +67,7 @@ func (c *testConnector) Setup(ctx context.Context) ContextErrClose {
 	}
 }
 
-func (c *testConnector) startDockerCompose(tmpFolder, applicationYAMLKey, containerID string) *testcontainers.LocalDockerCompose {
+func (c *testConnector) startDockerCompose(tmpFolder, applicationYAMLKey, containerID string) *compose.LocalDockerCompose {
 	var err error
 	c.port, c.ssl, err = c.findPort()
 	log.Panic(errors.Wrapf(err, "could not find `%v` port for `%v`", applicationYAMLKey, c.name)) //nolint:revive // That's the point.
@@ -76,7 +75,7 @@ func (c *testConnector) startDockerCompose(tmpFolder, applicationYAMLKey, contai
 	paths, err := c.createRequiredTestEnvFiles(tmpFolder, applicationYAMLKey)
 	log.Panic(errors.Wrapf(err, "`%v` failed to createRequiredTestEnvFiles for `%v` test environment", c.name, applicationYAMLKey))
 
-	dockerCompose := testcontainers.NewLocalDockerCompose(paths, containerID, testcontainers.WithLogger(stdlog.Default()))
+	dockerCompose := compose.NewLocalDockerCompose(paths, containerID)
 	dockerCompose.WithExposedService(fmt.Sprintf("%v%v", c.name, c.port), c.port, wait.ForLog(c.waitForLog))
 	dockerCompose.Env = map[string]string{"COMPOSE_COMPATIBILITY": "true"}
 	dockerCompose.WithCommand([]string{"up", "-d"})

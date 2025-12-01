@@ -200,16 +200,17 @@ func (tc *testConnector) waitFor(ctx context.Context) *wait.MultiStrategy {
 	deadline, _ := ctx.Deadline()
 	timeout := deadline.Sub(time.Now().UTC())
 
-	return wait.ForAll(
-		wait.
-			ForLog(fmt.Sprintf("server started listening on %v...", tc.cfg.HTTPServer.Port)).
-			WithStartupTimeout(timeout),
-		wait.
-			ForHTTP("/health-check").
-			WithPort(nat.Port(fmt.Sprintf("%v/tcp", tc.cfg.HTTPServer.Port))).
-			WithTLS(true, tc.localhostTLS()).
-			WithStartupTimeout(timeout),
-	).WithStartupTimeout(timeout)
+	return wait.
+		ForAll(
+			wait.
+				ForLog(fmt.Sprintf("server started listening on %v...", tc.cfg.HTTPServer.Port)).
+				WithStartupTimeout(timeout),
+			wait.
+				ForHTTP("/health-check").
+				WithPort(nat.Port(fmt.Sprintf("%v/tcp", tc.cfg.HTTPServer.Port))).
+				WithTLS(true, tc.localhostTLS()).
+				WithStartupTimeout(timeout),
+		).WithDeadline(timeout)
 }
 
 func (tc *testConnector) setupContainerRequiredFileSystem() {
