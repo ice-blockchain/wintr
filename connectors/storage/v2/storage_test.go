@@ -53,7 +53,7 @@ $$ LANGUAGE plpgsql;`
 			C bool
 		}
 	)
-	db := MustConnect(t.Context(), ddl, "self")
+	db := MustConnect(t.Context(), "self", &stringDDL{Data: ddl})
 	defer func() {
 		_, err := Exec(t.Context(), db, `DROP TABLE bogus2`)
 		require.NoError(t, err)
@@ -143,7 +143,7 @@ $$ LANGUAGE plpgsql;`
 
 func TestStopWhenTxAborted(t *testing.T) {
 	t.Parallel()
-	db := MustConnect(t.Context(), "", "self")
+	db := MustConnect(t.Context(), "self", nil)
 	require.NotNil(t, db)
 
 	err := DoInTransaction(t.Context(), db, func(tx QueryExecer) error {

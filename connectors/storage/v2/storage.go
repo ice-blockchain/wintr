@@ -4,6 +4,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	neturl "net/url"
 	"reflect"
@@ -11,15 +12,13 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	stdlibtime "time"
+	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 
 	appcfg "github.com/ice-blockchain/wintr/config"
 	"github.com/ice-blockchain/wintr/log"
@@ -30,11 +29,11 @@ func init() {
 	var cfg config
 	appcfg.MustLoadFromKey(globalDBYamlKey, &cfg)
 	if cfg.WintrStorage.PrimaryURL != "" || len(cfg.WintrStorage.ReplicaURLs) > 0 {
-		globalDB = MustConnectWithCfg(context.Background(), &cfg.WintrStorage, "")
+		globalDB = MustConnectWithCfg(context.Background(), &cfg.WintrStorage, nil)
 	}
 }
 
-func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
+func MustConnect(ctx context.Context, applicationYAMLKey string, ddl DDL) *DB {
 	var cfg config
 	appcfg.MustLoadFromKey(applicationYAMLKey, &cfg)
 	if globalDB != nil && !cfg.WintrStorage.IgnoreGlobal {
@@ -48,7 +47,7 @@ func MustConnect(ctx context.Context, ddl, applicationYAMLKey string) *DB {
 	return MustConnectWithCfg(ctx, &cfg.WintrStorage, ddl)
 }
 
-func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl string) *DB {
+func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl DDL) *DB {
 	var replicas, fallbacks []*pgxpool.Pool
 	var master *pgxpool.Pool
 	if cfg.PrimaryURL != "" {
@@ -66,7 +65,7 @@ func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl string) *DB {
 		}
 		fallbacks[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
 	}
-	if master != nil && ddl != "" && cfg.RunDDL {
+	if master != nil && ddl != nil && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
 	}
 	log.Info(fmt.Sprintf("db connected: replicas = %v, fallbacks = %v", len(replicas), len(fallbacks)))
@@ -75,12 +74,10 @@ func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl string) *DB {
 	return db
 }
 
-func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl string) {
-	for statement := range strings.SplitSeq(ddl, "----") {
-		_, err := master.Exec(ctx, statement)
-		if !ignorableDDLError(err) {
-			log.Panic(errors.Wrapf(err, "failed to run statement: %v", statement))
-		}
+func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl DDL) {
+	err := ddl.run(ctx, master)
+	if !ignorableDDLError(err) {
+		log.Panic(fmt.Errorf("failed to execute DDL: %w", maskError(err)))
 	}
 }
 
@@ -101,29 +98,38 @@ func ignorableDDLError(err error) bool {
 //nolint:mnd,gomnd,revive // Configuration.
 func mustConnectPool(ctx context.Context, timeout, user, pass, url string, skipSettingsVerification bool) (db *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(url)
-	log.Panic(errors.Wrapf(maskError(err), "failed to parse pool config: %v", maskSensitive(url))) //nolint:revive // Intended
-	poolConfig.ConnConfig.User = user
-	poolConfig.ConnConfig.Password = pass
+	if err != nil {
+		log.Panic(fmt.Errorf("failed to parse pool config %v: %w", maskSensitive(url), maskError(err)))
+	}
+
+	if user != "" {
+		poolConfig.ConnConfig.User = user
+	}
+	if pass != "" {
+		poolConfig.ConnConfig.Password = pass
+	}
 	poolConfig.ConnConfig.StatementCacheCapacity = 1024
 	poolConfig.ConnConfig.DescriptionCacheCapacity = 1024
-	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * stdlibtime.Second //nolint:staticcheck // .
+	poolConfig.ConnConfig.Config.ConnectTimeout = 30 * time.Second //nolint:staticcheck // .
 	if !strings.Contains(strings.ToLower(url), "pool_max_conn_idle_time") {
-		poolConfig.MaxConnIdleTime = stdlibtime.Minute
+		poolConfig.MaxConnIdleTime = time.Minute
 	}
 	log.Info(fmt.Sprintf("poolConfig.MaxConnIdleTime=%v", poolConfig.MaxConnIdleTime))
 	if !strings.Contains(strings.ToLower(url), "pool_health_check_period") {
-		poolConfig.HealthCheckPeriod = 30 * stdlibtime.Second
+		poolConfig.HealthCheckPeriod = 30 * time.Second
 	}
 	log.Info(fmt.Sprintf("poolConfig.HealthCheckPeriod=%v", poolConfig.HealthCheckPeriod))
-	poolConfig.MaxConnLifetimeJitter = 10 * stdlibtime.Minute
-	poolConfig.MaxConnLifetime = 24 * stdlibtime.Hour
+	poolConfig.MaxConnLifetimeJitter = 10 * time.Minute
+	poolConfig.MaxConnLifetime = 24 * time.Hour
 	if !skipSettingsVerification {
 		poolConfig.AfterConnect = func(cctx context.Context, conn *pgx.Conn) error { return doAfterConnect(cctx, timeout, conn) }
 	}
 	poolConfig.MinConns = 1
-	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
-	log.Panic(errors.Wrapf(maskError(err), "failed to start pool for config: %v", maskSensitive(url)))
 
+	db, err = pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		log.Panic(fmt.Errorf("failed to start pool for config: %v: %w", maskSensitive(url), maskError(err)))
+	}
 	return db
 }
 
@@ -153,7 +159,7 @@ func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error {
 						WHERE name IN (%v)`, strings.Join(values, ","))
 	rows, qErr := conn.Query(ctx, sql)
 	if qErr != nil {
-		return errors.Wrapf(qErr, "validation select failed")
+		return fmt.Errorf("db validation query failed: %w", qErr)
 	}
 	var res []*struct{ Name, Setting string }
 	if qErr = pgxscan.ScanAll(&res, rows); qErr != nil {
@@ -164,7 +170,7 @@ func doAfterConnect(ctx context.Context, timeout string, conn *pgx.Conn) error {
 		actual[row.Name] = strings.ReplaceAll(row.Setting, "0000", "0s")
 	}
 	if !reflect.DeepEqual(actual, customConnectionParameters) {
-		return errors.Errorf("db validation failed, expected:%#v, actual:%#v", customConnectionParameters, actual)
+		return fmt.Errorf("db validation failed, expected:%#v, actual:%#v", customConnectionParameters, actual)
 	}
 
 	return nil
@@ -199,27 +205,35 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Ping(ctx context.Context) error {
-	wg := new(sync.WaitGroup)
+	var wg sync.WaitGroup
+
 	const masterChecks = 2
 	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
 	if db.master != nil {
-		wg.Add(masterChecks) //nolint:revive // More than 1.
-		go func() {
-			defer wg.Done()
-			errChan <- errors.Wrap(db.master.Ping(ctx), "ping failed for master")
-		}()
-		go func() {
-			defer wg.Done()
-			errChan <- errors.Wrap(CheckWrite(ctx, db.master), "write check failed for master")
-		}()
+		wg.Go(func() {
+			err := db.master.Ping(ctx)
+			if err != nil {
+				err = fmt.Errorf("ping failed for master: %w", err)
+			}
+			errChan <- err
+		})
+		wg.Go(func() {
+			err := CheckWrite(ctx, db.master)
+			if err != nil {
+				err = fmt.Errorf("write check failed for master: %w", err)
+			}
+			errChan <- err
+		})
 	}
 	if len(db.lb.replicas) != 0 {
-		wg.Add(len(db.lb.replicas))
-		for ii := range db.lb.replicas {
-			go func(ix int) {
-				defer wg.Done()
-				errChan <- errors.Wrapf(db.lb.replicas[ix].Ping(ctx), "ping failed for replica[%v]", ix)
-			}(ii)
+		for ix := range db.lb.replicas {
+			wg.Go(func() {
+				err := db.lb.replicas[ix].Ping(ctx)
+				if err != nil {
+					err = fmt.Errorf("ping failed for replica[%v]: %w", ix, err)
+				}
+				errChan <- err
+			})
 		}
 	}
 	wg.Wait()
@@ -229,7 +243,7 @@ func (db *DB) Ping(ctx context.Context) error {
 		errs = append(errs, err)
 	}
 
-	return multierror.Append(nil, errs...).ErrorOrNil() //nolint:wrapcheck // Not needed.
+	return errors.Join(errs...)
 }
 
 func CheckWrite(ctx context.Context, db Querier) error {
@@ -237,7 +251,7 @@ func CheckWrite(ctx context.Context, db Querier) error {
 		ReadOnly string `db:"transaction_read_only"`
 	}](ctx, db, "show transaction_read_only;")
 	if err != nil {
-		return errors.Wrapf(err, "failed to check write access")
+		return fmt.Errorf("failed to check write access: %w", err)
 	}
 	if res.ReadOnly == "on" {
 		return ErrReadOnly
@@ -277,16 +291,16 @@ func retry[T any](ctx context.Context, op func(prevError error) (T, error)) (tt 
 		},
 		//nolint:mnd,gomnd // Because those are static configs.
 		backoff.WithContext(&backoff.ExponentialBackOff{
-			InitialInterval:     100 * stdlibtime.Millisecond,
+			InitialInterval:     100 * time.Millisecond,
 			RandomizationFactor: 0.5,
 			Multiplier:          2.5,
-			MaxInterval:         stdlibtime.Second,
-			MaxElapsedTime:      25 * stdlibtime.Second,
+			MaxInterval:         time.Second,
+			MaxElapsedTime:      25 * time.Second,
 			Stop:                backoff.Stop,
 			Clock:               backoff.SystemClock,
 		}, ctx),
-		func(e error, next stdlibtime.Duration) {
-			log.Error(errors.Wrapf(maskError(e), "[wintr/storage/v2]call failed. retrying in %v... ", next))
+		func(e error, next time.Duration) {
+			log.Error(fmt.Errorf("[wintr/storage/v2] call failed: %v. retrying in %v", maskError(e), next))
 		})
 
 	return tt, err
