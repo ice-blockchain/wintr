@@ -50,28 +50,34 @@ func MustConnect(ctx context.Context, applicationYAMLKey string, ddl DDL) *DB {
 func MustConnectWithCfg(ctx context.Context, cfg *Cfg, ddl DDL) *DB {
 	var replicas, fallbacks []*pgxpool.Pool
 	var master *pgxpool.Pool
+
 	if cfg.PrimaryURL != "" {
 		master = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, cfg.PrimaryURL, cfg.SkipSettingsVerification)
 	}
-	for ix, url := range cfg.ReplicaURLs {
-		if ix == 0 {
-			replicas = make([]*pgxpool.Pool, len(cfg.ReplicaURLs)) //nolint:makezero // Not needed, we know the size.
+	if len(cfg.ReplicaURLs) > 0 {
+		replicas = make([]*pgxpool.Pool, 0, len(cfg.ReplicaURLs))
+		for _, url := range cfg.ReplicaURLs {
+			conn := mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
+			replicas = append(replicas, conn)
 		}
-		replicas[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
 	}
-	for ix, url := range cfg.PrimaryFallbackURLs {
-		if ix == 0 {
-			fallbacks = make([]*pgxpool.Pool, len(cfg.PrimaryFallbackURLs)) //nolint:makezero // Not needed, we know the size.
+	if len(cfg.PrimaryFallbackURLs) > 0 {
+		fallbacks = make([]*pgxpool.Pool, 0, len(cfg.PrimaryFallbackURLs))
+		for _, url := range cfg.PrimaryFallbackURLs {
+			conn := mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
+			fallbacks = append(fallbacks, conn)
 		}
-		fallbacks[ix] = mustConnectPool(ctx, cfg.Timeout, cfg.Credentials.User, cfg.Credentials.Password, url, cfg.SkipSettingsVerification)
 	}
 	if master != nil && ddl != nil && cfg.RunDDL {
 		mustRunDDL(ctx, master, ddl)
 	}
-	log.Info(fmt.Sprintf("db connected: replicas = %v, fallbacks = %v", len(replicas), len(fallbacks)))
-	db := &DB{master: master, fallbackMasters: &lb{replicas: fallbacks}, lb: &lb{replicas: replicas}, acquiredLocks: make(map[int64]*pgxpool.Conn)}
-
-	return db
+	log.Info(fmt.Sprintf("db connected: has master = %v, replicas = %v, fallbacks = %v", master != nil, len(replicas), len(fallbacks)))
+	return &DB{
+		master:          master,
+		fallbackMasters: &lb{replicas: fallbacks},
+		lb:              &lb{replicas: replicas},
+		acquiredLocks:   make(map[int64]*pgxpool.Conn),
+	}
 }
 
 func mustRunDDL(ctx context.Context, master *pgxpool.Pool, ddl DDL) {
@@ -204,8 +210,19 @@ func (db *DB) Close() error {
 	return nil
 }
 
-func (db *DB) Ping(ctx context.Context) error {
+func PingWithoutWriteCheck() PingOption {
+	return func(opts *pingOptions) {
+		opts.NoWriteCheck = true
+	}
+}
+
+func (db *DB) Ping(ctx context.Context, opts ...PingOption) error {
 	var wg sync.WaitGroup
+	var options pingOptions
+
+	for _, opt := range opts {
+		opt(&options)
+	}
 
 	const masterChecks = 2
 	errChan := make(chan error, len(db.lb.replicas)+masterChecks)
@@ -218,7 +235,10 @@ func (db *DB) Ping(ctx context.Context) error {
 			errChan <- err
 		})
 		wg.Go(func() {
-			err := CheckWrite(ctx, db.master)
+			var err error
+			if !options.NoWriteCheck {
+				err = CheckWrite(ctx, db.master)
+			}
 			if err != nil {
 				err = fmt.Errorf("write check failed for master: %w", err)
 			}
