@@ -44,6 +44,7 @@ type (
 		Unlock(ctx context.Context) error
 		EnsureLocked(ctx context.Context) error
 	}
+	PingOption func(*pingOptions)
 )
 
 // Private API.
@@ -88,5 +89,8 @@ type (
 	filesystemDDL struct {
 		FS          fs.FS
 		SchemeTable string
+	}
+	pingOptions struct {
+		NoWriteCheck bool
 	}
 )
