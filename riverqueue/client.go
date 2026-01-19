@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package rq
+package riverqueue
 
 import (
 	"context"
@@ -34,7 +34,6 @@ type (
 			User     string `yaml:"user"`
 			Password string `yaml:"password"`
 		} `yaml:"credentials" mapstructure:"credentials"`
-		Timeout         string        `yaml:"timeout" mapstructure:"timeout"`
 		PrimaryURLs     []string      `yaml:"primaryURLs" mapstructure:"primaryURLs"`
 		QueueName       string        `yaml:"queueName" mapstructure:"queueName"`
 		ID              string        `yaml:"id,omitempty" mapstructure:"id"`
@@ -84,7 +83,7 @@ func newClient(ctx context.Context, applicationYAMLKey string, opts ...Option) (
 
 	log.Debug(fmt.Sprintf("initializing job queue client with queue name: %s", client.Cfg.QueueName))
 
-	db, err := newDatabaseClient(ctx, client.Cfg.Credentials.Password, client.Cfg.Credentials.Password, client.Cfg.PrimaryURLs...)
+	db, err := newDatabaseClient(ctx, client.Cfg.Credentials.User, client.Cfg.Credentials.Password, client.Cfg.PrimaryURLs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}

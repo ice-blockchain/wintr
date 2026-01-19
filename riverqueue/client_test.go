@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package rq
+package riverqueue
 
 import (
 	"context"
@@ -20,18 +20,18 @@ type (
 		Result chan int
 		WorkerDefaults[testAddWorkerArgs]
 	}
-	testSubstractWorkerArgs struct {
+	testSubtractWorkerArgs struct {
 		A int
 		B int
 	}
-	testSubstractWorker struct {
+	testSubtractWorker struct {
 		T      *testing.T
 		Result chan int
-		WorkerDefaults[testSubstractWorkerArgs]
+		WorkerDefaults[testSubtractWorkerArgs]
 	}
 )
 
-func (testSubstractWorkerArgs) Kind() string {
+func (testSubtractWorkerArgs) Kind() string {
 	return "test_math_sub_args"
 }
 
@@ -50,9 +50,9 @@ func (w *testAddWorker) Work(ctx context.Context, job *Job[testAddWorkerArgs]) e
 	return nil
 }
 
-func (w *testSubstractWorker) Work(ctx context.Context, job *Job[testSubstractWorkerArgs]) error {
+func (w *testSubtractWorker) Work(ctx context.Context, job *Job[testSubtractWorkerArgs]) error {
 	r := job.Args.A - job.Args.B
-	w.T.Logf("Substraction result: %d - %d = %d", job.Args.A, job.Args.B, r)
+	w.T.Logf("Subtraction result: %d - %d = %d", job.Args.A, job.Args.B, r)
 	select {
 	case w.Result <- r:
 	case <-ctx.Done():
@@ -81,7 +81,7 @@ func TestProcessDifferentJobs(t *testing.T) {
 	substractResults := make(chan int, 1)
 
 	RegisterWorker(client.Register(), &testAddWorker{T: t, Result: addResults})
-	RegisterWorker(client.Register(), &testSubstractWorker{T: t, Result: substractResults})
+	RegisterWorker(client.Register(), &testSubtractWorker{T: t, Result: substractResults})
 
 	require.NoError(t, client.Start(t.Context()))
 
@@ -95,14 +95,14 @@ func TestProcessDifferentJobs(t *testing.T) {
 			t.Error("timeout waiting for addition result")
 		}
 	})
-	t.Run("Substraction job", func(t *testing.T) {
-		args := &testSubstractWorkerArgs{A: 20, B: 8}
+	t.Run("Subtraction job", func(t *testing.T) {
+		args := &testSubtractWorkerArgs{A: 20, B: 8}
 		require.NoError(t, client.Push(t.Context(), args))
 		select {
 		case res := <-substractResults:
 			require.Equal(t, 12, res)
 		case <-time.After(5 * time.Second):
-			t.Error("timeout waiting for substraction result")
+			t.Error("timeout waiting for subtraction result")
 		}
 	})
 	require.NoError(t, client.Close(t.Context()))

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ice License 1.0
 
-package rq
+package riverqueue
 
 import (
 	"context"
@@ -107,7 +107,7 @@ func poolDoAfterConnect(ctx context.Context, conn *pgx.Conn) error {
 		"statement_timeout":                   actualTimeout,
 		"idle_in_transaction_session_timeout": actualTimeout,
 		"lock_timeout":                        actualTimeout,
-		// "tcp_user_timeout":                 actualTimeout,.
+		// "tcp_user_timeout":                 actualTimeout,
 		"enable_partitionwise_join":      "on",
 		"enable_partitionwise_aggregate": "on",
 	}

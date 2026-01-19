@@ -63,7 +63,7 @@ checkGenerated: generate
 	true;
 
 build-all@ci/cd:
-	go build -tags=go_json -a -v -race ./...
+	go build -tags=go_json -v -race ./...
 
 build: build-all@ci/cd
 

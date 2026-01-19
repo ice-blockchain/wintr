@@ -3,8 +3,8 @@ module github.com/ice-blockchain/wintr
 go 1.25
 
 replace (
-	github.com/quic-go/qpack => github.com/quic-go/qpack v0.5.1
-	github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.56.0
+	github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.58.1
+	github.com/quic-go/webtransport-go => github.com/quic-go/webtransport-go v0.9.0
 )
 
 require (
