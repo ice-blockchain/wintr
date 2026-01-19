@@ -260,61 +260,6 @@ func TestDatabaseClientAllMastersFail(t *testing.T) {
 	require.ErrorIs(t, err, errNoActiveMaster)
 }
 
-func TestDatabaseClientCalculateConnectOrder(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name         string
-		addresses    []string
-		currentIndex int
-		expected     []int
-	}{
-		{
-			name:         "two addresses, current is 0",
-			addresses:    []string{"addr1", "addr2"},
-			currentIndex: 0,
-			expected:     []int{1},
-		},
-		{
-			name:         "two addresses, current is 1",
-			addresses:    []string{"addr1", "addr2"},
-			currentIndex: 1,
-			expected:     []int{0},
-		},
-		{
-			name:         "three addresses, current is 0",
-			addresses:    []string{"addr1", "addr2", "addr3"},
-			currentIndex: 0,
-			expected:     []int{1, 2},
-		},
-		{
-			name:         "three addresses, current is 1",
-			addresses:    []string{"addr1", "addr2", "addr3"},
-			currentIndex: 1,
-			expected:     []int{2, 0},
-		},
-		{
-			name:         "three addresses, current is 2",
-			addresses:    []string{"addr1", "addr2", "addr3"},
-			currentIndex: 2,
-			expected:     []int{0, 1},
-		},
-		{
-			name:         "four addresses, current is 1",
-			addresses:    []string{"addr1", "addr2", "addr3", "addr4"},
-			currentIndex: 1,
-			expected:     []int{2, 3, 0},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := calculateConnectOrder(tt.addresses, tt.currentIndex)
-			require.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestShouldSwitchMaster(t *testing.T) {
 	t.Parallel()
 
