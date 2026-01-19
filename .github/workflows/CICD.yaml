@@ -184,6 +184,7 @@ jobs:
         - time
         - privacy
         - email
+        - rq
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name == 'push'  }}
     runs-on: ubuntu-latest
     #    runs-on: self-hosted-ubuntu-latest-x64
