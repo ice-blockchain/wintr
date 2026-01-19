@@ -237,11 +237,23 @@ func (db *databaseClient) switchMaster(ctx context.Context, reason error) error 
 }
 
 func calculateConnectOrder(addresses []string, currentIndex int) []int {
+	switch len(addresses) {
+	case 0:
+		return []int{}
+	case 1:
+		return []int{0}
+	case 2:
+		return []int{(currentIndex + 1) % 2, currentIndex}
+	}
+
 	all := make([]int, len(addresses))
 	for i := range all {
 		all[i] = i
 	}
-	return append(all[currentIndex+1:], all[:currentIndex]...)
+
+	order := append(all[currentIndex+1:], all[:currentIndex]...)
+	order = append(order, currentIndex) // Try the current master last.
+	return order
 }
 
 func createPgURL(username, password, target string) (string, error) {
