@@ -3,6 +3,7 @@ module github.com/ice-blockchain/wintr
 go 1.25.5
 
 replace (
+	github.com/go-ini/ini => gopkg.in/ini.v1 v1.67.0
 	github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.58.1
 	github.com/quic-go/webtransport-go => github.com/quic-go/webtransport-go v0.9.0
 )
@@ -148,7 +149,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/go-ini/ini v1.67.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
