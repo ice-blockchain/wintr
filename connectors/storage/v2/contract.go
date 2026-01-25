@@ -45,6 +45,18 @@ type (
 		EnsureLocked(ctx context.Context) error
 	}
 	PingOption func(*pingOptions)
+
+	Listener struct {
+		conn    *pgxpool.Conn
+		channel string
+		done    chan struct{}
+		notifCh chan *Notification
+	}
+	Notification struct {
+		Channel string
+		Payload string
+		PID     uint32
+	}
 )
 
 // Private API.

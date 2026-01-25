@@ -273,3 +273,70 @@ func parseDBError(err error) error { //nolint:funlen,gocognit,revive // .
 
 	return err
 }
+
+func (db *DB) Listen(ctx context.Context, channel string) (*Listener, error) {
+	conn, err := db.primary().Acquire(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to acquire connection for LISTEN")
+	}
+
+	listener := &Listener{
+		conn:    conn,
+		channel: channel,
+		done:    make(chan struct{}),
+		notifCh: make(chan *Notification, 100),
+	}
+
+	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{channel}.Sanitize())
+	if err != nil {
+		conn.Release()
+		return nil, errors.Wrapf(err, "failed to execute LISTEN command for channel %s", channel)
+	}
+	go listener.receiveNotifications(ctx)
+
+	return listener, nil
+}
+
+func (l *Listener) receiveNotifications(ctx context.Context) {
+	defer close(l.notifCh)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-l.done:
+			return
+		default:
+			notification, err := l.conn.Conn().WaitForNotification(ctx)
+			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				log.Error(errors.Wrapf(err, "error waiting for notification on channel %s", l.channel))
+
+				continue
+			}
+
+			l.notifCh <- &Notification{
+				Channel: notification.Channel,
+				Payload: notification.Payload,
+				PID:     notification.PID,
+			}
+		}
+	}
+}
+
+func (l *Listener) Channel() <-chan *Notification {
+	return l.notifCh
+}
+
+func (l *Listener) BackendPID() uint32 {
+	return l.conn.Conn().PgConn().PID()
+}
+
+func (l *Listener) Close() {
+	close(l.done)
+	if l.conn != nil {
+		l.conn.Release()
+	}
+}
