@@ -1,6 +1,6 @@
 module github.com/ice-blockchain/wintr
 
-go 1.25
+go 1.25.5
 
 replace (
 	github.com/go-ini/ini => gopkg.in/ini.v1 v1.67.0
@@ -301,7 +301,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
-	github.com/theupdateframework/go-tuf/v2 v2.4.0 // indirect
+	github.com/theupdateframework/go-tuf/v2 v2.4.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
