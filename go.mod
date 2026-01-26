@@ -1,6 +1,6 @@
 module github.com/ice-blockchain/wintr
 
-go 1.25.5
+go 1.25
 
 replace (
 	github.com/go-ini/ini => gopkg.in/ini.v1 v1.67.0
