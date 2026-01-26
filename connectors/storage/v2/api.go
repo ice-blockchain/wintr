@@ -4,7 +4,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strings"
 	stdlibtime "time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	maxConsecutiveListenerErrors = 10
+	maxConsecutiveListenerErrors  = 10
+	notificationChannelBufferSize = 1000
 )
 
 type (
@@ -294,12 +295,12 @@ func (db *DB) Listen(ctx context.Context, channel string) (*Listener, error) {
 		conn:       conn,
 		channel:    channel,
 		done:       make(chan struct{}),
-		notifCh:    make(chan *Notification, 1000),
+		notifCh:    make(chan *Notification, notificationChannelBufferSize),
 		wg:         wg,
 		cancelFunc: cancel,
 	}
 
-	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{channel}.Sanitize())
+	err = executeListenCommand(ctx, conn, channel)
 	if err != nil {
 		cancel()
 		conn.Release()
@@ -356,7 +357,12 @@ retryLoop:
 				if !connected {
 					consecutiveErrors++
 					if consecutiveErrors >= maxConsecutiveListenerErrors {
-						err := errors.Errorf("max consecutive errors (%d) reached during connection attempts for channel %s, closing listener", maxConsecutiveListenerErrors, l.channel)
+						var err error
+						if l.lastErr != nil {
+							err = errors.Wrapf(l.lastErr, "max consecutive errors (%d) reached during connection attempts for channel %s, closing listener", maxConsecutiveListenerErrors, l.channel)
+						} else {
+							err = errors.Errorf("max consecutive errors (%d) reached during connection attempts for channel %s, closing listener", maxConsecutiveListenerErrors, l.channel)
+						}
 						log.Error(err)
 
 						return err
@@ -419,7 +425,7 @@ retryLoop:
 				PID:     notification.PID,
 			}:
 			default:
-				log.Warn(fmt.Sprintf("notification channel full for %s, dropping notification (payload: %s)", l.channel, notification.Payload))
+				log.Warn("notification channel full, dropping notification", "channel", l.channel, "payload", notification.Payload)
 			}
 		}
 	}
@@ -444,7 +450,7 @@ func (l *Listener) connect(ctx context.Context, consecutiveErrors *int, bo *back
 		return false, false
 	}
 
-	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{l.channel}.Sanitize())
+	err = executeListenCommand(ctx, conn, l.channel)
 	if err != nil {
 		conn.Release()
 		l.setLastError(err)
@@ -472,6 +478,12 @@ func (l *Listener) releaseCurrentConnection() {
 		l.conn.Release()
 		l.conn = nil
 	}
+}
+
+func executeListenCommand(ctx context.Context, conn *pgxpool.Conn, channel string) error {
+	_, err := conn.Exec(ctx, "LISTEN "+pgx.Identifier{channel}.Sanitize())
+
+	return err
 }
 
 func (l *Listener) isConnectionError(err error) bool {
