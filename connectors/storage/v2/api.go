@@ -4,6 +4,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	stdlibtime "time"
@@ -14,9 +15,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/ice-blockchain/wintr/log"
 	"github.com/ice-blockchain/wintr/terror"
+)
+
+const (
+	maxConsecutiveListenerErrors = 10
 )
 
 type (
@@ -280,31 +286,43 @@ func (db *DB) Listen(ctx context.Context, channel string) (*Listener, error) {
 		return nil, errors.Wrapf(err, "failed to acquire connection for LISTEN")
 	}
 
+	listenerCtx, cancel := context.WithCancel(ctx)
+	wg, wgCtx := errgroup.WithContext(listenerCtx)
+
 	listener := &Listener{
-		conn:    conn,
-		channel: channel,
-		done:    make(chan struct{}),
-		notifCh: make(chan *Notification, 1000),
+		db:         db,
+		conn:       conn,
+		channel:    channel,
+		done:       make(chan struct{}),
+		notifCh:    make(chan *Notification, 1000),
+		wg:         wg,
+		cancelFunc: cancel,
 	}
 
 	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{channel}.Sanitize())
 	if err != nil {
+		cancel()
 		conn.Release()
+
 		return nil, errors.Wrapf(err, "failed to execute LISTEN command for channel %s", channel)
 	}
-
-	listener.wg.Add(1)
-	go listener.receiveNotifications(ctx)
+	listener.wg.Go(func() error {
+		return listener.receiveNotifications(wgCtx)
+	})
 
 	return listener, nil
 }
 
-func (l *Listener) receiveNotifications(ctx context.Context) {
-	defer l.wg.Done()
+func (l *Listener) receiveNotifications(ctx context.Context) error {
 	defer close(l.notifCh)
-	defer l.conn.Release()
-
-	const maxConsecutiveErrors = 10
+	defer func() {
+		l.connMx.Lock()
+		if l.conn != nil {
+			l.conn.Release()
+			l.conn = nil
+		}
+		l.connMx.Unlock()
+	}()
 
 	bo := &backoff.ExponentialBackOff{
 		InitialInterval:     100 * stdlibtime.Millisecond,
@@ -317,37 +335,74 @@ func (l *Listener) receiveNotifications(ctx context.Context) {
 	}
 	bo.Reset()
 	consecutiveErrors := 0
+
+retryLoop:
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-l.done:
-			return
+			return nil
 		default:
-			notification, err := l.conn.Conn().WaitForNotification(ctx)
+			l.connMx.RLock()
+			conn := l.conn
+			l.connMx.RUnlock()
+
+			if conn == nil {
+				connected, shouldStop := l.connect(ctx, &consecutiveErrors, bo)
+				if shouldStop {
+					return ctx.Err()
+				}
+				if !connected {
+					consecutiveErrors++
+					if consecutiveErrors >= maxConsecutiveListenerErrors {
+						err := errors.Errorf("max consecutive errors (%d) reached during connection attempts for channel %s, closing listener", maxConsecutiveListenerErrors, l.channel)
+						log.Error(err)
+
+						return err
+					}
+				}
+				continue retryLoop
+			}
+
+			notification, err := conn.Conn().WaitForNotification(ctx)
 			if err != nil {
 				if ctx.Err() != nil {
-					return
+					return ctx.Err()
 				}
 
+				l.setLastError(err)
 				consecutiveErrors++
-				if consecutiveErrors >= maxConsecutiveErrors {
-					log.Error(errors.Wrapf(err, "max consecutive errors (%d) reached for channel %s, closing listener", maxConsecutiveErrors, l.channel))
-					return
+				if consecutiveErrors >= maxConsecutiveListenerErrors {
+					wrappedErr := errors.Wrapf(err, "max consecutive errors (%d) reached for channel %s, closing listener", maxConsecutiveListenerErrors, l.channel)
+					log.Error(wrappedErr)
+
+					return wrappedErr
 				}
+				if l.isConnectionError(err) {
+					log.Error(errors.Wrapf(err, "connection error on channel %s (attempt %d/%d), reconnecting", l.channel, consecutiveErrors, maxConsecutiveListenerErrors))
+					l.releaseCurrentConnection()
+					connected, shouldStop := l.connect(ctx, &consecutiveErrors, bo)
+					if shouldStop {
+						return ctx.Err()
+					}
+					if !connected {
+						log.Error(errors.Errorf("failed to reconnect on channel %s, will retry", l.channel))
+					}
 
+					continue retryLoop
+				}
 				nextBackoff := bo.NextBackOff()
-				log.Error(errors.Wrapf(err, "error waiting for notification on channel %s (attempt %d/%d), retrying in %v", l.channel, consecutiveErrors, maxConsecutiveErrors, nextBackoff))
-
+				log.Error(errors.Wrapf(err, "error waiting for notification on channel %s (attempt %d/%d), retrying in %v", l.channel, consecutiveErrors, maxConsecutiveListenerErrors, nextBackoff))
 				select {
 				case <-ctx.Done():
-					return
+					return ctx.Err()
 				case <-l.done:
-					return
+					return nil
 				case <-stdlibtime.After(nextBackoff):
 				}
 
-				continue
+				continue retryLoop
 			}
 			if consecutiveErrors > 0 {
 				consecutiveErrors = 0
@@ -355,17 +410,94 @@ func (l *Listener) receiveNotifications(ctx context.Context) {
 			}
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case <-l.done:
-				return
+				return nil
 			case l.notifCh <- &Notification{
 				Channel: notification.Channel,
 				Payload: notification.Payload,
 				PID:     notification.PID,
 			}:
+			default:
+				log.Warn(fmt.Sprintf("notification channel full for %s, dropping notification (payload: %s)", l.channel, notification.Payload))
 			}
 		}
 	}
+}
+
+func (l *Listener) connect(ctx context.Context, consecutiveErrors *int, bo *backoff.ExponentialBackOff) (connected bool, shouldStop bool) {
+	nextBackoff := bo.NextBackOff()
+	log.Error(errors.Errorf("connecting to channel %s (attempt %d/%d), waiting %v", l.channel, *consecutiveErrors, maxConsecutiveListenerErrors, nextBackoff))
+
+	select {
+	case <-ctx.Done():
+		return false, true
+	case <-l.done:
+		return false, true
+	case <-stdlibtime.After(nextBackoff):
+	}
+	conn, err := l.db.primary().Acquire(ctx)
+	if err != nil {
+		l.setLastError(err)
+		log.Error(errors.Wrapf(err, "failed to acquire connection for channel %s", l.channel))
+
+		return false, false
+	}
+
+	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{l.channel}.Sanitize())
+	if err != nil {
+		conn.Release()
+		l.setLastError(err)
+		log.Error(errors.Wrapf(err, "failed to execute LISTEN command on channel %s", l.channel))
+
+		return false, false
+	}
+
+	l.connMx.Lock()
+	l.conn = conn
+	l.connMx.Unlock()
+
+	*consecutiveErrors = 0
+	bo.Reset()
+
+	log.Info("successfully connected to channel " + l.channel)
+
+	return true, false
+}
+
+func (l *Listener) releaseCurrentConnection() {
+	l.connMx.Lock()
+	defer l.connMx.Unlock()
+	if l.conn != nil {
+		l.conn.Release()
+		l.conn = nil
+	}
+}
+
+func (l *Listener) isConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "08003", // connection_does_not_exist
+			"08006", // connection_failure
+			"57P01", // admin_shutdown (pg_terminate_backend)
+			"57P02", // crash_shutdown
+			"57P03": // cannot_connect_now
+			return true
+		}
+	}
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
+
+	return false
 }
 
 func (l *Listener) Channel() <-chan *Notification {
@@ -373,10 +505,32 @@ func (l *Listener) Channel() <-chan *Notification {
 }
 
 func (l *Listener) BackendPID() uint32 {
+	l.connMx.RLock()
+	defer l.connMx.RUnlock()
+	if l.conn == nil {
+		return 0
+	}
+
 	return l.conn.Conn().PgConn().PID()
 }
 
-func (l *Listener) Close() {
+func (l *Listener) Close() error {
+	l.cancelFunc()
 	close(l.done)
-	l.wg.Wait()
+
+	return l.wg.Wait()
+}
+
+func (l *Listener) Err() error {
+	l.errMx.RLock()
+	defer l.errMx.RUnlock()
+
+	return l.lastErr
+}
+
+func (l *Listener) setLastError(err error) {
+	l.errMx.Lock()
+	defer l.errMx.Unlock()
+
+	l.lastErr = err
 }

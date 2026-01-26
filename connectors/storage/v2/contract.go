@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Public API.
@@ -47,11 +48,16 @@ type (
 	PingOption func(*pingOptions)
 
 	Listener struct {
-		conn    *pgxpool.Conn
-		channel string
-		done    chan struct{}
-		notifCh chan *Notification
-		wg      sync.WaitGroup
+		db         *DB
+		conn       *pgxpool.Conn
+		channel    string
+		done       chan struct{}
+		notifCh    chan *Notification
+		wg         *errgroup.Group
+		lastErr    error
+		connMx     sync.RWMutex
+		errMx      sync.RWMutex
+		cancelFunc context.CancelFunc
 	}
 	Notification struct {
 		Channel string
