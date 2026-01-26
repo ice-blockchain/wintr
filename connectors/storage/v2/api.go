@@ -292,14 +292,31 @@ func (db *DB) Listen(ctx context.Context, channel string) (*Listener, error) {
 		conn.Release()
 		return nil, errors.Wrapf(err, "failed to execute LISTEN command for channel %s", channel)
 	}
+
+	listener.wg.Add(1)
 	go listener.receiveNotifications(ctx)
 
 	return listener, nil
 }
 
 func (l *Listener) receiveNotifications(ctx context.Context) {
+	defer l.wg.Done()
 	defer close(l.notifCh)
+	defer l.conn.Release()
 
+	const maxConsecutiveErrors = 10
+
+	bo := &backoff.ExponentialBackOff{
+		InitialInterval:     100 * stdlibtime.Millisecond,
+		RandomizationFactor: 0.5,
+		Multiplier:          2.5,
+		MaxInterval:         stdlibtime.Second,
+		MaxElapsedTime:      0,
+		Stop:                backoff.Stop,
+		Clock:               backoff.SystemClock,
+	}
+	bo.Reset()
+	consecutiveErrors := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -312,15 +329,40 @@ func (l *Listener) receiveNotifications(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				log.Error(errors.Wrapf(err, "error waiting for notification on channel %s", l.channel))
+
+				consecutiveErrors++
+				if consecutiveErrors >= maxConsecutiveErrors {
+					log.Error(errors.Wrapf(err, "max consecutive errors (%d) reached for channel %s, closing listener", maxConsecutiveErrors, l.channel))
+					return
+				}
+
+				nextBackoff := bo.NextBackOff()
+				log.Error(errors.Wrapf(err, "error waiting for notification on channel %s (attempt %d/%d), retrying in %v", l.channel, consecutiveErrors, maxConsecutiveErrors, nextBackoff))
+
+				select {
+				case <-ctx.Done():
+					return
+				case <-l.done:
+					return
+				case <-stdlibtime.After(nextBackoff):
+				}
 
 				continue
 			}
-
-			l.notifCh <- &Notification{
+			if consecutiveErrors > 0 {
+				consecutiveErrors = 0
+				bo.Reset()
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-l.done:
+				return
+			case l.notifCh <- &Notification{
 				Channel: notification.Channel,
 				Payload: notification.Payload,
 				PID:     notification.PID,
+			}:
 			}
 		}
 	}
@@ -336,7 +378,5 @@ func (l *Listener) BackendPID() uint32 {
 
 func (l *Listener) Close() {
 	close(l.done)
-	if l.conn != nil {
-		l.conn.Release()
-	}
+	l.wg.Wait()
 }

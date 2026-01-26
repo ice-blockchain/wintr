@@ -51,6 +51,7 @@ type (
 		channel string
 		done    chan struct{}
 		notifCh chan *Notification
+		wg      sync.WaitGroup
 	}
 	Notification struct {
 		Channel string

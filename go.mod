@@ -1,6 +1,6 @@
 module github.com/ice-blockchain/wintr
 
-go 1.25
+go 1.25.5
 
 replace (
 	github.com/go-ini/ini => gopkg.in/ini.v1 v1.67.0
@@ -31,7 +31,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/nyaruka/phonenumbers v1.6.8
 	github.com/pkg/errors v0.9.1
-	github.com/redis/go-redis/v9 v9.17.2
+	github.com/redis/go-redis/v9 v9.17.3
 	github.com/riverqueue/river v0.30.1
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.30.1
 	github.com/rs/zerolog v1.34.0
@@ -314,7 +314,7 @@ require (
 	github.com/tonistiigi/go-csvvalue v0.0.0-20240814133006-030d3b2625d0 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab // indirect
-	github.com/transparency-dev/formats v0.0.0-20260119090622-e70c80e9488a // indirect
+	github.com/transparency-dev/formats v0.0.0-20260126105629-a1e81f2894be // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
