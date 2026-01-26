@@ -284,7 +284,7 @@ func (db *DB) Listen(ctx context.Context, channel string) (*Listener, error) {
 		conn:    conn,
 		channel: channel,
 		done:    make(chan struct{}),
-		notifCh: make(chan *Notification, 100),
+		notifCh: make(chan *Notification, 1000),
 	}
 
 	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{channel}.Sanitize())
