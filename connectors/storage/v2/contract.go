@@ -6,9 +6,11 @@ import (
 	"context"
 	"io/fs"
 	"sync"
+	"sync/atomic"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Public API.
@@ -45,6 +47,24 @@ type (
 		EnsureLocked(ctx context.Context) error
 	}
 	PingOption func(*pingOptions)
+
+	Listener struct {
+		db         *DB
+		conn       atomic.Pointer[pgxpool.Conn]
+		channel    string
+		done       chan struct{}
+		notifCh    chan *Notification
+		wg         *errgroup.Group
+		lastErr    error
+		errMx      sync.RWMutex
+		cancelFunc context.CancelFunc
+		closeOnce  sync.Once
+	}
+	Notification struct {
+		Channel string
+		Payload string
+		PID     uint32
+	}
 )
 
 // Private API.
