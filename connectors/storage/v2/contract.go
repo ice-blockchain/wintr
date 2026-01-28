@@ -58,6 +58,7 @@ type (
 		connMx     sync.RWMutex
 		errMx      sync.RWMutex
 		cancelFunc context.CancelFunc
+		closeOnce  sync.Once
 	}
 	Notification struct {
 		Channel string

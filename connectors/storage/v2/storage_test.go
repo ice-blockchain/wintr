@@ -239,8 +239,6 @@ func TestListenNotify_SuccessfulFlow(t *testing.T) {
 	require.NotNil(t, listener)
 	defer func() { _ = listener.Close() }()
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-
 	notifications := []string{"message1", "message2", "message3"}
 	for _, msg := range notifications {
 		_, err := Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, msg)
@@ -317,13 +315,14 @@ func TestListenNotify_CloseCleanup(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, listener)
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-
 	err = listener.Close()
 	require.True(t, err == nil || errors.Is(err, context.Canceled), "unexpected error: %v", err)
 
 	_, ok := <-listener.Channel()
 	require.False(t, ok, "channel should be closed after Close()")
+
+	err = listener.Close()
+	require.NoError(t, err, "double close should not return error")
 }
 
 func TestListenNotify_ContextCancellation(t *testing.T) {
@@ -351,8 +350,6 @@ func TestListenNotify_ContextCancellation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, listener)
 	defer func() { _ = listener.Close() }()
-
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
 
 	cancel()
 
@@ -393,15 +390,11 @@ func TestListenNotify_NotificationBackpressure(t *testing.T) {
 	require.NotNil(t, listener)
 	defer func() { _ = listener.Close() }()
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-
 	numNotifications := 2000
 	for i := 0; i < numNotifications; i++ {
 		_, err := Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "message")
 		require.NoError(t, err)
 	}
-
-	stdlibtime.Sleep(1 * stdlibtime.Second)
 
 	receivedCount := 0
 	timeout := stdlibtime.After(5 * stdlibtime.Second)
@@ -452,8 +445,6 @@ func TestListenNotify_MultipleListeners(t *testing.T) {
 		listeners = append(listeners, listener)
 		defer func(l *Listener) { _ = l.Close() }(listener)
 	}
-
-	stdlibtime.Sleep(200 * stdlibtime.Millisecond)
 
 	testMessage := "broadcast_message"
 	_, err := Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, testMessage)
@@ -510,8 +501,6 @@ func TestListenNotify_ErrorReporting(t *testing.T) {
 
 	require.Nil(t, listener.Err())
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-
 	_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "test")
 	require.NoError(t, err)
 
@@ -554,9 +543,11 @@ func TestListenNotify_ConnectionRecovery(t *testing.T) {
 	require.NotNil(t, listener)
 	defer func() { _ = listener.Close() }()
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-	initialPID := listener.BackendPID()
-	require.NotZero(t, initialPID, "initial backend PID should not be zero")
+	var initialPID uint32
+	require.Eventually(t, func() bool {
+		initialPID = listener.BackendPID()
+		return initialPID != 0
+	}, 2*stdlibtime.Second, 50*stdlibtime.Millisecond, "listener should have non-zero backend PID")
 
 	_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "before_kill")
 	require.NoError(t, err)
@@ -575,15 +566,17 @@ func TestListenNotify_ConnectionRecovery(t *testing.T) {
 	_, err = Exec(ctx, db, `SELECT pg_terminate_backend($1)`, initialPID)
 	require.NoError(t, err)
 
-	stdlibtime.Sleep(2 * stdlibtime.Second)
-
-	newPID := listener.BackendPID()
-	require.NotEqual(t, initialPID, newPID, "should have reconnected with new PID")
-
-	_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "after_reconnect")
-	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		newPID := listener.BackendPID()
+		return newPID != 0 && newPID != initialPID
+	}, 5*stdlibtime.Second, 100*stdlibtime.Millisecond, "should reconnect with new PID")
 
 	require.Eventually(t, func() bool {
+		_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "after_reconnect")
+		if err != nil {
+			return false
+		}
+
 		select {
 		case notif := <-listener.Channel():
 			if notif != nil {
@@ -622,8 +615,6 @@ func TestListenNotify_ReconnectionWithMultipleFailures(t *testing.T) {
 	require.NotNil(t, listener)
 	defer func() { _ = listener.Close() }()
 
-	stdlibtime.Sleep(100 * stdlibtime.Millisecond)
-
 	_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, "message_0")
 	require.NoError(t, err)
 
@@ -639,39 +630,35 @@ func TestListenNotify_ReconnectionWithMultipleFailures(t *testing.T) {
 	}, 2*stdlibtime.Second, 10*stdlibtime.Millisecond, "timeout waiting for initial notification")
 
 	for i := 1; i <= 3; i++ {
-		currentPID := listener.BackendPID()
-		if currentPID == 0 {
-			stdlibtime.Sleep(2 * stdlibtime.Second)
+		var currentPID uint32
+		require.Eventually(t, func() bool {
 			currentPID = listener.BackendPID()
-		}
+			return currentPID != 0
+		}, 5*stdlibtime.Second, 100*stdlibtime.Millisecond, "iteration %d: should have valid PID before termination", i)
 
-		if currentPID != 0 {
-			_, err = Exec(ctx, db, `SELECT pg_terminate_backend($1)`, currentPID)
-			require.NoError(t, err)
-
-			stdlibtime.Sleep(2 * stdlibtime.Second)
-		}
-
-		messageSent := false
-		for attempt := 0; attempt < 5; attempt++ {
-			_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, fmt.Sprintf("message_%d", i))
-			if err == nil {
-				messageSent = true
-				break
-			}
-			stdlibtime.Sleep(500 * stdlibtime.Millisecond)
-		}
-
-		require.True(t, messageSent, "should be able to send notification after reconnection %d", i)
+		_, err = Exec(ctx, db, `SELECT pg_terminate_backend($1)`, currentPID)
+		require.NoError(t, err)
 
 		require.Eventually(t, func() bool {
-			select {
-			case notif := <-listener.Channel():
-				require.NotNil(t, notif)
-				return true
-			default:
+			newPID := listener.BackendPID()
+			return newPID != 0 && newPID != currentPID
+		}, 5*stdlibtime.Second, 100*stdlibtime.Millisecond, "iteration %d: should reconnect with new PID", i)
+
+		messagePayload := fmt.Sprintf("message_%d", i)
+		require.Eventually(t, func() bool {
+			_, err = Exec(ctx, db, `SELECT pg_notify($1, $2)`, channel, messagePayload)
+			if err != nil {
 				return false
 			}
-		}, 5*stdlibtime.Second, 100*stdlibtime.Millisecond, "timeout waiting for notification after reconnection %d", i)
+
+			select {
+			case notif := <-listener.Channel():
+				if notif != nil {
+					return true
+				}
+			default:
+			}
+			return false
+		}, 5*stdlibtime.Second, 100*stdlibtime.Millisecond, "iteration %d: should receive notification after reconnection", i)
 	}
 }

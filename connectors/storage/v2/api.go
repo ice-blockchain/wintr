@@ -505,9 +505,6 @@ func (l *Listener) isConnectionError(err error) bool {
 			return true
 		}
 	}
-	if errors.Is(err, net.ErrClosed) {
-		return true
-	}
 
 	return false
 }
@@ -527,10 +524,14 @@ func (l *Listener) BackendPID() uint32 {
 }
 
 func (l *Listener) Close() error {
-	l.cancelFunc()
-	close(l.done)
+	var err error
+	l.closeOnce.Do(func() {
+		l.cancelFunc()
+		close(l.done)
+		err = l.wg.Wait()
+	})
 
-	return l.wg.Wait()
+	return err
 }
 
 func (l *Listener) Err() error {

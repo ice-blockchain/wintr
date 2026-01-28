@@ -52,7 +52,7 @@ require (
 	github.com/zeebo/xxh3 v1.1.0
 	golang.org/x/net v0.49.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/api v0.262.0
+	google.golang.org/api v0.263.0
 )
 
 require (
@@ -240,7 +240,7 @@ require (
 	github.com/moby/moby/api v1.53.0 // indirect
 	github.com/moby/moby/client v0.2.2 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
-	github.com/moby/policy-helpers v0.0.0-20251206004813-9fcc1a9ec5c9 // indirect
+	github.com/moby/policy-helpers v0.0.0-20260127165209-eeebf1a0ab2b // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/capability v0.4.0 // indirect
@@ -362,9 +362,9 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20260126211449-d11affda4bed // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260126211449-d11affda4bed // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260126211449-d11affda4bed // indirect
+	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -375,7 +375,7 @@ require (
 	k8s.io/apimachinery v0.35.0 // indirect
 	k8s.io/client-go v0.35.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20251125145642-4e65d59e963e // indirect
+	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
