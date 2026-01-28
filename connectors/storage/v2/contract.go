@@ -6,6 +6,7 @@ import (
 	"context"
 	"io/fs"
 	"sync"
+	"sync/atomic"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -49,13 +50,12 @@ type (
 
 	Listener struct {
 		db         *DB
-		conn       *pgxpool.Conn
+		conn       atomic.Pointer[pgxpool.Conn]
 		channel    string
 		done       chan struct{}
 		notifCh    chan *Notification
 		wg         *errgroup.Group
 		lastErr    error
-		connMx     sync.RWMutex
 		errMx      sync.RWMutex
 		cancelFunc context.CancelFunc
 		closeOnce  sync.Once
