@@ -821,6 +821,10 @@ func (l *lb) XInfoConsumers(ctx context.Context, key, group string) *redis.XInfo
 	return l.instance().XInfoConsumers(ctx, key, group)
 }
 
+func (l *lb) XCfgSet(ctx context.Context, a *redis.XCfgSetArgs) *redis.StatusCmd {
+	return l.instance().XCfgSet(ctx, a)
+}
+
 func (l *lb) BZPopMax(ctx context.Context, timeout stdlibtime.Duration, keys ...string) *redis.ZWithKeyCmd {
 	return l.instance().BZPopMax(ctx, timeout, keys...)
 }
