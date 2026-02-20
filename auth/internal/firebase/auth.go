@@ -63,7 +63,13 @@ func (a *auth) VerifyToken(ctx context.Context, token string) (*internal.Token, 
 		return nil, errors.Wrap(vErr, "error verifying firebase token")
 	}
 	if (!a.allowEmailPassword) && firebaseToken.Firebase.SignInProvider == passwordSignInProvider {
-		return nil, errors.Wrapf(ErrForbidden, "%v sign_in_provider is not allowed", firebaseToken.Firebase.SignInProvider)
+		emailVerified := false
+		if emailVerifiedInterface, found := firebaseToken.Claims["email_verified"]; found {
+			emailVerified, _ = emailVerifiedInterface.(bool) //nolint:errcheck,revive // Not needed.
+		}
+		if !emailVerified {
+			return nil, errors.Wrapf(ErrForbidden, "%v sign_in_provider is not allowed without verified email", firebaseToken.Firebase.SignInProvider)
+		}
 	}
 	var email, role string
 	userID := firebaseToken.UID
